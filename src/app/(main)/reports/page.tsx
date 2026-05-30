@@ -251,6 +251,37 @@ export default function ReportsPage() {
               ))}
             </div>
           </CardContent></Card>
+
+          {/* Peringatan Expired */}
+          <Card><CardHeader><h3 className="text-base font-semibold text-[#072C2C]">Peringatan Expired</h3></CardHeader><CardContent className="p-0">
+            <div>
+              {/* Mock expired data */}
+              {[
+                { name: "Susu Indomilk 1L", stock: 3, unit: "Kotak", expiry: "2026-05-20", daysLeft: -11 },
+                { name: "Kopi Kapal Api 165g", stock: 5, unit: "Bungkus", expiry: "2026-06-15", daysLeft: 15 },
+                { name: "Minyak Goreng Bimoli 2L", stock: 8, unit: "Botol", expiry: "2026-07-20", daysLeft: 50 },
+              ].map((item, idx) => {
+                const isExpired = item.daysLeft < 0;
+                const isUrgent = item.daysLeft >= 0 && item.daysLeft <= 30;
+                const isWatch = item.daysLeft > 30 && item.daysLeft <= 90;
+                const bgClass = isExpired ? "bg-[#FEF2F2]" : isUrgent ? "bg-[#FFFBEB]" : "bg-[#F0FDF4]";
+                const labelClass = isExpired ? "text-[#DC2626] bg-[#DC2626]/10" : isUrgent ? "text-[#D97706] bg-[#D97706]/10" : "text-[#16A34A] bg-[#16A34A]/10";
+                const label = isExpired ? "🔴 Segera Tarik" : isUrgent ? "🟡 Perlu Perhatian" : "🟢 Pantau Stok";
+                return (
+                  <div key={idx} className={`flex items-center justify-between px-3.5 py-3 border-b border-[#D9D6C8] last:border-b-0 ${bgClass}`}>
+                    <div>
+                      <p className="text-sm font-medium text-[#072C2C]">{item.name}</p>
+                      <p className="text-[10px] text-[#9CA3AF]">Stok: {item.stock} {item.unit} · Exp: {new Date(item.expiry).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${labelClass}`}>{label}</span>
+                      <p className="text-[9px] text-[#9CA3AF] mt-0.5">{isExpired ? `${Math.abs(item.daysLeft)} hari lewat` : `${item.daysLeft} hari lagi`}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent></Card>
         </div>
       )}
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Edit, Trash2, Package } from "lucide-react";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
@@ -12,7 +13,6 @@ import { products, categories } from "@/data/mock-data";
 import { Product } from "@/types";
 
 export default function ProductsPage() {
-  const [showAddModal, setShowAddModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedCategory, setSelectedCategory] = useState("");
 
@@ -52,7 +52,7 @@ export default function ProductsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Manajemen Produk</h1><p className="text-[10px] text-[#9CA3AF] font-light mt-0.5">Kelola semua produk toko Anda</p></div>
-        <Button onClick={() => setShowAddModal(true)}><Plus className="w-4 h-4" />Tambah Produk</Button>
+        <Link href="/products/tambah"><Button><Plus className="w-4 h-4" />Tambah Produk</Button></Link>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -66,9 +66,6 @@ export default function ProductsPage() {
 
       <Card><CardContent><DataTable columns={columns} data={filteredProducts} searchPlaceholder="Cari produk, SKU, atau barcode..." searchKeys={["name", "sku", "barcode", "category"]} /></CardContent></Card>
 
-      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Tambah Produk Baru" size="xl">
-        <ProductForm onClose={() => setShowAddModal(false)} />
-      </Modal>
       <Modal isOpen={!!editingProduct} onClose={() => setEditingProduct(null)} title="Edit Produk" size="xl">
         {editingProduct && <ProductForm product={editingProduct} onClose={() => setEditingProduct(null)} />}
       </Modal>
