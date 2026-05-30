@@ -16,23 +16,23 @@ export default function Modal({ isOpen, onClose, title, children, size = "md" }:
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+      <div className="fixed inset-0 bg-[#072C2C]/60 backdrop-blur-sm" onClick={onClose} />
       <div
         className={cn(
-          "relative bg-white rounded-xl shadow-xl w-full max-h-[90vh] overflow-y-auto",
+          "relative bg-white rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto border border-[#072C2C]/10",
           size === "sm" && "max-w-sm",
           size === "md" && "max-w-md",
           size === "lg" && "max-w-lg",
           size === "xl" && "max-w-2xl"
         )}
       >
-        <div className="sticky top-0 bg-white flex items-center justify-between px-5 py-4 border-b border-gray-100 rounded-t-xl z-10">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-          <button onClick={onClose} className="p-1 rounded-md hover:bg-gray-100 transition-colors cursor-pointer">
-            <X className="w-5 h-5 text-gray-500" />
+        <div className="sticky top-0 bg-white flex items-center justify-between px-6 py-4 border-b border-[#072C2C]/10 rounded-t-2xl z-10">
+          <h2 className="text-lg font-bold text-[#072C2C]">{title}</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#EDEADE] transition-colors cursor-pointer">
+            <X className="w-5 h-5 text-[#072C2C]/60" />
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="p-6">{children}</div>
       </div>
     </div>
   );

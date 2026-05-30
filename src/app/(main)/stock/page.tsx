@@ -46,7 +46,7 @@ export default function StockPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div><h1 className="text-2xl font-bold text-gray-900">Manajemen Stok</h1><p className="text-sm text-gray-500 mt-1">Pantau dan kelola stok barang</p></div>
+        <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald]">Manajemen Stok</h1><p className="text-sm text-[#072C2C]/60 mt-1">Pantau dan kelola stok barang</p></div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => setShowInModal(true)}><ArrowDownToLine className="w-4 h-4" />Masuk</Button>
           <Button variant="outline" onClick={() => setShowOutModal(true)}><ArrowUpFromLine className="w-4 h-4" />Keluar</Button>
@@ -55,15 +55,15 @@ export default function StockPage() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-sm text-gray-500">Total Produk</p><p className="text-2xl font-bold text-gray-900 mt-1">{products.length}</p></div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-sm text-gray-500">Stok Aman</p><p className="text-2xl font-bold text-green-600 mt-1">{products.length - lowStock.length}</p></div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-sm text-gray-500">Stok Menipis</p><p className="text-2xl font-bold text-yellow-600 mt-1">{lowStock.filter(p => p.stock > 0).length}</p></div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-sm text-gray-500">Stok Habis</p><p className="text-2xl font-bold text-red-600 mt-1">{lowStock.filter(p => p.stock <= 0).length}</p></div>
+        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><p className="text-sm text-[#072C2C]/60">Total Produk</p><p className="text-2xl font-bold text-[#072C2C] mt-1">{products.length}</p></div>
+        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><p className="text-sm text-[#072C2C]/60">Stok Aman</p><p className="text-2xl font-bold text-[#16A34A] mt-1">{products.length - lowStock.length}</p></div>
+        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><p className="text-sm text-[#072C2C]/60">Stok Menipis</p><p className="text-2xl font-bold text-[#D97706] mt-1">{lowStock.filter(p => p.stock > 0).length}</p></div>
+        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><p className="text-sm text-[#072C2C]/60">Stok Habis</p><p className="text-2xl font-bold text-[#DC2626] mt-1">{lowStock.filter(p => p.stock <= 0).length}</p></div>
       </div>
 
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+      <div className="flex gap-1 bg-[#072C2C]/5 rounded-xl p-1">
         {tabs.map((tab) => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer ${activeTab === tab.id ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${activeTab === tab.id ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/50 hover:text-[#072C2C]/80"}`}>
             <tab.icon className="w-4 h-4" />{tab.label}
           </button>
         ))}

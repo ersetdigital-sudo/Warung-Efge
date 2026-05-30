@@ -51,16 +51,16 @@ export default function ProductsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div><h1 className="text-2xl font-bold text-gray-900">Manajemen Produk</h1><p className="text-sm text-gray-500 mt-1">Kelola semua produk toko Anda</p></div>
+        <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald]">Manajemen Produk</h1><p className="text-sm text-[#072C2C]/60 mt-1">Kelola semua produk toko Anda</p></div>
         <Button onClick={() => setShowAddModal(true)}><Plus className="w-4 h-4" />Tambah Produk</Button>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <button onClick={() => setSelectedCategory("")} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${!selectedCategory ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>Semua ({products.length})</button>
+        <button onClick={() => setSelectedCategory("")} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${!selectedCategory ? "bg-[#072C2C] text-white" : "bg-white text-[#072C2C]/70 border border-[#072C2C]/10 hover:border-[#FF5F03]/30"}`}>Semua ({products.length})</button>
         {categories.map((cat) => {
           const count = products.filter((p) => p.category === cat.name).length;
           if (count === 0) return null;
-          return <button key={cat.id} onClick={() => setSelectedCategory(cat.name)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${selectedCategory === cat.name ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>{cat.name} ({count})</button>;
+          return <button key={cat.id} onClick={() => setSelectedCategory(cat.name)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${selectedCategory === cat.name ? "bg-[#072C2C] text-white" : "bg-white text-[#072C2C]/70 border border-[#072C2C]/10 hover:border-[#FF5F03]/30"}`}>{cat.name} ({count})</button>;
         })}
       </div>
 

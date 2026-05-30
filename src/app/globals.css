@@ -1,25 +1,56 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #0a0a0a;
+  --color-primary: #072C2C;
+  --color-secondary: #FF5F03;
+  --color-success: #16A34A;
+  --color-warning: #D97706;
+  --color-danger: #DC2626;
+  --color-surface: #EDEADE;
+  --color-text: #111827;
+  --background: #EDEADE;
+  --foreground: #111827;
   color-scheme: light;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Ubuntu", var(--font-geist-sans);
+  --font-mono: "Ubuntu Mono", var(--font-geist-mono);
+  --font-display: "Oswald", sans-serif;
+  --color-primary: #072C2C;
+  --color-secondary: #FF5F03;
+  --color-surface: #EDEADE;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: "Ubuntu", sans-serif;
 }
 
 select,
 select option {
   color: #111827;
   background-color: #ffffff;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #072C2C33;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #072C2C66;
 }

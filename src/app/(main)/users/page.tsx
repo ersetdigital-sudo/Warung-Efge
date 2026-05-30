@@ -41,13 +41,13 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div><h1 className="text-2xl font-bold text-gray-900">Manajemen Pengguna</h1><p className="text-sm text-gray-500 mt-1">Kelola akun dan hak akses</p></div>
+        <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald]">Manajemen Pengguna</h1><p className="text-sm text-[#072C2C]/60 mt-1">Kelola akun dan hak akses</p></div>
         <Button onClick={() => setShowAddModal(true)}><Plus className="w-4 h-4" />Tambah Pengguna</Button>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4"><div className="flex items-center gap-2 mb-2"><ShieldCheck className="w-5 h-5 text-red-500" /><span className="text-sm font-medium">Owner</span></div><p className="text-xs text-gray-500">Akses penuh ke semua fitur</p></div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4"><div className="flex items-center gap-2 mb-2"><Shield className="w-5 h-5 text-blue-500" /><span className="text-sm font-medium">Admin</span></div><p className="text-xs text-gray-500">Kelola produk, stok, supplier, pelanggan</p></div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4"><div className="flex items-center gap-2 mb-2"><UserIcon className="w-5 h-5 text-gray-500" /><span className="text-sm font-medium">Kasir</span></div><p className="text-xs text-gray-500">Akses kasir dan catat transaksi</p></div>
+        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><div className="flex items-center gap-2 mb-2"><ShieldCheck className="w-5 h-5 text-[#DC2626]" /><span className="text-sm font-semibold text-[#072C2C]">Owner</span></div><p className="text-xs text-[#072C2C]/50">Akses penuh ke semua fitur</p></div>
+        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><div className="flex items-center gap-2 mb-2"><Shield className="w-5 h-5 text-[#FF5F03]" /><span className="text-sm font-semibold text-[#072C2C]">Admin</span></div><p className="text-xs text-[#072C2C]/50">Kelola produk, stok, supplier, pelanggan</p></div>
+        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><div className="flex items-center gap-2 mb-2"><UserIcon className="w-5 h-5 text-[#072C2C]/50" /><span className="text-sm font-semibold text-[#072C2C]">Kasir</span></div><p className="text-xs text-[#072C2C]/50">Akses kasir dan catat transaksi</p></div>
       </div>
       <Card><CardContent><DataTable columns={columns} data={users} searchPlaceholder="Cari pengguna..." searchKeys={["name", "email", "role"]} /></CardContent></Card>
 

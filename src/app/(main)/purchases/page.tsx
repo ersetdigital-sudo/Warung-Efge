@@ -33,13 +33,13 @@ export default function PurchasesPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div><h1 className="text-2xl font-bold text-gray-900">Pembelian</h1><p className="text-sm text-gray-500 mt-1">Kelola pembelian barang dari supplier</p></div>
+        <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald]">Pembelian</h1><p className="text-sm text-[#072C2C]/60 mt-1">Kelola pembelian barang dari supplier</p></div>
         <Button onClick={() => setShowAddModal(true)}><Plus className="w-4 h-4" />Buat Pembelian</Button>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-sm text-gray-500">Total Pembelian</p><p className="text-2xl font-bold text-gray-900 mt-1">{purchases.length}</p></div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-sm text-gray-500">Total Nilai</p><p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(purchases.reduce((s, p) => s + p.totalAmount, 0))}</p></div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-sm text-gray-500">Belum Lunas</p><p className="text-2xl font-bold text-orange-600 mt-1">{purchases.filter((p) => p.status !== "paid").length}</p></div>
+        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><p className="text-sm text-[#072C2C]/60">Total Pembelian</p><p className="text-2xl font-bold text-[#072C2C] mt-1">{purchases.length}</p></div>
+        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><p className="text-sm text-[#072C2C]/60">Total Nilai</p><p className="text-2xl font-bold text-[#072C2C] mt-1">{formatCurrency(purchases.reduce((s, p) => s + p.totalAmount, 0))}</p></div>
+        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><p className="text-sm text-[#072C2C]/60">Belum Lunas</p><p className="text-2xl font-bold text-[#D97706] mt-1">{purchases.filter((p) => p.status !== "paid").length}</p></div>
       </div>
       <Card><CardContent><DataTable columns={columns} data={purchases} searchPlaceholder="Cari nomor PO atau supplier..." searchKeys={["id", "supplierName"]} /></CardContent></Card>
 
