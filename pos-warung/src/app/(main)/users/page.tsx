@@ -1,0 +1,209 @@
+'use client';
+
+import { useState } from 'react';
+import { Plus, Edit, Trash2, Shield, ShieldCheck, User as UserIcon } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import Modal from '@/components/ui/Modal';
+import DataTable from '@/components/ui/DataTable';
+import { formatDate } from '@/lib/utils';
+import { users } from '@/data/mock-data';
+import { User } from '@/types';
+
+export default function UsersPage() {
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+
+  const roleLabels: Record<string, string> = { owner: 'Owner', admin: 'Admin', cashier: 'Kasir' };
+  const roleIcons: Record<string, typeof Shield> = { owner: ShieldCheck, admin: Shield, cashier: UserIcon };
+  const roleColors: Record<string, 'danger' | 'info' | 'default'> = { owner: 'danger', admin: 'info', cashier: 'default' };
+
+  const columns = [
+    {
+      key: 'name',
+      label: 'Nama',
+      sortable: true,
+      render: (item: User) => (
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+            <span className="text-white text-sm font-medium">{item.name.charAt(0)}</span>
+          </div>
+          <div>
+            <p className="font-medium text-gray-900">{item.name}</p>
+            <p className="text-xs text-gray-500">{item.email}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'role',
+      label: 'Role',
+      render: (item: User) => {
+        const Icon = roleIcons[item.role];
+        return (
+          <Badge variant={roleColors[item.role]}>
+            <Icon className="w-3 h-3 mr-1" />
+            {roleLabels[item.role]}
+          </Badge>
+        );
+      },
+    },
+    {
+      key: 'isActive',
+      label: 'Status',
+      render: (item: User) => (
+        <Badge variant={item.isActive ? 'success' : 'default'}>
+          {item.isActive ? 'Aktif' : 'Nonaktif'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'createdAt',
+      label: 'Terdaftar',
+      render: (item: User) => (
+        <span className="text-sm text-gray-500">{formatDate(item.createdAt)}</span>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Aksi',
+      render: (item: User) => (
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setEditingUser(item)}
+            className="p-1.5 rounded-md hover:bg-blue-50 text-blue-600 transition-colors"
+          >
+            <Edit className="w-4 h-4" />
+          </button>
+          {item.role !== 'owner' && (
+            <button className="p-1.5 rounded-md hover:bg-red-50 text-red-600 transition-colors">
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Manajemen Pengguna</h1>
+          <p className="text-sm text-gray-500 mt-1">Kelola akun dan hak akses pengguna</p>
+        </div>
+        <Button onClick={() => setShowAddModal(true)}>
+          <Plus className="w-4 h-4" />
+          Tambah Pengguna
+        </Button>
+      </div>
+
+      {/* Role Info */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <ShieldCheck className="w-5 h-5 text-red-500" />
+            <span className="text-sm font-medium text-gray-900">Owner</span>
+          </div>
+          <p className="text-xs text-gray-500">Akses penuh ke semua fitur termasuk laporan keuangan dan manajemen pengguna</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Shield className="w-5 h-5 text-blue-500" />
+            <span className="text-sm font-medium text-gray-900">Admin</span>
+          </div>
+          <p className="text-xs text-gray-500">Kelola produk, stok, supplier, pelanggan, dan pembelian. Tidak bisa kelola pengguna</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <UserIcon className="w-5 h-5 text-gray-500" />
+            <span className="text-sm font-medium text-gray-900">Kasir</span>
+          </div>
+          <p className="text-xs text-gray-500">Akses ke kasir (POS), lihat produk, dan catat transaksi. Akses terbatas</p>
+        </div>
+      </div>
+
+      <Card>
+        <CardContent>
+          <DataTable
+            columns={columns}
+            data={users}
+            searchPlaceholder="Cari pengguna..."
+            searchKeys={['name', 'email', 'role']}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Add Modal */}
+      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Tambah Pengguna" size="md">
+        <UserForm onClose={() => setShowAddModal(false)} />
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal isOpen={!!editingUser} onClose={() => setEditingUser(null)} title="Edit Pengguna" size="md">
+        {editingUser && <UserForm user={editingUser} onClose={() => setEditingUser(null)} />}
+      </Modal>
+    </div>
+  );
+}
+
+function UserForm({ user, onClose }: { user?: User; onClose: () => void }) {
+  return (
+    <form className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
+        <input
+          type="text"
+          defaultValue={user?.name}
+          placeholder="Nama lengkap"
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <input
+          type="email"
+          defaultValue={user?.email}
+          placeholder="email@contoh.com"
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+      {!user && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+          <input
+            type="password"
+            placeholder="Minimal 8 karakter"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      )}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+        <select
+          defaultValue={user?.role}
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Pilih Role</option>
+          <option value="admin">Admin</option>
+          <option value="cashier">Kasir</option>
+        </select>
+      </div>
+      <div>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            defaultChecked={user?.isActive ?? true}
+            className="w-4 h-4 text-blue-600 rounded"
+          />
+          <span className="text-sm text-gray-700">Aktif</span>
+        </label>
+      </div>
+      <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+        <Button variant="secondary" onClick={onClose} type="button">Batal</Button>
+        <Button type="button" onClick={onClose}>{user ? 'Simpan' : 'Tambah'}</Button>
+      </div>
+    </form>
+  );
+}
