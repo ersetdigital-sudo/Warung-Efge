@@ -123,7 +123,7 @@ export default function POSPage() {
 
           {/* Product Grid */}
           <div className="flex-1 overflow-y-auto px-3 sm:px-4 lg:px-5 pb-20 lg:pb-5">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-2.5 lg:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-2 sm:gap-2.5 lg:gap-3">
               {filteredProducts.map((product) => {
                 const isLowStock = product.stock <= product.minStock;
                 const inCart = cart.find((item) => item.productId === product.id);
