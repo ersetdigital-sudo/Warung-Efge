@@ -140,11 +140,11 @@ export default function ReportsPage() {
         )}
       </div>
 
-      {/* Tabs - grid on mobile, not scrollable */}
-      <div className="grid grid-cols-4 sm:flex sm:gap-1 bg-[#072C2C]/5 rounded-md p-1">
+      {/* Tabs - 2x2 grid on mobile, inline on desktop */}
+      <div className="grid grid-cols-2 sm:flex sm:gap-1 bg-[#072C2C]/5 rounded-md p-1 gap-1">
         {reports.map((r) => (
-          <button key={r.id} onClick={() => setActiveReport(r.id)} className={`flex items-center justify-center sm:justify-start gap-1 sm:gap-1.5 px-2 sm:px-3 lg:px-4 py-2 rounded text-[11px] sm:text-xs lg:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${activeReport === r.id ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/50 hover:text-[#072C2C]/80"}`}>
-            <r.icon className="w-4 h-4" /><span className="hidden sm:inline">{r.label}</span>
+          <button key={r.id} onClick={() => setActiveReport(r.id)} className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${activeReport === r.id ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/50 hover:text-[#072C2C]/80"}`}>
+            <r.icon className="w-4 h-4" />{r.label}
           </button>
         ))}
       </div>
