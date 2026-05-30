@@ -60,18 +60,18 @@ export default function ReportsPage() {
       <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Laporan</h1><p className="text-[10px] text-[#9CA3AF] font-light mt-0.5">Analisis keuangan dan performa toko</p></div>
 
       {/* Period Filter */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
         {periods.map((p) => (
-          <button key={p.id} onClick={() => setPeriod(p.id)} className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${period === p.id ? "bg-[#FF5F03] text-white" : "bg-white border border-[#D9D6C8] text-[#072C2C]/60 hover:border-[#FF5F03]/40 hover:text-[#072C2C]"}`}>
+          <button key={p.id} onClick={() => setPeriod(p.id)} className={`flex-shrink-0 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${period === p.id ? "bg-[#FF5F03] text-white" : "bg-white border border-[#D9D6C8] text-[#072C2C]/60 hover:border-[#FF5F03]/40 hover:text-[#072C2C]"}`}>
             {p.label}
           </button>
         ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-[#072C2C]/5 rounded-md p-1">
+      <div className="flex gap-1 bg-[#072C2C]/5 rounded-md p-1 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
         {reports.map((r) => (
-          <button key={r.id} onClick={() => setActiveReport(r.id)} className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium transition-all cursor-pointer ${activeReport === r.id ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/50 hover:text-[#072C2C]/80"}`}>
+          <button key={r.id} onClick={() => setActiveReport(r.id)} className={`flex-shrink-0 flex items-center gap-1.5 px-3 lg:px-4 py-2 rounded text-xs lg:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${activeReport === r.id ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/50 hover:text-[#072C2C]/80"}`}>
             <r.icon className="w-4 h-4" />{r.label}
           </button>
         ))}

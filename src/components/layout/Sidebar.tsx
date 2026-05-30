@@ -55,24 +55,19 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
 
   return (
     <>
-      {/* Mobile overlay - for tablet */}
+      {/* Mobile/tablet overlay */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 hidden md:block lg:hidden" onClick={onClose} />
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />
       )}
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#D9D6C8] flex items-center justify-around px-2 shadow-[0_-2px_10px_rgba(0,0,0,0.06)]" style={{ height: "64px", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-        {[
-          { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-          { href: "/pos", icon: ShoppingCart, label: "Kasir" },
-          { href: "/stock", icon: Boxes, label: "Stok" },
-          { href: "/reports", icon: BarChart3, label: "Laporan" },
-        ].map((item) => {
+        {menuItems.map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
           return (
-            <Link key={item.href} href={item.href} className={cn("flex flex-col items-center justify-center gap-0.5 min-w-[56px] min-h-[44px] rounded-lg transition-all active:scale-90 active:opacity-70", isActive ? "text-[#FF5F03]" : "text-[#9CA3AF]")}>
+            <Link key={item.href} href={item.href} className={cn("flex flex-col items-center justify-center gap-0.5 min-w-[40px] min-h-[44px] rounded-lg transition-all active:scale-90 active:opacity-70", isActive ? "text-[#FF5F03]" : "text-[#9CA3AF]")}>
               <item.icon className="w-5 h-5" strokeWidth={isActive ? 2.2 : 1.5} />
-              <span className={cn("text-[10px]", isActive ? "font-semibold" : "font-medium")}>{item.label}</span>
+              <span className={cn("text-[9px]", isActive ? "font-semibold" : "font-medium")}>{item.label.split(" ")[0]}</span>
             </Link>
           );
         })}
@@ -81,10 +76,11 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
       {/* Desktop/Tablet sidebar */}
       <aside
         className={cn(
-          "hidden md:flex fixed top-0 left-0 z-50 h-full bg-[#072C2C] flex-col transition-all duration-[220ms] ease-in-out lg:static lg:z-auto",
+          "fixed top-0 left-0 z-50 h-full bg-[#072C2C] flex-col transition-all duration-[220ms] ease-in-out lg:static lg:z-auto",
           collapsed ? "w-[68px]" : "w-64",
-          // Mobile slide-in (for tablet when manually opened)
-          isOpen ? "translate-x-0" : "md:-translate-x-full lg:translate-x-0"
+          "hidden md:flex",
+          // Mobile slide-in
+          isOpen && "!flex !fixed !z-50"
         )}
       >
         {/* Brand */}

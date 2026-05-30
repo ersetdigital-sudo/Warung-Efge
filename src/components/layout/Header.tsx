@@ -10,7 +10,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 shadow-sm">
       <div className="flex items-center gap-4">
-        <button onClick={onMenuClick} className="hidden md:block lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+        <button onClick={onMenuClick} className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
           <Menu className="w-5 h-5 text-[#072C2C]" />
         </button>
         <div className="hidden md:flex items-center gap-2 bg-[#EDEADE] rounded-lg px-4 py-2.5 w-80 border border-[#072C2C]/10">
