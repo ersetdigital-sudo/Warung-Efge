@@ -3,13 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #0a0a0a;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: light;
 }
 
 @theme inline {
@@ -22,4 +16,10 @@
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+select,
+select option {
+  color: #111827;
+  background-color: #ffffff;
 }

@@ -83,10 +83,10 @@ export default function StockPage() {
 function StockForm({ onClose }: { onClose: () => void }) {
   return (
     <form className="space-y-4">
-      <div><label className="block text-sm font-medium text-gray-700 mb-1">Produk</label><select className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><option value="">Pilih Produk</option>{products.map((p) => <option key={p.id} value={p.id}>{p.name} (Stok: {p.stock} {p.unit})</option>)}</select></div>
+      <div><label className="block text-sm font-medium text-gray-700 mb-1">Produk</label><select className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"><option value="">Pilih Produk</option>{products.map((p) => <option key={p.id} value={p.id}>{p.name} (Stok: {p.stock} {p.unit})</option>)}</select></div>
       <div className="grid grid-cols-2 gap-4">
         <div><label className="block text-sm font-medium text-gray-700 mb-1">Jumlah</label><input type="number" placeholder="0" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">Satuan</label><select className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><option>Pcs</option><option>Dus</option><option>Pak</option><option>Kg</option><option>Karung</option></select></div>
+        <div><label className="block text-sm font-medium text-gray-700 mb-1">Satuan</label><select className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"><option>Pcs</option><option>Dus</option><option>Pak</option><option>Kg</option><option>Karung</option></select></div>
       </div>
       <div><label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label><textarea placeholder="Alasan..." rows={2} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
       <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">

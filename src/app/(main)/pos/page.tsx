@@ -92,7 +92,7 @@ export default function POSPage() {
             <h2 className="font-semibold text-gray-900 flex items-center gap-2"><ShoppingCart className="w-4 h-4" />Keranjang</h2>
             <Badge variant="info">{cart.length} item</Badge>
           </div>
-          <select value={selectedCustomer} onChange={(e) => setSelectedCustomer(e.target.value)} className="mt-2 w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <select value={selectedCustomer} onChange={(e) => setSelectedCustomer(e.target.value)} className="mt-2 w-full px-3 py-1.5 text-xs text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">Pelanggan Umum</option>
             {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>

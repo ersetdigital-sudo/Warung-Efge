@@ -46,14 +46,14 @@ export default function PurchasesPage() {
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Buat Pembelian Baru" size="xl">
         <form className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">Supplier</label><select className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><option value="">Pilih Supplier</option>{suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Supplier</label><select className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"><option value="">Pilih Supplier</option>{suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Tanggal</label><input type="date" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
           </div>
           <div className="border-t border-gray-100 pt-4"><h4 className="text-sm font-semibold text-gray-900 mb-3">Item Pembelian</h4>
             <div className="grid grid-cols-12 gap-2 items-end">
-              <div className="col-span-5"><select className="w-full px-2 py-2 border border-gray-200 rounded-lg text-sm"><option value="">Pilih Produk</option>{products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
+              <div className="col-span-5"><select className="w-full px-2 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"><option value="">Pilih Produk</option>{products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
               <div className="col-span-2"><input type="number" placeholder="Qty" className="w-full px-2 py-2 border border-gray-200 rounded-lg text-sm" /></div>
-              <div className="col-span-2"><select className="w-full px-2 py-2 border border-gray-200 rounded-lg text-sm"><option>Pcs</option><option>Dus</option><option>Pak</option></select></div>
+              <div className="col-span-2"><select className="w-full px-2 py-2 border border-gray-200 rounded-lg text-sm text-gray-900"><option>Pcs</option><option>Dus</option><option>Pak</option></select></div>
               <div className="col-span-2"><input type="number" placeholder="Harga" className="w-full px-2 py-2 border border-gray-200 rounded-lg text-sm" /></div>
               <div className="col-span-1"><Button size="sm">+</Button></div>
             </div>
