@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 import {
   LayoutDashboard,
   Package,
@@ -15,11 +16,15 @@ import {
   UserCircle,
   X,
   Store,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
 const menuItems = [
@@ -34,57 +39,112 @@ const menuItems = [
   { href: "/users", icon: UserCircle, label: "Pengguna" },
 ];
 
-export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+function NavTooltip({ label, show }: { label: string; show: boolean }) {
+  if (!show) return null;
+  return (
+    <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 px-2.5 py-1.5 bg-[#072C2C] text-white text-xs font-medium rounded-md whitespace-nowrap shadow-lg animate-in fade-in duration-150 pointer-events-none">
+      {label}
+      <div className="absolute top-1/2 -translate-y-1/2 -left-1 w-2 h-2 bg-[#072C2C] rotate-45" />
+    </div>
+  );
+}
+
+export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   return (
     <>
+      {/* Mobile overlay */}
       {isOpen && (
         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />
       )}
 
+      {/* Mobile bottom nav */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#072C2C] border-t border-white/10 flex items-center justify-around px-2 py-2 safe-area-pb">
+        {menuItems.slice(0, 5).map((item) => {
+          const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
+          return (
+            <Link key={item.href} href={item.href} className={cn("flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg", isActive ? "text-[#FF5F03]" : "text-white/50")}>
+              <item.icon className="w-5 h-5" />
+              <span className="text-[9px] font-medium">{item.label.split(" ")[0]}</span>
+            </Link>
+          );
+        })}
+        <button onClick={() => { /* could show more menu */ }} className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-white/50">
+          <BarChart3 className="w-5 h-5" />
+          <span className="text-[9px] font-medium">Lainnya</span>
+        </button>
+      </nav>
+
+      {/* Desktop/Tablet sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-50 h-full w-64 bg-[#072C2C] transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-auto",
-          isOpen ? "translate-x-0" : "-translate-x-full"
+          "hidden md:flex fixed top-0 left-0 z-50 h-full bg-[#072C2C] flex-col transition-all duration-[220ms] ease-in-out lg:static lg:z-auto",
+          collapsed ? "w-[68px]" : "w-64",
+          // Mobile slide-in (for tablet when manually opened)
+          isOpen ? "translate-x-0" : "md:-translate-x-full lg:translate-x-0"
         )}
       >
-        <div className="flex items-center justify-between h-16 px-4 border-b border-white/10">
-          <Link href="/dashboard" className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-[#FF5F03] rounded-lg flex items-center justify-center">
+        {/* Brand */}
+        <div className={cn("flex items-center h-16 border-b border-white/10 transition-all duration-[220ms]", collapsed ? "justify-center px-2" : "px-4 gap-3")}>
+          <Link href="/dashboard" className={cn("flex items-center", collapsed ? "" : "gap-3")}>
+            <div className="w-9 h-9 bg-[#FF5F03] rounded-lg flex items-center justify-center flex-shrink-0">
               <Store className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <h1 className="text-base font-bold text-white leading-tight font-[Oswald]">WARUNG EFGE</h1>
-              <p className="text-[10px] text-white/50 leading-none">POS & Inventory</p>
-            </div>
+            {!collapsed && (
+              <div className="overflow-hidden">
+                <h1 className="text-base font-bold text-white leading-tight font-[Oswald] whitespace-nowrap">WARUNG EFGE</h1>
+                <p className="text-[10px] text-white/50 leading-none whitespace-nowrap">POS & Inventory</p>
+              </div>
+            )}
           </Link>
-          <button onClick={onClose} className="lg:hidden p-1 rounded-md hover:bg-white/10 cursor-pointer">
-            <X className="w-5 h-5 text-white/70" />
-          </button>
+          {!collapsed && (
+            <button onClick={onClose} className="lg:hidden ml-auto p-1 rounded-md hover:bg-white/10 cursor-pointer">
+              <X className="w-5 h-5 text-white/70" />
+            </button>
+          )}
         </div>
 
-        <nav className="p-3 space-y-1 overflow-y-auto h-[calc(100%-4rem)]">
+        {/* Nav items */}
+        <nav className={cn("flex-1 overflow-y-auto space-y-1 transition-all duration-[220ms]", collapsed ? "p-2" : "p-3")}>
           {menuItems.map((item) => {
             const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onClose}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                  isActive
-                    ? "bg-[#FF5F03] text-white shadow-lg shadow-[#FF5F03]/20"
-                    : "text-white/70 hover:bg-white/10 hover:text-white"
-                )}
-              >
-                <item.icon className={cn("w-5 h-5", isActive ? "text-white" : "text-white/50")} />
-                {item.label}
-              </Link>
+              <div key={item.href} className="relative" onMouseEnter={() => collapsed && setHoveredItem(item.href)} onMouseLeave={() => setHoveredItem(null)}>
+                <Link
+                  href={item.href}
+                  onClick={onClose}
+                  className={cn(
+                    "flex items-center rounded-lg text-sm font-medium transition-all duration-200",
+                    collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5",
+                    isActive
+                      ? "bg-[#FF5F03] text-white shadow-lg shadow-[#FF5F03]/20"
+                      : "text-white/70 hover:bg-white/10 hover:text-white"
+                  )}
+                >
+                  <item.icon className={cn("w-5 h-5 flex-shrink-0", isActive ? "text-white" : "text-white/50")} />
+                  {!collapsed && <span className="whitespace-nowrap overflow-hidden">{item.label}</span>}
+                </Link>
+                <NavTooltip label={item.label} show={collapsed && hoveredItem === item.href} />
+              </div>
             );
           })}
         </nav>
+
+        {/* Toggle button */}
+        <div className={cn("border-t border-white/10 transition-all duration-[220ms]", collapsed ? "p-2" : "p-3")}>
+          <button
+            onClick={onToggleCollapse}
+            className={cn(
+              "flex items-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white transition-all duration-200 cursor-pointer w-full",
+              collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5"
+            )}
+          >
+            {collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+            {!collapsed && <span className="text-sm font-medium whitespace-nowrap">Tutup Sidebar</span>}
+          </button>
+        </div>
       </aside>
     </>
   );
