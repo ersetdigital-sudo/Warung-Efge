@@ -51,16 +51,38 @@ export default function POSPage() {
   }, []);
 
   const stopScanner = () => {
-    if (scanStreamRef.current) { scanStreamRef.current.getTracks().forEach(t => t.stop()); scanStreamRef.current = null; }
-    if (scanReaderRef.current) { scanReaderRef.current.reset(); scanReaderRef.current = null; }
+    try {
+      if (scanStreamRef.current) {
+        scanStreamRef.current.getTracks().forEach(t => { try { t.stop(); } catch {} });
+        scanStreamRef.current = null;
+      }
+      if (scanReaderRef.current) {
+        try { scanReaderRef.current.reset(); } catch {}
+        scanReaderRef.current = null;
+      }
+    } catch {}
   };
 
   const openScanner = async () => {
     setScannerError(""); setScannerMsg(""); setShowScanner(true);
     try {
       const { BrowserMultiFormatReader } = await import("@zxing/browser");
-      const reader = new BrowserMultiFormatReader();
+      const { DecodeHintType, BarcodeFormat } = await import("@zxing/library");
+
+      const hints = new Map();
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+        BarcodeFormat.EAN_13, BarcodeFormat.EAN_8,
+        BarcodeFormat.UPC_A, BarcodeFormat.UPC_E,
+        BarcodeFormat.CODE_128, BarcodeFormat.CODE_39, BarcodeFormat.CODE_93,
+        BarcodeFormat.ITF,
+        BarcodeFormat.QR_CODE, BarcodeFormat.DATA_MATRIX,
+        BarcodeFormat.CODABAR, BarcodeFormat.RSS_14, BarcodeFormat.RSS_EXPANDED,
+      ]);
+      hints.set(DecodeHintType.TRY_HARDER, true);
+
+      const reader = new BrowserMultiFormatReader(hints);
       scanReaderRef.current = reader;
+
       setTimeout(async () => {
         if (!scanVideoRef.current) return;
         try {
@@ -79,50 +101,49 @@ export default function POSPage() {
               }
             }
           });
-          scanStreamRef.current = scanVideoRef.current.srcObject as MediaStream;
+          if (scanVideoRef.current?.srcObject) {
+            scanStreamRef.current = scanVideoRef.current.srcObject as MediaStream;
+          }
         } catch { setScannerError("Kamera tidak dapat diakses. Pastikan izin kamera sudah diberikan di browser."); }
-      }, 150);
+      }, 200);
     } catch { setScannerError("Kamera tidak dapat diakses. Pastikan izin kamera sudah diberikan di browser."); }
   };
 
   const closeScanner = () => {
-    // Stop camera stream immediately
     stopScanner();
-    // Reset all scanner state
     setScannerError("");
     setScannerMsg("");
-    // Close modal
     setShowScanner(false);
   };
 
   // Cleanup on unmount
   useEffect(() => { return () => { stopScanner(); }; }, []);
 
-  // Android back button handling for scanner modal
+  // Android back button: use beforeunload-style approach without pushState
   useEffect(() => {
     if (!showScanner) return;
-    // Push a dummy state so back button closes modal instead of navigating away
-    window.history.pushState({ scanner: true }, "");
-    const handlePopState = () => {
+    const handleBack = (e: PopStateEvent) => {
+      e.preventDefault();
       closeScanner();
+      // Re-push current state to prevent actual navigation
+      window.history.pushState(null, "", window.location.href);
     };
-    window.addEventListener("popstate", handlePopState);
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
+    window.history.pushState(null, "", window.location.href);
+    window.addEventListener("popstate", handleBack);
+    return () => { window.removeEventListener("popstate", handleBack); };
   }, [showScanner]);
 
   // Android back button handling for receipt modal
   useEffect(() => {
     if (!showReceipt) return;
-    window.history.pushState({ receipt: true }, "");
-    const handlePopState = () => {
+    const handleBack = (e: PopStateEvent) => {
+      e.preventDefault();
       setShowReceipt(false);
+      window.history.pushState(null, "", window.location.href);
     };
-    window.addEventListener("popstate", handlePopState);
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
+    window.history.pushState(null, "", window.location.href);
+    window.addEventListener("popstate", handleBack);
+    return () => { window.removeEventListener("popstate", handleBack); };
   }, [showReceipt]);
 
   const filteredProducts = useMemo(() => {
