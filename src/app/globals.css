@@ -54,3 +54,33 @@ select option {
 ::-webkit-scrollbar-thumb:hover {
   background: #072C2C66;
 }
+
+/* Print styles for receipt */
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  #print-area,
+  #print-area * {
+    visibility: visible !important;
+  }
+
+  #print-area {
+    display: block !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 80mm;
+    padding: 4mm;
+    background: #fff !important;
+    color: #000 !important;
+    font-family: 'Courier New', monospace !important;
+    font-size: 12px !important;
+  }
+}

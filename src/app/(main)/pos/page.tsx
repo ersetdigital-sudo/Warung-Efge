@@ -128,16 +128,47 @@ export default function POSPage() {
   const handlePayment = () => { setShowReceipt(true); setShowCart(false); };
   const handleNewTransaction = () => { setCart([]); setDiscount(0); setAmountPaid(""); setIsDebt(false); setShowReceipt(false); };
 
+  // Print state
+  const [printToast, setPrintToast] = useState<{ msg: string; color: string } | null>(null);
+  const [printData, setPrintData] = useState<CartItem[] | null>(null);
+  const [printMeta, setPrintMeta] = useState<{ total: number; subtotal: number; discount: number; method: string; paid: number; change: number; trxId: string; date: string } | null>(null);
+
   const handlePrintReceipt = () => {
-    const printContent = receiptRef.current;
-    if (!printContent) return;
-    const printWindow = window.open("", "_blank", "width=320,height=600");
-    if (!printWindow) return;
-    printWindow.document.write(`<html><head><title>Struk</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;font-size:11px;padding:12px;width:280px;color:#111}</style></head><body>${printContent.innerHTML}</body></html>`);
-    printWindow.document.close();
-    printWindow.print();
-    printWindow.close();
-    handleNewTransaction();
+    if (typeof window === "undefined" || !window.print) {
+      setPrintToast({ msg: "Cetak tidak didukung di perangkat ini. Silakan screenshot struk.", color: "bg-[#D97706]" });
+      setTimeout(() => setPrintToast(null), 3000);
+      return;
+    }
+
+    // Save print data before closing modal
+    setPrintData([...cart]);
+    setPrintMeta({
+      total, subtotal, discount,
+      method: isDebt ? "Bon/Hutang" : paymentMethod === "cash" ? "Tunai" : paymentMethod === "transfer" ? "Transfer" : "QRIS",
+      paid: Number(amountPaid),
+      change: change > 0 ? change : 0,
+      trxId,
+      date: `${now.toLocaleDateString("id-ID")} ${now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`,
+    });
+
+    // Close modal first
+    setShowReceipt(false);
+
+    // Wait for modal to close, then print
+    setTimeout(() => {
+      window.print();
+    }, 350);
+
+    // After print
+    const afterPrint = () => {
+      setPrintData(null);
+      setPrintMeta(null);
+      handleNewTransaction();
+      setPrintToast({ msg: "Transaksi selesai ✓", color: "bg-[#16A34A]" });
+      setTimeout(() => setPrintToast(null), 2000);
+      window.removeEventListener("afterprint", afterPrint);
+    };
+    window.addEventListener("afterprint", afterPrint);
   };
 
   const canPay = cart.length > 0 && (isDebt || paymentMethod !== "cash" || Number(amountPaid) >= total);
@@ -494,6 +525,13 @@ export default function POSPage() {
         </div>
       )}
 
+      {/* Print Toast */}
+      {printToast && (
+        <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 px-4 py-2.5 ${printToast.color} text-white rounded-xl shadow-xl text-sm font-medium`}>
+          {printToast.msg}
+        </div>
+      )}
+
       {/* Barcode Scanner Modal */}
       {showScanner && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
@@ -601,6 +639,43 @@ export default function POSPage() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden Print Area */}
+      {printData && printMeta && (
+        <div id="print-area" className="hidden print:block">
+          <div style={{ fontFamily: "'Courier New', monospace", fontSize: "12px", color: "#000", background: "#fff", padding: "8px", width: "100%", lineHeight: "1.6" }}>
+            <p style={{ fontSize: "16px", fontWeight: "bold", textAlign: "center", marginBottom: "2px" }}>WARUNG EFGE</p>
+            <p style={{ fontSize: "10px", textAlign: "center", color: "#444" }}>Sistem POS & Inventory</p>
+            <p style={{ fontSize: "10px", textAlign: "center", color: "#444" }}>Kasir: Pak Efge</p>
+            <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "8px 0" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px" }}>
+              <span>{printMeta.trxId}</span><span>{printMeta.date}</span>
+            </div>
+            <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "6px 0" }} />
+            {printData.map((item) => (
+              <div key={item.productId} style={{ marginBottom: "4px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span>{item.name}</span><span style={{ fontWeight: "bold" }}>{formatCurrency(item.subtotal)}</span>
+                </div>
+                <div style={{ fontSize: "10px", color: "#666" }}>{item.quantity} x {formatCurrency(item.price)}</div>
+              </div>
+            ))}
+            <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "6px 0" }} />
+            <div style={{ display: "flex", justifyContent: "space-between" }}><span>Subtotal</span><span>{formatCurrency(printMeta.subtotal)}</span></div>
+            {printMeta.discount > 0 && <div style={{ display: "flex", justifyContent: "space-between" }}><span>Diskon</span><span>-{formatCurrency(printMeta.discount)}</span></div>}
+            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", fontSize: "14px", marginTop: "4px" }}><span>TOTAL</span><span>{formatCurrency(printMeta.total)}</span></div>
+            <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "6px 0" }} />
+            <div style={{ display: "flex", justifyContent: "space-between" }}><span>Metode</span><span>{printMeta.method}</span></div>
+            {printMeta.method === "Tunai" && <>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span>Bayar</span><span>{formatCurrency(printMeta.paid)}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold" }}><span>Kembalian</span><span>{formatCurrency(printMeta.change)}</span></div>
+            </>}
+            <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "8px 0" }} />
+            <p style={{ fontSize: "10px", textAlign: "center" }}>Terima kasih atas kunjungan Anda!</p>
+            <p style={{ fontSize: "9px", textAlign: "center", color: "#888" }}>Barang yang sudah dibeli tidak dapat dikembalikan</p>
           </div>
         </div>
       )}
