@@ -93,8 +93,10 @@ export default function StockPage() {
     <div className="space-y-6">
       {/* Toast */}
       {toast && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 px-4 py-2.5 bg-[#DC2626] text-white rounded-xl shadow-xl text-sm font-medium">
-          {toast}
+        <div className="fixed z-[9999] top-4 right-4 sm:top-6 sm:right-6 animate-in slide-in-from-top fade-in duration-200">
+          <div className="px-4 py-2.5 rounded-xl shadow-xl text-sm font-medium text-white bg-[#DC2626]">
+            {toast}
+          </div>
         </div>
       )}
 

@@ -3,23 +3,39 @@
 import { useState } from "react";
 import { Plus, Edit, Trash2, Package } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
-import Modal from "@/components/ui/Modal";
 import DataTable from "@/components/ui/DataTable";
 import { formatCurrency, getStockStatus } from "@/lib/utils";
-import { products, categories } from "@/data/mock-data";
+import { products as initialProducts, categories, transactions } from "@/data/mock-data";
 import { Product } from "@/types";
 
 export default function ProductsPage() {
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [productList, setProductList] = useState(initialProducts);
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+
+  const showToast = (msg: string, type: "success" | "error" = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 2000);
+  };
+
+  const handleDelete = () => {
+    if (!deleteTarget) return;
+    const hasTransactions = transactions.some(t => t.items.some(i => i.productId === deleteTarget.id));
+    // Both cases: remove from view (soft delete if has transactions, hard delete if not)
+    setProductList(prev => prev.filter(p => p.id !== deleteTarget.id));
+    setDeleteTarget(null);
+    showToast("Produk berhasil dihapus", "success");
+  };
 
   const filteredProducts = selectedCategory
-    ? products.filter((p) => p.category === selectedCategory)
-    : products;
-
+    ? productList.filter((p) => p.category === selectedCategory)
+    : productList;
 
   const columns = [
     { key: "name", label: "Produk", sortable: true, render: (item: Product) => (
@@ -35,30 +51,34 @@ export default function ProductsPage() {
       const status = getStockStatus(item.stock, item.minStock);
       return <Badge variant={status === "safe" ? "success" : status === "warning" ? "warning" : "danger"}>{item.stock} {item.unit}</Badge>;
     }},
-    { key: "unit", label: "Satuan", render: (item: Product) => (
-      <div><p className="text-sm text-gray-700">{item.unit}</p>
-        {item.unitConversions.length > 0 && <p className="text-xs text-gray-500">{item.unitConversions.map((uc) => `1 ${uc.fromUnit} = ${uc.conversionRate} ${uc.toUnit}`).join(", ")}</p>}
-      </div>
-    )},
     { key: "actions", label: "Aksi", render: (item: Product) => (
       <div className="flex items-center gap-1">
-        <button onClick={() => setEditingProduct(item)} className="p-1.5 rounded-md hover:bg-blue-50 text-blue-600 cursor-pointer"><Edit className="w-4 h-4" /></button>
-        <button className="p-1.5 rounded-md hover:bg-red-50 text-red-600 cursor-pointer"><Trash2 className="w-4 h-4" /></button>
+        <button onClick={() => router.push(`/products/edit/${item.id}`)} className="p-1.5 rounded-md hover:bg-blue-50 text-blue-600 cursor-pointer"><Edit className="w-4 h-4" /></button>
+        <button onClick={() => setDeleteTarget(item)} className="p-1.5 rounded-md hover:bg-red-50 text-red-600 cursor-pointer"><Trash2 className="w-4 h-4" /></button>
       </div>
     )},
   ];
 
   return (
     <div className="space-y-6">
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed z-[9999] ${toast.type === "success" ? "top-4 right-4 sm:top-6 sm:right-6" : "top-4 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-auto"} animate-in slide-in-from-top fade-in duration-200`}>
+          <div className={`px-4 py-2.5 rounded-xl shadow-xl text-sm font-medium text-white ${toast.type === "success" ? "bg-[#16A34A]" : "bg-[#DC2626]"}`}>
+            {toast.msg}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Manajemen Produk</h1><p className="text-[10px] text-[#9CA3AF] font-light mt-0.5">Kelola semua produk toko Anda</p></div>
         <Link href="/products/tambah"><Button><Plus className="w-4 h-4" />Tambah Produk</Button></Link>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <button onClick={() => setSelectedCategory("")} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${!selectedCategory ? "bg-[#072C2C] text-white" : "bg-white text-[#072C2C]/70 border border-[#072C2C]/10 hover:border-[#FF5F03]/30"}`}>Semua ({products.length})</button>
+        <button onClick={() => setSelectedCategory("")} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${!selectedCategory ? "bg-[#072C2C] text-white" : "bg-white text-[#072C2C]/70 border border-[#072C2C]/10 hover:border-[#FF5F03]/30"}`}>Semua ({productList.length})</button>
         {categories.map((cat) => {
-          const count = products.filter((p) => p.category === cat.name).length;
+          const count = productList.filter((p) => p.category === cat.name).length;
           if (count === 0) return null;
           return <button key={cat.id} onClick={() => setSelectedCategory(cat.name)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${selectedCategory === cat.name ? "bg-[#072C2C] text-white" : "bg-white text-[#072C2C]/70 border border-[#072C2C]/10 hover:border-[#FF5F03]/30"}`}>{cat.name} ({count})</button>;
         })}
@@ -66,44 +86,26 @@ export default function ProductsPage() {
 
       <Card><CardContent><DataTable columns={columns} data={filteredProducts} searchPlaceholder="Cari produk, SKU, atau barcode..." searchKeys={["name", "sku", "barcode", "category"]} /></CardContent></Card>
 
-      <Modal isOpen={!!editingProduct} onClose={() => setEditingProduct(null)} title="Edit Produk" size="xl">
-        {editingProduct && <ProductForm product={editingProduct} onClose={() => setEditingProduct(null)} />}
-      </Modal>
+      {/* Delete Confirmation Dialog */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/60" onClick={() => setDeleteTarget(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-14 h-14 bg-[#fee2e2] rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+            </div>
+            <h3 className="text-lg font-bold text-[#072C2C] mb-1">Hapus?</h3>
+            <p className="text-sm text-[#072C2C]/60 mb-5">{deleteTarget.name} akan dihapus secara permanen.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteTarget(null)} className="flex-1 px-4 py-2.5 bg-[#4B5563] text-white font-medium text-sm rounded-xl cursor-pointer hover:bg-[#374151] transition-colors">Batal</button>
+              <button onClick={handleDelete} className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#DC2626] text-white font-bold text-sm rounded-xl cursor-pointer hover:bg-[#b91c1c] transition-colors">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  );
-}
-
-
-function ProductForm({ product, onClose }: { product?: Product; onClose: () => void }) {
-  return (
-    <form className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">Nama Produk</label><input type="text" defaultValue={product?.name} placeholder="Contoh: Beras Premium 5kg" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label><select defaultValue={product?.category} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"><option value="">Pilih Kategori</option>{categories.map((cat) => <option key={cat.id} value={cat.name}>{cat.name}</option>)}</select></div>
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">SKU</label><input type="text" defaultValue={product?.sku} placeholder="BRS-001" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">Barcode</label><input type="text" defaultValue={product?.barcode} placeholder="Scan atau ketik barcode" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-      </div>
-      <div className="border-t border-gray-100 pt-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-3">Harga</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Modal</label><input type="number" defaultValue={product?.costPrice} placeholder="0" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Jual</label><input type="number" defaultValue={product?.sellingPrice} placeholder="0" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Grosir</label><input type="number" defaultValue={product?.wholesalePrice} placeholder="0" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Eceran</label><input type="number" defaultValue={product?.retailPrice} placeholder="0" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-        </div>
-      </div>
-      <div className="border-t border-gray-100 pt-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-3">Stok & Satuan</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Stok</label><input type="number" defaultValue={product?.stock} placeholder="0" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Min Stok</label><input type="number" defaultValue={product?.minStock} placeholder="0" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Satuan</label><select defaultValue={product?.unit} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"><option value="">Pilih</option><option>Pcs</option><option>Kg</option><option>Liter</option><option>Botol</option><option>Bungkus</option><option>Kotak</option><option>Karung</option><option>Dus</option><option>Pak</option></select></div>
-        </div>
-      </div>
-      <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
-        <Button variant="secondary" onClick={onClose} type="button">Batal</Button>
-        <Button type="button" onClick={onClose}>{product ? "Simpan Perubahan" : "Tambah Produk"}</Button>
-      </div>
-    </form>
   );
 }
