@@ -1,12 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { TrendingUp, Receipt, AlertTriangle, Wallet, ArrowRight, Check, X, Download, Search, Bell, Calculator } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { salesChartData, topProducts, products } from "@/data/mock-data";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, ComposedChart, Line } from "recharts";
 
 type PeriodType = "today" | "week" | "month";
+
+// Animated number component
+function AnimatedNumber({ value, prefix = "", suffix = "", duration = 1200 }: { value: number; prefix?: string; suffix?: string; duration?: number }) {
+  const [display, setDisplay] = useState(0);
+  const ref = useRef<number>(0);
+  const startTime = useRef<number>(0);
+
+  useEffect(() => {
+    const start = ref.current;
+    const end = value;
+    startTime.current = performance.now();
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime.current;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(start + (end - start) * eased);
+      setDisplay(current);
+      ref.current = current;
+      if (progress < 1) requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+  }, [value, duration]);
+
+  const formatted = display.toLocaleString("id-ID");
+  return <span>{prefix}{formatted}{suffix}</span>;
+}
 
 const paymentMethodData = [
   { name: "Tunai", value: 48, color: "#FF5F03" },
@@ -86,7 +114,7 @@ export default function DashboardPage() {
             <span className="flex items-center gap-0.5 text-[9px] lg:text-[10px] font-bold text-[#16A34A] font-mono"><TrendingUp className="w-[11px] h-[11px]" />+12%</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight">Rp 4,82jt</span>
+            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight"><AnimatedNumber value={4820000} prefix="Rp " /></span>
             <Wallet className="w-3.5 h-3.5 text-[#9CA3AF] hidden lg:block" />
           </div>
         </div>
@@ -96,7 +124,7 @@ export default function DashboardPage() {
             <span className="flex items-center gap-0.5 text-[9px] lg:text-[10px] font-bold text-[#16A34A] font-mono"><TrendingUp className="w-[11px] h-[11px]" />+8%</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight">347</span>
+            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight"><AnimatedNumber value={347} /></span>
             <Receipt className="w-3.5 h-3.5 text-[#9CA3AF] hidden lg:block" />
           </div>
         </div>
@@ -106,7 +134,7 @@ export default function DashboardPage() {
             <span className="flex items-center gap-0.5 text-[9px] lg:text-[10px] font-bold text-[#16A34A] font-mono"><TrendingUp className="w-[11px] h-[11px]" />+4%</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight">Rp 13,9rb</span>
+            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight"><AnimatedNumber value={13900} prefix="Rp " /></span>
             <Calculator className="w-3.5 h-3.5 text-[#9CA3AF] hidden lg:block" />
           </div>
         </div>
@@ -116,7 +144,7 @@ export default function DashboardPage() {
             <span className="flex items-center gap-0.5 text-[9px] lg:text-[10px] font-bold text-[#DC2626] font-mono"><TrendingUp className="w-[11px] h-[11px]" />+2</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight">5 produk</span>
+            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight"><AnimatedNumber value={5} suffix=" produk" /></span>
             <AlertTriangle className="w-3.5 h-3.5 text-[#9CA3AF] hidden lg:block" />
           </div>
         </div>
