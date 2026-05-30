@@ -43,7 +43,7 @@ export default function DashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#072C2C10" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={12} tick={{ fill: "#072C2C99" }} />
                   <YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => `${(v / 1000000).toFixed(1)}jt`} tick={{ fill: "#072C2C99" }} />
-                  <Tooltip formatter={(value: number) => [formatCurrency(value), "Penjualan"]} contentStyle={{ borderRadius: "12px", border: "1px solid #072C2C15", boxShadow: "0 4px 12px rgba(7,44,44,0.1)" }} />
+                  <Tooltip formatter={(value) => [formatCurrency(value as number), "Penjualan"]} contentStyle={{ borderRadius: "12px", border: "1px solid #072C2C15", boxShadow: "0 4px 12px rgba(7,44,44,0.1)" }} />
                   <Area type="monotone" dataKey="sales" stroke="#FF5F03" strokeWidth={2.5} fill="url(#colorSales)" />
                 </AreaChart>
               </ResponsiveContainer>
@@ -60,7 +60,7 @@ export default function DashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#072C2C10" horizontal={false} />
                   <XAxis type="number" axisLine={false} tickLine={false} fontSize={12} tick={{ fill: "#072C2C99" }} />
                   <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} fontSize={11} width={120} tick={{ fill: "#072C2C99" }} />
-                  <Tooltip formatter={(value: number) => [formatNumber(value), "Terjual"]} contentStyle={{ borderRadius: "12px", border: "1px solid #072C2C15", boxShadow: "0 4px 12px rgba(7,44,44,0.1)" }} />
+                  <Tooltip formatter={(value) => [formatNumber(value as number), "Terjual"]} contentStyle={{ borderRadius: "12px", border: "1px solid #072C2C15", boxShadow: "0 4px 12px rgba(7,44,44,0.1)" }} />
                   <Bar dataKey="sold" fill="#072C2C" radius={[0, 6, 6, 0]} barSize={20} />
                 </BarChart>
               </ResponsiveContainer>
