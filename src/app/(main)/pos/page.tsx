@@ -81,6 +81,56 @@ export default function POSPage() {
   const canPay = cart.length > 0 && (isDebt || paymentMethod !== "cash" || Number(amountPaid) >= total);
   const now = new Date();
 
+  // Format number to Rupiah display
+  const formatRupiah = (num: number) => num > 0 ? `Rp ${num.toLocaleString("id-ID")}` : "Rp 0";
+  const displayAmountPaid = Number(amountPaid) > 0 ? `Rp ${Number(amountPaid).toLocaleString("id-ID")}` : "";
+
+  // Handle rupiah input - only allow digits
+  const handleAmountInput = (raw: string) => {
+    const digits = raw.replace(/\D/g, "");
+    setAmountPaid(digits);
+  };
+
+  // Generate dynamic denomination buttons based on total
+  const getDenominations = useMemo(() => {
+    if (total <= 0) return [];
+    const denoms: number[] = [];
+    const commonDenoms = [1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000];
+
+    // Find denominations above total
+    for (const d of commonDenoms) {
+      if (d > total && denoms.length < 5) denoms.push(d);
+    }
+
+    // If total > 200k, add multiples
+    if (total > 200000) {
+      const base50 = Math.ceil(total / 50000) * 50000;
+      const base100 = Math.ceil(total / 100000) * 100000;
+      const candidates = [base50, base50 + 50000, base100, base100 + 100000, base100 + 200000];
+      for (const c of candidates) {
+        if (c > total && !denoms.includes(c) && denoms.length < 5) denoms.push(c);
+      }
+    }
+
+    // Fill remaining with nearest round numbers above total
+    if (denoms.length < 5) {
+      const nearest10k = Math.ceil(total / 10000) * 10000;
+      const candidates = [nearest10k, nearest10k + 5000, nearest10k + 10000, nearest10k + 20000, nearest10k + 50000];
+      for (const c of candidates) {
+        if (c > total && !denoms.includes(c) && denoms.length < 5) denoms.push(c);
+      }
+    }
+
+    return denoms.sort((a, b) => a - b).slice(0, 5);
+  }, [total]);
+
+  // Format short label for buttons
+  const shortLabel = (n: number) => {
+    if (n >= 1000000) return `${(n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 1)}jt`;
+    if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}rb`;
+    return String(n);
+  };
+
   return (
     <div className="flex flex-col -m-4 lg:-m-6" style={{ height: "calc(100vh - 4rem)" }}>
       <div className="flex flex-1 min-h-0 min-w-0 relative overflow-hidden">
@@ -230,35 +280,37 @@ export default function POSPage() {
 
                 {/* Cash Input */}
                 {!isDebt && paymentMethod === "cash" && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-xs text-[#072C2C]/60 mb-1 font-medium">Bayar (Rp)</p>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        value={amountPaid}
-                        onChange={(e) => setAmountPaid(e.target.value)}
-                        placeholder="0"
-                        className="w-full px-4 py-3 text-base font-bold text-[#072C2C] border border-[#072C2C]/15 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 text-right"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-xs text-[#072C2C]/60 mb-1 font-medium">Kembalian</p>
-                      <div className="w-full px-4 py-3 text-base font-bold text-[#16A34A] bg-[#16A34A]/10 border border-[#16A34A]/20 rounded-xl text-right">
-                        {formatCurrency(change > 0 ? change : 0)}
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-[#072C2C]/60 mb-1 font-medium">Bayar</p>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={displayAmountPaid}
+                          onChange={(e) => handleAmountInput(e.target.value)}
+                          placeholder="Rp 0"
+                          className="w-full px-4 py-3 text-lg font-bold text-[#072C2C] border border-[#072C2C]/15 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 text-right"
+                        />
+                      </div>
+                      <div>
+                        <p className="text-xs text-[#072C2C]/60 mb-1 font-medium">Kembalian</p>
+                        <div className="w-full px-4 py-3 text-lg font-bold text-[#16A34A] bg-[#16A34A]/10 border border-[#16A34A]/20 rounded-xl text-right">
+                          {formatRupiah(change > 0 ? change : 0)}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-
-                {/* Quick amount buttons */}
-                {!isDebt && paymentMethod === "cash" && total > 0 && (
-                  <div className="grid grid-cols-4 gap-2">
-                    {[total, Math.ceil(total / 10000) * 10000, Math.ceil(total / 50000) * 50000, 100000].map((amount) => (
-                      <button key={amount} onClick={() => setAmountPaid(String(amount))} className="px-2 py-2 text-[11px] font-medium bg-[#EDEADE] text-[#072C2C] rounded-lg cursor-pointer active:scale-95 active:bg-[#072C2C]/10 transition-transform">
-                        {formatCurrency(amount)}
+                    {/* Dynamic denomination buttons */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <button onClick={() => setAmountPaid(String(total))} className={`min-h-[48px] px-2 py-2.5 text-sm font-bold rounded-xl cursor-pointer active:scale-95 transition-transform ${Number(amountPaid) === total ? "bg-[#FF5F03] text-white" : "bg-[#FF5F03]/10 text-[#FF5F03] border border-[#FF5F03]/30"}`}>
+                        PAS
                       </button>
-                    ))}
+                      {getDenominations.map((amount) => (
+                        <button key={amount} onClick={() => setAmountPaid(String(amount))} className={`min-h-[48px] px-2 py-2.5 text-sm font-medium rounded-xl cursor-pointer active:scale-95 transition-transform ${Number(amountPaid) === amount ? "bg-[#FF5F03]/10 text-[#FF5F03] border-2 border-[#FF5F03]" : "bg-[#EDEADE] text-[#072C2C] border border-[#D9D6C8]"}`}>
+                          {shortLabel(amount)}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -331,9 +383,19 @@ export default function POSPage() {
               </div>
             </div>
             {!isDebt && paymentMethod === "cash" && (
-              <div className="grid grid-cols-2 gap-2">
-                <div><p className="text-[10px] text-[#072C2C]/60 mb-0.5 font-medium">Bayar (Rp)</p><input type="number" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} placeholder="0" className="w-full px-2.5 py-2 text-xs font-bold text-[#072C2C] border border-[#072C2C]/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 text-right" /></div>
-                <div><p className="text-[10px] text-[#072C2C]/60 mb-0.5 font-medium">Kembalian</p><div className="w-full px-2.5 py-2 text-xs font-bold text-[#16A34A] bg-[#16A34A]/10 border border-[#16A34A]/20 rounded-lg text-right">{formatCurrency(change > 0 ? change : 0)}</div></div>
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div><p className="text-[10px] text-[#072C2C]/60 mb-0.5 font-medium">Bayar</p><input type="text" inputMode="numeric" value={displayAmountPaid} onChange={(e) => handleAmountInput(e.target.value)} placeholder="Rp 0" className="w-full px-2.5 py-2 text-xs font-bold text-[#072C2C] border border-[#072C2C]/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 text-right" /></div>
+                  <div><p className="text-[10px] text-[#072C2C]/60 mb-0.5 font-medium">Kembalian</p><div className="w-full px-2.5 py-2 text-xs font-bold text-[#16A34A] bg-[#16A34A]/10 border border-[#16A34A]/20 rounded-lg text-right">{formatRupiah(change > 0 ? change : 0)}</div></div>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  <button onClick={() => setAmountPaid(String(total))} className={`py-1.5 text-[10px] font-bold rounded-lg cursor-pointer transition-all ${Number(amountPaid) === total ? "bg-[#FF5F03] text-white" : "bg-[#FF5F03]/10 text-[#FF5F03] border border-[#FF5F03]/30 hover:bg-[#FF5F03]/20"}`}>PAS</button>
+                  {getDenominations.slice(0, 5).map((amount) => (
+                    <button key={amount} onClick={() => setAmountPaid(String(amount))} className={`py-1.5 text-[10px] font-medium rounded-lg cursor-pointer transition-all ${Number(amountPaid) === amount ? "bg-[#FF5F03]/10 text-[#FF5F03] border-2 border-[#FF5F03]" : "bg-[#EDEADE] text-[#072C2C] border border-[#D9D6C8] hover:border-[#FF5F03]/30"}`}>
+                      {shortLabel(amount)}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
             <button onClick={handlePayment} disabled={!canPay} className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#FF5F03] text-white font-bold text-sm rounded-xl hover:bg-[#e55503] transition-all shadow-lg shadow-[#FF5F03]/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer">
