@@ -58,10 +58,10 @@ export default function DashboardPage() {
   return (
     <div className="space-y-3.5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <div>
-          <h1 className="text-[17px] font-semibold text-[#072C2C] font-[Oswald] tracking-wide uppercase">Dashboard</h1>
-          <p className="text-[10px] text-[#9CA3AF] font-light">
+          <h1 className="text-[15px] lg:text-[17px] font-semibold text-[#072C2C] font-[Oswald] tracking-wide uppercase">Dashboard</h1>
+          <p className="text-[10px] text-[#9CA3AF] font-light hidden sm:block">
             {new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </p>
         </div>
@@ -70,7 +70,7 @@ export default function DashboardPage() {
             <button
               key={key}
               onClick={() => setPeriod(key)}
-              className={`px-3 py-[5px] text-[11px] font-medium cursor-pointer transition-all border-r border-[#D9D6C8] last:border-r-0 ${period === key ? "bg-[#072C2C] text-white font-semibold" : "bg-white text-[#4B5563] hover:bg-[#EDEADE]"}`}
+              className={`px-2 lg:px-3 py-[5px] text-[10px] lg:text-[11px] font-medium cursor-pointer transition-all border-r border-[#D9D6C8] last:border-r-0 min-h-[36px] ${period === key ? "bg-[#072C2C] text-white font-semibold" : "bg-white text-[#4B5563] hover:bg-[#EDEADE]"}`}
             >
               {label}
             </button>
@@ -79,51 +79,51 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Row */}
-      <div className="grid grid-cols-4 gap-2.5">
-        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#FF5F03]">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total pendapatan</span>
-            <span className="flex items-center gap-0.5 text-[10px] font-bold text-[#16A34A] font-mono"><TrendingUp className="w-[11px] h-[11px]" />+12%</span>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-2.5">
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3 lg:p-3.5 border-l-[3px] border-l-[#FF5F03]">
+          <div className="flex items-center justify-between mb-1 lg:mb-2">
+            <span className="text-[9px] lg:text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total pendapatan</span>
+            <span className="flex items-center gap-0.5 text-[9px] lg:text-[10px] font-bold text-[#16A34A] font-mono"><TrendingUp className="w-[11px] h-[11px]" />+12%</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-[Oswald] text-[24px] font-semibold text-[#072C2C] tracking-tight">Rp 4,82jt</span>
-            <Wallet className="w-3.5 h-3.5 text-[#9CA3AF]" />
+            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight">Rp 4,82jt</span>
+            <Wallet className="w-3.5 h-3.5 text-[#9CA3AF] hidden lg:block" />
           </div>
         </div>
-        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#072C2C]">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total transaksi</span>
-            <span className="flex items-center gap-0.5 text-[10px] font-bold text-[#16A34A] font-mono"><TrendingUp className="w-[11px] h-[11px]" />+8%</span>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3 lg:p-3.5 border-l-[3px] border-l-[#072C2C]">
+          <div className="flex items-center justify-between mb-1 lg:mb-2">
+            <span className="text-[9px] lg:text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total transaksi</span>
+            <span className="flex items-center gap-0.5 text-[9px] lg:text-[10px] font-bold text-[#16A34A] font-mono"><TrendingUp className="w-[11px] h-[11px]" />+8%</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-[Oswald] text-[24px] font-semibold text-[#072C2C] tracking-tight">347</span>
-            <Receipt className="w-3.5 h-3.5 text-[#9CA3AF]" />
+            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight">347</span>
+            <Receipt className="w-3.5 h-3.5 text-[#9CA3AF] hidden lg:block" />
           </div>
         </div>
-        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#D97706]">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Rata-rata / transaksi</span>
-            <span className="flex items-center gap-0.5 text-[10px] font-bold text-[#16A34A] font-mono"><TrendingUp className="w-[11px] h-[11px]" />+4%</span>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3 lg:p-3.5 border-l-[3px] border-l-[#D97706]">
+          <div className="flex items-center justify-between mb-1 lg:mb-2">
+            <span className="text-[9px] lg:text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Rata-rata / transaksi</span>
+            <span className="flex items-center gap-0.5 text-[9px] lg:text-[10px] font-bold text-[#16A34A] font-mono"><TrendingUp className="w-[11px] h-[11px]" />+4%</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-[Oswald] text-[24px] font-semibold text-[#072C2C] tracking-tight">Rp 13,9rb</span>
-            <Calculator className="w-3.5 h-3.5 text-[#9CA3AF]" />
+            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight">Rp 13,9rb</span>
+            <Calculator className="w-3.5 h-3.5 text-[#9CA3AF] hidden lg:block" />
           </div>
         </div>
-        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#DC2626]">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Stok menipis</span>
-            <span className="flex items-center gap-0.5 text-[10px] font-bold text-[#DC2626] font-mono"><TrendingUp className="w-[11px] h-[11px]" />+2</span>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3 lg:p-3.5 border-l-[3px] border-l-[#DC2626]">
+          <div className="flex items-center justify-between mb-1 lg:mb-2">
+            <span className="text-[9px] lg:text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Stok menipis</span>
+            <span className="flex items-center gap-0.5 text-[9px] lg:text-[10px] font-bold text-[#DC2626] font-mono"><TrendingUp className="w-[11px] h-[11px]" />+2</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-[Oswald] text-[24px] font-semibold text-[#072C2C] tracking-tight">5 produk</span>
-            <AlertTriangle className="w-3.5 h-3.5 text-[#9CA3AF]" />
+            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight">5 produk</span>
+            <AlertTriangle className="w-3.5 h-3.5 text-[#9CA3AF] hidden lg:block" />
           </div>
         </div>
       </div>
 
       {/* Mid Row: Chart + Donut */}
-      <div className="grid grid-cols-[1fr_270px] gap-2.5">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_270px] gap-2.5">
         {/* Revenue Chart */}
         <div className="bg-white border border-[#D9D6C8] rounded-md">
           <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-[#D9D6C8]">
@@ -136,7 +136,7 @@ export default function DashboardPage() {
             </button>
           </div>
           <div className="p-3.5 pb-2.5">
-            <div className="h-[180px]">
+            <div className="h-[150px] lg:h-[180px]">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,44,44,0.05)" vertical={false} />
@@ -192,7 +192,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Bottom Row: Table + Feed */}
-      <div className="grid grid-cols-[1fr_290px] gap-2.5">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_290px] gap-2.5">
         {/* Products Table */}
         <div className="bg-white border border-[#D9D6C8] rounded-md">
           <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-[#D9D6C8]">
@@ -204,14 +204,15 @@ export default function DashboardPage() {
               Lihat semua <ArrowRight className="w-[11px] h-[11px]" />
             </button>
           </div>
-          <table className="w-full text-[12px]">
+          <div className="overflow-x-auto">
+          <table className="w-full text-[12px] min-w-[500px]">
             <thead>
               <tr>
                 <th className="text-[10px] font-semibold text-[#9CA3AF] text-left px-2.5 py-1.5 bg-[#EDEADE] border-b border-[#D9D6C8] uppercase tracking-wider">Produk</th>
                 <th className="text-[10px] font-semibold text-[#9CA3AF] text-left px-2.5 py-1.5 bg-[#EDEADE] border-b border-[#D9D6C8] uppercase tracking-wider">Terjual</th>
-                <th className="text-[10px] font-semibold text-[#9CA3AF] text-left px-2.5 py-1.5 bg-[#EDEADE] border-b border-[#D9D6C8] uppercase tracking-wider">Pendapatan</th>
+                <th className="text-[10px] font-semibold text-[#9CA3AF] text-left px-2.5 py-1.5 bg-[#EDEADE] border-b border-[#D9D6C8] uppercase tracking-wider hidden sm:table-cell">Pendapatan</th>
                 <th className="text-[10px] font-semibold text-[#9CA3AF] text-left px-2.5 py-1.5 bg-[#EDEADE] border-b border-[#D9D6C8] uppercase tracking-wider">Status</th>
-                <th className="text-[10px] font-semibold text-[#9CA3AF] text-left px-2.5 py-1.5 bg-[#EDEADE] border-b border-[#D9D6C8] uppercase tracking-wider">Tren</th>
+                <th className="text-[10px] font-semibold text-[#9CA3AF] text-left px-2.5 py-1.5 bg-[#EDEADE] border-b border-[#D9D6C8] uppercase tracking-wider hidden md:table-cell">Tren</th>
               </tr>
             </thead>
             <tbody>
@@ -227,17 +228,18 @@ export default function DashboardPage() {
                     </div>
                   </td>
                   <td className="px-2.5 py-2 font-mono text-[11px]">{p.sold}</td>
-                  <td className="px-2.5 py-2 font-mono text-[11px] font-bold text-[#16A34A]">{p.rev}</td>
+                  <td className="px-2.5 py-2 font-mono text-[11px] font-bold text-[#16A34A] hidden sm:table-cell">{p.rev}</td>
                   <td className="px-2.5 py-2">
                     <span className={`text-[9px] font-bold font-mono px-[7px] py-[2px] rounded border ${pillClasses[p.statusType]} tracking-wide`}>{p.status}</span>
                   </td>
-                  <td className="px-2.5 py-2">
+                  <td className="px-2.5 py-2 hidden md:table-cell">
                     <MiniSparkline data={p.trend} color={statusColors[p.statusType]} />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Activity Feed */}

@@ -55,26 +55,27 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
 
   return (
     <>
-      {/* Mobile overlay */}
+      {/* Mobile overlay - for tablet */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />
+        <div className="fixed inset-0 bg-black/50 z-40 hidden md:block lg:hidden" onClick={onClose} />
       )}
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#072C2C] border-t border-white/10 flex items-center justify-around px-2 py-2 safe-area-pb">
-        {menuItems.slice(0, 5).map((item) => {
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#D9D6C8] flex items-center justify-around px-2 shadow-[0_-2px_10px_rgba(0,0,0,0.06)]" style={{ height: "64px", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        {[
+          { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+          { href: "/pos", icon: ShoppingCart, label: "Kasir" },
+          { href: "/stock", icon: Boxes, label: "Stok" },
+          { href: "/reports", icon: BarChart3, label: "Laporan" },
+        ].map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
           return (
-            <Link key={item.href} href={item.href} className={cn("flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg", isActive ? "text-[#FF5F03]" : "text-white/50")}>
-              <item.icon className="w-5 h-5" />
-              <span className="text-[9px] font-medium">{item.label.split(" ")[0]}</span>
+            <Link key={item.href} href={item.href} className={cn("flex flex-col items-center justify-center gap-0.5 min-w-[56px] min-h-[44px] rounded-lg transition-all active:scale-90 active:opacity-70", isActive ? "text-[#FF5F03]" : "text-[#9CA3AF]")}>
+              <item.icon className="w-5 h-5" strokeWidth={isActive ? 2.2 : 1.5} />
+              <span className={cn("text-[10px]", isActive ? "font-semibold" : "font-medium")}>{item.label}</span>
             </Link>
           );
         })}
-        <button onClick={() => { /* could show more menu */ }} className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-white/50">
-          <BarChart3 className="w-5 h-5" />
-          <span className="text-[9px] font-medium">Lainnya</span>
-        </button>
       </nav>
 
       {/* Desktop/Tablet sidebar */}
