@@ -10,6 +10,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Warung Efge",
   description: "Sistem POS & Inventory untuk Toko Sembako",
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/apple-touch-icon.svg",
+  },
 };
 
 export default function RootLayout({
