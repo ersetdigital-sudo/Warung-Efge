@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Package } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,15 +9,19 @@ import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import DataTable from "@/components/ui/DataTable";
 import { formatCurrency, getStockStatus } from "@/lib/utils";
-import { products as initialProducts, categories, transactions } from "@/data/mock-data";
+import { categories, transactions } from "@/data/mock-data";
+import { getProducts, deleteProduct } from "@/lib/product-store";
 import { Product } from "@/types";
 
 export default function ProductsPage() {
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [productList, setProductList] = useState(initialProducts);
+  const [productList, setProductList] = useState<Product[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+
+  // Load products from store on mount
+  useEffect(() => { setProductList(getProducts()); }, []);
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type });
@@ -26,9 +30,8 @@ export default function ProductsPage() {
 
   const handleDelete = () => {
     if (!deleteTarget) return;
-    const hasTransactions = transactions.some(t => t.items.some(i => i.productId === deleteTarget.id));
-    // Both cases: remove from view (soft delete if has transactions, hard delete if not)
-    setProductList(prev => prev.filter(p => p.id !== deleteTarget.id));
+    deleteProduct(deleteTarget.id);
+    setProductList(getProducts());
     setDeleteTarget(null);
     showToast("Produk berhasil dihapus", "success");
   };

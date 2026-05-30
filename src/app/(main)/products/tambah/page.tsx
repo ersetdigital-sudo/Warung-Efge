@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Camera, X, Check } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { categories } from "@/data/mock-data";
+import { addProduct } from "@/lib/product-store";
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -73,7 +74,33 @@ export default function AddProductPage() {
   const handleSubmit = () => {
     if (hasExpiry && !expiryDate) { alert("Tanggal expired wajib diisi"); return; }
     if (hasExpiry && expiryDate && new Date(expiryDate) < new Date()) { alert("Tanggal expired tidak boleh yang sudah lewat"); return; }
-    // Save logic here
+
+    // Collect form data from the DOM
+    const form = document.querySelector("form") as HTMLFormElement;
+    if (!form) return;
+    const formData = new FormData(form);
+    const name = formData.get("name") as string;
+    if (!name) { alert("Nama produk wajib diisi"); return; }
+
+    const newProduct = {
+      id: String(Date.now()),
+      name,
+      sku: (formData.get("sku") as string) || `SKU-${Date.now().toString(36).toUpperCase()}`,
+      barcode: barcode || "",
+      category: (formData.get("category") as string) || "Lain-lain",
+      costPrice: Number(formData.get("costPrice")) || 0,
+      sellingPrice: Number(formData.get("sellingPrice")) || 0,
+      wholesalePrice: Number(formData.get("wholesalePrice")) || 0,
+      retailPrice: Number(formData.get("retailPrice")) || 0,
+      stock: Number(formData.get("stock")) || 0,
+      minStock: Number(formData.get("minStock")) || 0,
+      unit: (formData.get("unit") as string) || "Pcs",
+      unitConversions: [],
+      createdAt: new Date().toISOString().split("T")[0],
+      updatedAt: new Date().toISOString().split("T")[0],
+    };
+
+    addProduct(newProduct);
     router.push("/products");
   };
 
@@ -97,18 +124,18 @@ export default function AddProductPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Nama Produk</label>
-                <input type="text" placeholder="Contoh: Beras Premium 5kg" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
+                <input type="text" name="name" placeholder="Contoh: Beras Premium 5kg" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Kategori</label>
-                <select className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]">
+                <select name="category" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]">
                   <option value="">Pilih Kategori</option>
                   {categories.map((cat) => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">SKU</label>
-                <input type="text" placeholder="BRS-001 (auto-generate)" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
+                <input type="text" name="sku" placeholder="BRS-001 (auto-generate)" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Barcode</label>
@@ -141,10 +168,10 @@ export default function AddProductPage() {
           <div className="border-t border-[#D9D6C8] pt-5">
             <h3 className="text-sm font-bold text-[#072C2C] mb-3 uppercase tracking-wider">Harga</h3>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Modal</label><input type="number" placeholder="0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Jual</label><input type="number" placeholder="0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Grosir</label><input type="number" placeholder="0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Eceran</label><input type="number" placeholder="0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Modal</label><input type="number" name="costPrice" placeholder="0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Jual</label><input type="number" name="sellingPrice" placeholder="0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Grosir</label><input type="number" name="wholesalePrice" placeholder="0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Eceran</label><input type="number" name="retailPrice" placeholder="0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
             </div>
           </div>
 
@@ -152,9 +179,9 @@ export default function AddProductPage() {
           <div className="border-t border-[#D9D6C8] pt-5">
             <h3 className="text-sm font-bold text-[#072C2C] mb-3 uppercase tracking-wider">Stok & Satuan</h3>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Stok Awal</label><input type="number" placeholder="0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Min Stok</label><input type="number" placeholder="0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Satuan</label><select className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]"><option value="">Pilih</option><option>Pcs</option><option>Kg</option><option>Liter</option><option>Botol</option><option>Bungkus</option><option>Kotak</option><option>Karung</option><option>Dus</option><option>Pak</option></select></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Stok Awal</label><input type="number" name="stock" placeholder="0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Min Stok</label><input type="number" name="minStock" placeholder="0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Satuan</label><select name="unit" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]"><option value="">Pilih</option><option>Pcs</option><option>Kg</option><option>Liter</option><option>Botol</option><option>Bungkus</option><option>Kotak</option><option>Karung</option><option>Dus</option><option>Pak</option></select></div>
             </div>
 
             {/* Expired Toggle */}
