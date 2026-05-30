@@ -41,13 +41,13 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald]">Manajemen Pengguna</h1><p className="text-sm text-[#072C2C]/60 mt-1">Kelola akun dan hak akses</p></div>
+        <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Manajemen Pengguna</h1><p className="text-[10px] text-[#9CA3AF] font-light mt-0.5">Kelola akun dan hak akses</p></div>
         <Button onClick={() => setShowAddModal(true)}><Plus className="w-4 h-4" />Tambah Pengguna</Button>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><div className="flex items-center gap-2 mb-2"><ShieldCheck className="w-5 h-5 text-[#DC2626]" /><span className="text-sm font-semibold text-[#072C2C]">Owner</span></div><p className="text-xs text-[#072C2C]/50">Akses penuh ke semua fitur</p></div>
-        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><div className="flex items-center gap-2 mb-2"><Shield className="w-5 h-5 text-[#FF5F03]" /><span className="text-sm font-semibold text-[#072C2C]">Admin</span></div><p className="text-xs text-[#072C2C]/50">Kelola produk, stok, supplier, pelanggan</p></div>
-        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><div className="flex items-center gap-2 mb-2"><UserIcon className="w-5 h-5 text-[#072C2C]/50" /><span className="text-sm font-semibold text-[#072C2C]">Kasir</span></div><p className="text-xs text-[#072C2C]/50">Akses kasir dan catat transaksi</p></div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#DC2626]"><div className="flex items-center gap-2 mb-1"><ShieldCheck className="w-4 h-4 text-[#DC2626]" /><span className="text-[10px] font-semibold text-[#072C2C] uppercase tracking-wider">Owner</span></div><p className="text-[10px] text-[#9CA3AF]">Akses penuh ke semua fitur</p></div>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#FF5F03]"><div className="flex items-center gap-2 mb-1"><Shield className="w-4 h-4 text-[#FF5F03]" /><span className="text-[10px] font-semibold text-[#072C2C] uppercase tracking-wider">Admin</span></div><p className="text-[10px] text-[#9CA3AF]">Kelola produk, stok, supplier, pelanggan</p></div>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#072C2C]"><div className="flex items-center gap-2 mb-1"><UserIcon className="w-4 h-4 text-[#072C2C]/50" /><span className="text-[10px] font-semibold text-[#072C2C] uppercase tracking-wider">Kasir</span></div><p className="text-[10px] text-[#9CA3AF]">Akses kasir dan catat transaksi</p></div>
       </div>
       <Card><CardContent><DataTable columns={columns} data={users} searchPlaceholder="Cari pengguna..." searchKeys={["name", "email", "role"]} /></CardContent></Card>
 

@@ -32,13 +32,13 @@ export default function SuppliersPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div><h1 className="text-2xl font-bold text-gray-900">Supplier</h1><p className="text-sm text-gray-500 mt-1">Kelola data supplier</p></div>
+        <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Supplier</h1><p className="text-[10px] text-[#9CA3AF] font-light mt-0.5">Kelola data supplier</p></div>
         <Button onClick={() => setShowAddModal(true)}><Plus className="w-4 h-4" />Tambah Supplier</Button>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-sm text-gray-500">Total Supplier</p><p className="text-2xl font-bold text-gray-900 mt-1">{suppliers.length}</p></div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-sm text-gray-500">Total Hutang</p><p className="text-2xl font-bold text-red-600 mt-1">{formatCurrency(suppliers.reduce((s, sup) => s + sup.debt, 0))}</p></div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-sm text-gray-500">Supplier Lunas</p><p className="text-2xl font-bold text-green-600 mt-1">{suppliers.filter((s) => s.debt === 0).length}</p></div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Supplier</p><p className="font-[Oswald] text-[24px] font-semibold text-[#072C2C] mt-1">{suppliers.length}</p></div>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#DC2626]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Hutang</p><p className="font-[Oswald] text-[24px] font-semibold text-[#DC2626] mt-1">{formatCurrency(suppliers.reduce((s, sup) => s + sup.debt, 0))}</p></div>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Supplier Lunas</p><p className="font-[Oswald] text-[24px] font-semibold text-[#16A34A] mt-1">{suppliers.filter((s) => s.debt === 0).length}</p></div>
       </div>
       <Card><CardContent><DataTable columns={columns} data={suppliers} searchPlaceholder="Cari supplier..." searchKeys={["name", "phone", "address"]} /></CardContent></Card>
 

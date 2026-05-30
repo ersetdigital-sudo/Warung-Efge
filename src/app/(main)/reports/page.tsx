@@ -26,11 +26,11 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div><h1 className="text-2xl font-bold text-gray-900">Laporan</h1><p className="text-sm text-gray-500 mt-1">Analisis keuangan dan performa toko</p></div>
+      <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Laporan</h1><p className="text-[10px] text-[#9CA3AF] font-light mt-0.5">Analisis keuangan dan performa toko</p></div>
 
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+      <div className="flex gap-1 bg-[#072C2C]/5 rounded-md p-1">
         {reports.map((r) => (
-          <button key={r.id} onClick={() => setActiveReport(r.id)} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer ${activeReport === r.id ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+          <button key={r.id} onClick={() => setActiveReport(r.id)} className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium transition-all cursor-pointer ${activeReport === r.id ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/50 hover:text-[#072C2C]/80"}`}>
             <r.icon className="w-4 h-4" />{r.label}
           </button>
         ))}
@@ -38,10 +38,10 @@ export default function ReportsPage() {
 
       {activeReport === "sales" && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-xs text-gray-500">Total Penjualan</p><p className="text-xl font-bold text-blue-600 mt-1">{formatCurrency(totalSales)}</p></div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-xs text-gray-500">Rata-rata Transaksi</p><p className="text-xl font-bold text-green-600 mt-1">{formatCurrency(totalSales / transactions.length)}</p></div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-xs text-gray-500">Total Transaksi</p><p className="text-xl font-bold text-purple-600 mt-1">{formatNumber(transactions.length)}</p></div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#FF5F03]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Penjualan</p><p className="font-[Oswald] text-[24px] font-semibold text-[#072C2C] mt-1">{formatCurrency(totalSales)}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Rata-rata Transaksi</p><p className="font-[Oswald] text-[24px] font-semibold text-[#16A34A] mt-1">{formatCurrency(totalSales / transactions.length)}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Transaksi</p><p className="font-[Oswald] text-[24px] font-semibold text-[#072C2C] mt-1">{formatNumber(transactions.length)}</p></div>
           </div>
           <Card><CardHeader><h3 className="text-base font-semibold">Penjualan Bulanan</h3></CardHeader><CardContent><div className="h-72"><ResponsiveContainer width="100%" height="100%"><BarChart data={monthlySalesData}><CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" /><XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={12} /><YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => `${(v/1000000).toFixed(0)}jt`} /><Tooltip formatter={(value: any) => [formatCurrency(value), "Penjualan"]} contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0" }} /><Bar dataKey="sales" fill="#3b82f6" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div></CardContent></Card>
         </div>
@@ -50,11 +50,11 @@ export default function ReportsPage() {
 
       {activeReport === "profit" && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-xs text-gray-500">Pendapatan</p><p className="text-xl font-bold text-blue-600 mt-1">{formatCurrency(totalSales)}</p></div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-xs text-gray-500">HPP (Modal)</p><p className="text-xl font-bold text-red-600 mt-1">{formatCurrency(totalCOGS)}</p></div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-xs text-gray-500">Laba Kotor</p><p className="text-xl font-bold text-green-600 mt-1">{formatCurrency(grossProfit)}</p></div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-xs text-gray-500">Margin</p><p className="text-xl font-bold text-purple-600 mt-1">{(grossProfit / totalSales * 100).toFixed(1)}%</p></div>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#FF5F03]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Pendapatan</p><p className="font-[Oswald] text-[24px] font-semibold text-[#072C2C] mt-1">{formatCurrency(totalSales)}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#DC2626]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">HPP (Modal)</p><p className="font-[Oswald] text-[24px] font-semibold text-[#DC2626] mt-1">{formatCurrency(totalCOGS)}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Laba Kotor</p><p className="font-[Oswald] text-[24px] font-semibold text-[#16A34A] mt-1">{formatCurrency(grossProfit)}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Margin</p><p className="font-[Oswald] text-[24px] font-semibold text-[#072C2C] mt-1">{(grossProfit / totalSales * 100).toFixed(1)}%</p></div>
           </div>
           <Card><CardHeader><h3 className="text-base font-semibold">Ringkasan Laba Rugi</h3></CardHeader><CardContent><div className="space-y-3">
             {[{ name: "Pendapatan", value: totalSales, color: "#3b82f6" }, { name: "HPP", value: totalCOGS, color: "#ef4444" }, { name: "Laba Kotor", value: grossProfit, color: "#22c55e" }].map((item) => (
@@ -73,9 +73,9 @@ export default function ReportsPage() {
 
       {activeReport === "debts" && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-white rounded-xl border border-gray-200 p-4"><div className="flex items-center gap-2 mb-2"><Users className="w-5 h-5 text-red-500" /><p className="text-sm text-gray-500">Hutang Pelanggan</p></div><p className="text-2xl font-bold text-red-600">{formatCurrency(customers.reduce((s,c) => s+c.debt, 0))}</p></div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4"><div className="flex items-center gap-2 mb-2"><Truck className="w-5 h-5 text-orange-500" /><p className="text-sm text-gray-500">Hutang ke Supplier</p></div><p className="text-2xl font-bold text-orange-600">{formatCurrency(suppliers.reduce((s,sup) => s+sup.debt, 0))}</p></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#DC2626]"><div className="flex items-center gap-2 mb-1"><Users className="w-4 h-4 text-[#DC2626]" /><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Hutang Pelanggan</p></div><p className="font-[Oswald] text-[24px] font-semibold text-[#DC2626]">{formatCurrency(customers.reduce((s,c) => s+c.debt, 0))}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#D97706]"><div className="flex items-center gap-2 mb-1"><Truck className="w-4 h-4 text-[#D97706]" /><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Hutang ke Supplier</p></div><p className="font-[Oswald] text-[24px] font-semibold text-[#D97706]">{formatCurrency(suppliers.reduce((s,sup) => s+sup.debt, 0))}</p></div>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card><CardHeader><h3 className="text-base font-semibold">Hutang Pelanggan</h3></CardHeader><CardContent className="p-0"><div className="divide-y divide-gray-100">{customers.filter(c=>c.debt>0).sort((a,b)=>b.debt-a.debt).map(c=><div key={c.id} className="flex items-center justify-between px-5 py-3"><div><p className="text-sm font-medium">{c.name}</p><p className="text-xs text-gray-500">{c.phone}</p></div><p className="text-sm font-bold text-red-600">{formatCurrency(c.debt)}</p></div>)}</div></CardContent></Card>

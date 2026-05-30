@@ -46,7 +46,7 @@ export default function StockPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald]">Manajemen Stok</h1><p className="text-sm text-[#072C2C]/60 mt-1">Pantau dan kelola stok barang</p></div>
+        <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Manajemen Stok</h1><p className="text-[10px] text-[#9CA3AF] font-light mt-0.5">Pantau dan kelola stok barang</p></div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => setShowInModal(true)}><ArrowDownToLine className="w-4 h-4" />Masuk</Button>
           <Button variant="outline" onClick={() => setShowOutModal(true)}><ArrowUpFromLine className="w-4 h-4" />Keluar</Button>
@@ -54,11 +54,11 @@ export default function StockPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><p className="text-sm text-[#072C2C]/60">Total Produk</p><p className="text-2xl font-bold text-[#072C2C] mt-1">{products.length}</p></div>
-        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><p className="text-sm text-[#072C2C]/60">Stok Aman</p><p className="text-2xl font-bold text-[#16A34A] mt-1">{products.length - lowStock.length}</p></div>
-        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><p className="text-sm text-[#072C2C]/60">Stok Menipis</p><p className="text-2xl font-bold text-[#D97706] mt-1">{lowStock.filter(p => p.stock > 0).length}</p></div>
-        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><p className="text-sm text-[#072C2C]/60">Stok Habis</p><p className="text-2xl font-bold text-[#DC2626] mt-1">{lowStock.filter(p => p.stock <= 0).length}</p></div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Produk</p><p className="font-[Oswald] text-[24px] font-semibold text-[#072C2C] mt-1">{products.length}</p></div>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Stok Aman</p><p className="font-[Oswald] text-[24px] font-semibold text-[#16A34A] mt-1">{products.length - lowStock.length}</p></div>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#D97706]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Stok Menipis</p><p className="font-[Oswald] text-[24px] font-semibold text-[#D97706] mt-1">{lowStock.filter(p => p.stock > 0).length}</p></div>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#DC2626]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Stok Habis</p><p className="font-[Oswald] text-[24px] font-semibold text-[#DC2626] mt-1">{lowStock.filter(p => p.stock <= 0).length}</p></div>
       </div>
 
       <div className="flex gap-1 bg-[#072C2C]/5 rounded-xl p-1">

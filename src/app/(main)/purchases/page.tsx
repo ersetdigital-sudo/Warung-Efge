@@ -33,13 +33,13 @@ export default function PurchasesPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald]">Pembelian</h1><p className="text-sm text-[#072C2C]/60 mt-1">Kelola pembelian barang dari supplier</p></div>
+        <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Pembelian</h1><p className="text-[10px] text-[#9CA3AF] font-light mt-0.5">Kelola pembelian barang dari supplier</p></div>
         <Button onClick={() => setShowAddModal(true)}><Plus className="w-4 h-4" />Buat Pembelian</Button>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><p className="text-sm text-[#072C2C]/60">Total Pembelian</p><p className="text-2xl font-bold text-[#072C2C] mt-1">{purchases.length}</p></div>
-        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><p className="text-sm text-[#072C2C]/60">Total Nilai</p><p className="text-2xl font-bold text-[#072C2C] mt-1">{formatCurrency(purchases.reduce((s, p) => s + p.totalAmount, 0))}</p></div>
-        <div className="bg-white rounded-2xl border border-[#072C2C]/10 p-4"><p className="text-sm text-[#072C2C]/60">Belum Lunas</p><p className="text-2xl font-bold text-[#D97706] mt-1">{purchases.filter((p) => p.status !== "paid").length}</p></div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Pembelian</p><p className="font-[Oswald] text-[24px] font-semibold text-[#072C2C] mt-1">{purchases.length}</p></div>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#FF5F03]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Nilai</p><p className="font-[Oswald] text-[24px] font-semibold text-[#072C2C] mt-1">{formatCurrency(purchases.reduce((s, p) => s + p.totalAmount, 0))}</p></div>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#D97706]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Belum Lunas</p><p className="font-[Oswald] text-[24px] font-semibold text-[#D97706] mt-1">{purchases.filter((p) => p.status !== "paid").length}</p></div>
       </div>
       <Card><CardContent><DataTable columns={columns} data={purchases} searchPlaceholder="Cari nomor PO atau supplier..." searchKeys={["id", "supplierName"]} /></CardContent></Card>
 

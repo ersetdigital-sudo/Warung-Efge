@@ -39,14 +39,14 @@ export default function CustomersPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div><h1 className="text-2xl font-bold text-gray-900">Pelanggan</h1><p className="text-sm text-gray-500 mt-1">Kelola data pelanggan dan hutang</p></div>
+        <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Pelanggan</h1><p className="text-[10px] text-[#9CA3AF] font-light mt-0.5">Kelola data pelanggan dan hutang</p></div>
         <Button onClick={() => setShowAddModal(true)}><Plus className="w-4 h-4" />Tambah Pelanggan</Button>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-sm text-gray-500">Total Pelanggan</p><p className="text-2xl font-bold text-gray-900 mt-1">{customers.length}</p></div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-sm text-gray-500">Punya Hutang</p><p className="text-2xl font-bold text-orange-600 mt-1">{customers.filter(c => c.debt > 0).length}</p></div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-sm text-gray-500">Total Hutang</p><p className="text-2xl font-bold text-red-600 mt-1">{formatCurrency(totalDebt)}</p></div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-sm text-gray-500">Lunas</p><p className="text-2xl font-bold text-green-600 mt-1">{customers.filter(c => c.debt === 0).length}</p></div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Pelanggan</p><p className="font-[Oswald] text-[24px] font-semibold text-[#072C2C] mt-1">{customers.length}</p></div>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#D97706]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Punya Hutang</p><p className="font-[Oswald] text-[24px] font-semibold text-[#D97706] mt-1">{customers.filter(c => c.debt > 0).length}</p></div>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#DC2626]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Hutang</p><p className="font-[Oswald] text-[24px] font-semibold text-[#DC2626] mt-1">{formatCurrency(totalDebt)}</p></div>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Lunas</p><p className="font-[Oswald] text-[24px] font-semibold text-[#16A34A] mt-1">{customers.filter(c => c.debt === 0).length}</p></div>
       </div>
       <Card><CardContent><DataTable columns={columns} data={customers} searchPlaceholder="Cari pelanggan..." searchKeys={["name", "phone", "address"]} /></CardContent></Card>
 

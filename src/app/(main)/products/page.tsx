@@ -51,7 +51,7 @@ export default function ProductsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald]">Manajemen Produk</h1><p className="text-sm text-[#072C2C]/60 mt-1">Kelola semua produk toko Anda</p></div>
+        <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Manajemen Produk</h1><p className="text-[10px] text-[#9CA3AF] font-light mt-0.5">Kelola semua produk toko Anda</p></div>
         <Button onClick={() => setShowAddModal(true)}><Plus className="w-4 h-4" />Tambah Produk</Button>
       </div>
 
