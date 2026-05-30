@@ -82,10 +82,10 @@ export default function POSPage() {
   const now = new Date();
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] -m-4 lg:-m-6">
-      <div className="flex flex-1 min-h-0 relative">
+    <div className="flex flex-col -m-4 lg:-m-6" style={{ height: "calc(100vh - 4rem)" }}>
+      <div className="flex flex-1 min-h-0 min-w-0 relative overflow-hidden">
         {/* Left Panel - Products */}
-        <div className="flex-1 flex flex-col min-h-0 bg-[#EDEADE]">
+        <div className="flex-1 flex flex-col min-h-0 min-w-0 bg-[#EDEADE]">
           {/* Search Bar */}
           <div className="px-3 sm:px-4 lg:px-5 pt-3 pb-2">
             <div className="flex gap-2 lg:gap-3">
@@ -217,7 +217,7 @@ export default function POSPage() {
         )}
 
         {/* Desktop Right Panel */}
-        <div className="hidden lg:flex w-[340px] xl:w-[380px] bg-white border-l border-[#072C2C]/10 flex-col min-h-0">
+        <div className="hidden lg:flex flex-shrink-0 w-[340px] xl:w-[380px] bg-white border-l border-[#072C2C]/10 flex-col min-h-0">
           <div className="px-4 py-3 border-b border-[#072C2C]/10">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
