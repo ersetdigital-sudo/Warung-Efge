@@ -22,6 +22,12 @@ function IconPie() { return <svg width="24" height="24" viewBox="0 0 24 24" fill
 export default function ReportsPage() {
   const [activeReport, setActiveReport] = useState<ReportType>("sales");
   const [period, setPeriod] = useState<PeriodType>("month");
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<{ month: number; year: number } | null>(null);
+  const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
+
+  const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+  const currentYear = new Date().getFullYear();
 
   const reports = [
     { id: "sales" as ReportType, label: "Penjualan", icon: TrendingUp },
@@ -60,12 +66,49 @@ export default function ReportsPage() {
       <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Laporan</h1><p className="text-[10px] text-[#9CA3AF] font-light mt-0.5">Analisis keuangan dan performa toko</p></div>
 
       {/* Period Filter */}
-      <div className="flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+      <div className="relative flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
         {periods.map((p) => (
-          <button key={p.id} onClick={() => setPeriod(p.id)} className={`flex-shrink-0 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${period === p.id ? "bg-[#FF5F03] text-white" : "bg-white border border-[#D9D6C8] text-[#072C2C]/60 hover:border-[#FF5F03]/40 hover:text-[#072C2C]"}`}>
+          <button key={p.id} onClick={() => { setPeriod(p.id); setSelectedMonth(null); setShowMonthPicker(false); }} className={`flex-shrink-0 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${period === p.id && !selectedMonth ? "bg-[#FF5F03] text-white" : "bg-white border border-[#D9D6C8] text-[#072C2C]/60 hover:border-[#FF5F03]/40 hover:text-[#072C2C]"}`}>
             {p.label}
           </button>
         ))}
+        {/* Pilih Bulan button */}
+        <button
+          onClick={() => setShowMonthPicker(!showMonthPicker)}
+          className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${selectedMonth ? "bg-[#FF5F03] text-white" : "bg-white border border-[#D9D6C8] text-[#072C2C]/60 hover:border-[#FF5F03]/40 hover:text-[#072C2C]"}`}
+        >
+          📅 {selectedMonth ? `${monthNames[selectedMonth.month]} ${selectedMonth.year}` : "Pilih Bulan"}
+        </button>
+
+        {/* Month Picker Dropdown */}
+        {showMonthPicker && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setShowMonthPicker(false)} />
+            <div className="absolute top-full right-0 mt-2 z-50 bg-white border border-[#D9D6C8] rounded-lg shadow-xl p-3 w-[280px] sm:w-[300px]">
+              {/* Year selector */}
+              <div className="flex items-center justify-between mb-3 px-1">
+                <button onClick={() => setPickerYear(Math.max(currentYear - 2, pickerYear - 1))} className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-[#EDEADE] cursor-pointer text-[#072C2C]/60 text-sm font-bold">←</button>
+                <span className="text-sm font-bold text-[#072C2C]">{pickerYear}</span>
+                <button onClick={() => setPickerYear(Math.min(currentYear, pickerYear + 1))} className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-[#EDEADE] cursor-pointer text-[#072C2C]/60 text-sm font-bold">→</button>
+              </div>
+              {/* Month grid */}
+              <div className="grid grid-cols-3 gap-1.5">
+                {monthNames.map((name, idx) => {
+                  const isSelected = selectedMonth?.month === idx && selectedMonth?.year === pickerYear;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => { setSelectedMonth({ month: idx, year: pickerYear }); setPeriod("month"); setShowMonthPicker(false); }}
+                      className={`py-2 px-1 rounded-md text-[11px] font-medium cursor-pointer transition-all ${isSelected ? "bg-[#FF5F03] text-white" : "text-[#072C2C]/70 hover:bg-[#FF5F03]/10 hover:text-[#FF5F03]"}`}
+                    >
+                      {name.slice(0, 3)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Tabs */}
