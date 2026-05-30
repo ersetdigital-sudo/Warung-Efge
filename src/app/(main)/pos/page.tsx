@@ -85,10 +85,45 @@ export default function POSPage() {
     } catch { setScannerError("Kamera tidak dapat diakses. Pastikan izin kamera sudah diberikan di browser."); }
   };
 
-  const closeScanner = () => { stopScanner(); setShowScanner(false); };
+  const closeScanner = () => {
+    // Stop camera stream immediately
+    stopScanner();
+    // Reset all scanner state
+    setScannerError("");
+    setScannerMsg("");
+    // Close modal
+    setShowScanner(false);
+  };
 
   // Cleanup on unmount
   useEffect(() => { return () => { stopScanner(); }; }, []);
+
+  // Android back button handling for scanner modal
+  useEffect(() => {
+    if (!showScanner) return;
+    // Push a dummy state so back button closes modal instead of navigating away
+    window.history.pushState({ scanner: true }, "");
+    const handlePopState = () => {
+      closeScanner();
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [showScanner]);
+
+  // Android back button handling for receipt modal
+  useEffect(() => {
+    if (!showReceipt) return;
+    window.history.pushState({ receipt: true }, "");
+    const handlePopState = () => {
+      setShowReceipt(false);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [showReceipt]);
 
   const filteredProducts = useMemo(() => {
     let filtered = products;
