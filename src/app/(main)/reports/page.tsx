@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { TrendingUp, DollarSign, Package, Users, Truck } from "lucide-react";
+import { TrendingUp, DollarSign, Package, Users, Truck, Wallet, Receipt } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { formatCurrency, formatNumber } from "@/lib/utils";
@@ -39,11 +39,11 @@ export default function ReportsPage() {
       {activeReport === "sales" && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#FF5F03]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Penjualan</p><p className="font-[Oswald] text-[24px] font-semibold text-[#072C2C] mt-1">{formatCurrency(totalSales)}</p></div>
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Rata-rata Transaksi</p><p className="font-[Oswald] text-[24px] font-semibold text-[#16A34A] mt-1">{formatCurrency(totalSales / transactions.length)}</p></div>
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Transaksi</p><p className="font-[Oswald] text-[24px] font-semibold text-[#072C2C] mt-1">{formatNumber(transactions.length)}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#FF5F03]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Penjualan</p><Wallet className="w-4 h-4 text-[#FF5F03]" /></div><p className="font-[Oswald] text-[24px] font-semibold text-[#072C2C] mt-1">{formatCurrency(totalSales)}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#16A34A]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Rata-rata Transaksi</p><TrendingUp className="w-4 h-4 text-[#16A34A]" /></div><p className="font-[Oswald] text-[24px] font-semibold text-[#16A34A] mt-1">{formatCurrency(totalSales / transactions.length)}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#072C2C]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Transaksi</p><Receipt className="w-4 h-4 text-[#072C2C]" /></div><p className="font-[Oswald] text-[24px] font-semibold text-[#072C2C] mt-1">{formatNumber(transactions.length)}</p></div>
           </div>
-          <Card><CardHeader><h3 className="text-base font-semibold">Penjualan Bulanan</h3></CardHeader><CardContent><div className="h-72"><ResponsiveContainer width="100%" height="100%"><BarChart data={monthlySalesData}><CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" /><XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={12} /><YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => `${(v/1000000).toFixed(0)}jt`} /><Tooltip formatter={(value: any) => [formatCurrency(value), "Penjualan"]} contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0" }} /><Bar dataKey="sales" fill="#3b82f6" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div></CardContent></Card>
+          <Card><CardHeader><h3 className="text-base font-semibold">Penjualan Bulanan</h3></CardHeader><CardContent><div className="h-72"><ResponsiveContainer width="100%" height="100%"><BarChart data={monthlySalesData}><CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" /><XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={12} /><YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(v) => `${(v/1000000).toFixed(0)}jt`} /><Tooltip formatter={(value) => [formatCurrency(value as number), "Penjualan"]} contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0", backgroundColor: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }} cursor={{ fill: "transparent" }} /><Bar dataKey="sales" fill="#3b82f6" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div></CardContent></Card>
         </div>
       )}
 
@@ -66,7 +66,7 @@ export default function ReportsPage() {
 
       {activeReport === "products" && (
         <div className="space-y-6">
-          <Card><CardHeader><h3 className="text-base font-semibold">Produk Terlaris</h3></CardHeader><CardContent><div className="h-64"><ResponsiveContainer width="100%" height="100%"><BarChart data={topProducts}><CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" /><XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={10} /><YAxis axisLine={false} tickLine={false} fontSize={12} /><Tooltip formatter={(value: any) => [formatNumber(value), "Terjual"]} contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0" }} /><Bar dataKey="sold" fill="#6366f1" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div></CardContent></Card>
+          <Card><CardHeader><h3 className="text-base font-semibold">Produk Terlaris</h3></CardHeader><CardContent><div className="h-64"><ResponsiveContainer width="100%" height="100%"><BarChart data={topProducts}><CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" /><XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={10} /><YAxis axisLine={false} tickLine={false} fontSize={12} /><Tooltip formatter={(value) => [formatNumber(value as number), "Terjual"]} contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0", backgroundColor: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }} cursor={{ fill: "transparent" }} /><Bar dataKey="sold" fill="#6366f1" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div></CardContent></Card>
           <Card><CardHeader><h3 className="text-base font-semibold">Produk Lambat Terjual</h3></CardHeader><CardContent className="p-0"><div className="divide-y divide-gray-100">{products.slice(-5).reverse().map((p) => <div key={p.id} className="flex items-center justify-between px-5 py-3"><div><p className="text-sm font-medium">{p.name}</p><p className="text-xs text-gray-500">Stok: {p.stock} {p.unit}</p></div><Badge variant="warning">Lambat</Badge></div>)}</div></CardContent></Card>
         </div>
       )}
