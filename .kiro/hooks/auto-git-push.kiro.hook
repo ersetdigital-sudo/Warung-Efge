@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Auto Commit & Push",
+  "description": "Automatically commits all changes and pushes to GitHub after the agent finishes a task",
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "git add -A && git commit -m \"auto: update from Kiro\" --allow-empty-message && git push"
+  }
+}
