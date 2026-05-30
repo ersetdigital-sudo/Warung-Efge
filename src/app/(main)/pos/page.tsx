@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
-import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, QrCode, Banknote, Printer, ScanBarcode, AlertTriangle, RotateCcw, X } from "lucide-react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, QrCode, Banknote, Printer, ScanBarcode, AlertTriangle, RotateCcw, X, Check } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/utils";
 import { products, categories } from "@/data/mock-data";
@@ -27,6 +27,68 @@ export default function POSPage() {
   const [showCart, setShowCart] = useState(false);
   const [trxId] = useState(() => `TRX-${String(Math.floor(Math.random() * 9000) + 1000)}`);
   const receiptRef = useRef<HTMLDivElement>(null);
+
+  // Barcode scanner state
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannerError, setScannerError] = useState("");
+  const [scannerMsg, setScannerMsg] = useState("");
+  const [scanNotification, setScanNotification] = useState("");
+  const [hasCamera, setHasCamera] = useState(true);
+  const scanVideoRef = useRef<HTMLVideoElement>(null);
+  const scanReaderRef = useRef<any>(null);
+  const scanStreamRef = useRef<MediaStream | null>(null);
+
+  // Check camera availability
+  useEffect(() => {
+    if (typeof navigator !== "undefined" && navigator.mediaDevices) {
+      navigator.mediaDevices.enumerateDevices().then(devices => {
+        const videoDevices = devices.filter(d => d.kind === "videoinput");
+        if (videoDevices.length === 0) setHasCamera(false);
+      }).catch(() => setHasCamera(false));
+    } else {
+      setHasCamera(false);
+    }
+  }, []);
+
+  const stopScanner = () => {
+    if (scanStreamRef.current) { scanStreamRef.current.getTracks().forEach(t => t.stop()); scanStreamRef.current = null; }
+    if (scanReaderRef.current) { scanReaderRef.current.reset(); scanReaderRef.current = null; }
+  };
+
+  const openScanner = async () => {
+    setScannerError(""); setScannerMsg(""); setShowScanner(true);
+    try {
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
+      const reader = new BrowserMultiFormatReader();
+      scanReaderRef.current = reader;
+      setTimeout(async () => {
+        if (!scanVideoRef.current) return;
+        try {
+          await reader.decodeFromVideoDevice(undefined, scanVideoRef.current, (result) => {
+            if (result) {
+              const code = result.getText();
+              const product = products.find(p => p.barcode === code);
+              if (product) {
+                stopScanner(); setShowScanner(false);
+                addToCart(product.id);
+                setScanNotification("Produk ditambahkan ✓");
+                setTimeout(() => setScanNotification(""), 2000);
+              } else {
+                setScannerMsg("Produk tidak ditemukan. Coba scan ulang atau cari manual.");
+                setTimeout(() => setScannerMsg(""), 2000);
+              }
+            }
+          });
+          scanStreamRef.current = scanVideoRef.current.srcObject as MediaStream;
+        } catch { setScannerError("Kamera tidak dapat diakses. Pastikan izin kamera sudah diberikan di browser."); }
+      }, 150);
+    } catch { setScannerError("Kamera tidak dapat diakses. Pastikan izin kamera sudah diberikan di browser."); }
+  };
+
+  const closeScanner = () => { stopScanner(); setShowScanner(false); };
+
+  // Cleanup on unmount
+  useEffect(() => { return () => { stopScanner(); }; }, []);
 
   const filteredProducts = useMemo(() => {
     let filtered = products;
@@ -150,7 +212,7 @@ export default function POSPage() {
                   autoFocus
                 />
               </div>
-              <button className="flex-shrink-0 flex items-center gap-1.5 px-3 lg:px-5 py-2.5 bg-[#FF5F03] text-white rounded-lg lg:rounded-xl font-medium text-xs lg:text-sm hover:bg-[#e55503] transition-colors shadow-sm cursor-pointer">
+              <button onClick={openScanner} className={`flex-shrink-0 flex items-center gap-1.5 px-3 lg:px-5 py-2.5 bg-[#FF5F03] text-white rounded-lg lg:rounded-xl font-medium text-xs lg:text-sm hover:bg-[#e55503] transition-colors shadow-sm cursor-pointer ${!hasCamera ? "hidden" : ""}`}>
                 <ScanBarcode className="w-4 lg:w-5 h-4 lg:h-5" />
                 <span className="hidden sm:inline">Scan Barcode</span>
               </button>
@@ -424,6 +486,56 @@ export default function POSPage() {
           </div>
         )}
       </div>
+
+      {/* Scan Notification */}
+      {scanNotification && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 px-4 py-2.5 bg-[#16A34A] text-white rounded-xl shadow-xl text-sm font-medium animate-in fade-in">
+          <Check className="w-4 h-4" />{scanNotification}
+        </div>
+      )}
+
+      {/* Barcode Scanner Modal */}
+      {showScanner && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
+          <div className="fixed inset-0 bg-black/70" onClick={closeScanner} />
+          <div className="relative bg-black w-full h-full sm:w-[480px] sm:h-auto sm:max-h-[80vh] sm:rounded-2xl overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent">
+              <p className="text-white text-sm font-medium">Scan Barcode</p>
+              <button onClick={closeScanner} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center cursor-pointer active:scale-90">
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+
+            {/* Camera Preview */}
+            <div className="flex-1 relative min-h-[300px] sm:min-h-[360px]">
+              <video ref={scanVideoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+              {/* Viewfinder overlay */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-[70%] max-w-[280px] aspect-[3/2] relative">
+                  <div className="absolute top-0 left-0 w-6 h-6 border-t-3 border-l-3 border-white rounded-tl-lg" />
+                  <div className="absolute top-0 right-0 w-6 h-6 border-t-3 border-r-3 border-white rounded-tr-lg" />
+                  <div className="absolute bottom-0 left-0 w-6 h-6 border-b-3 border-l-3 border-white rounded-bl-lg" />
+                  <div className="absolute bottom-0 right-0 w-6 h-6 border-b-3 border-r-3 border-white rounded-br-lg" />
+                  {/* Scan line animation */}
+                  <div className="absolute top-1/2 left-2 right-2 h-0.5 bg-[#FF5F03] opacity-80 animate-pulse" />
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom info */}
+            <div className="bg-black px-4 py-4 text-center space-y-2">
+              {scannerError ? (
+                <p className="text-[#DC2626] text-sm">{scannerError}</p>
+              ) : scannerMsg ? (
+                <p className="text-[#D97706] text-sm">{scannerMsg}</p>
+              ) : (
+                <p className="text-white/70 text-sm">Arahkan kamera ke barcode produk</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Receipt Modal */}
       {showReceipt && (
