@@ -1,120 +1,175 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Package } from "lucide-react";
+import { useState, useEffect, Fragment } from "react";
+import { Plus, Edit, Trash2, Package, ChevronRight, ChevronDown, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
-import DataTable from "@/components/ui/DataTable";
-import { formatCurrency, getStockStatus } from "@/lib/utils";
-import { categories } from "@/data/mock-data";
-import { getProducts, deleteProduct } from "@/lib/db";
+import { formatCurrency } from "@/lib/utils";
+import { getProductsWithUnits, deleteProduct } from "@/lib/db";
 
 export default function ProductsPage() {
   const router = useRouter();
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [productList, setProductList] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [catFilter, setCatFilter] = useState("");
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState("");
 
   useEffect(() => { loadProducts(); }, []);
-
-  const loadProducts = async () => {
-    setLoading(true);
-    const data = await getProducts();
-    setProductList(data);
-    setLoading(false);
-  };
-
-  const showToast = (msg: string, type: "success" | "error" = "success") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 2000);
-  };
+  const loadProducts = async () => { const data = await getProductsWithUnits(); setProducts(data); };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    const success = await deleteProduct(deleteTarget.id);
-    if (success) {
-      await loadProducts();
-      showToast("Produk berhasil dihapus", "success");
-    } else {
-      showToast("Gagal menghapus produk", "error");
-    }
+    await deleteProduct(deleteTarget.id);
+    await loadProducts();
     setDeleteTarget(null);
+    setToast("Produk berhasil dihapus");
+    setTimeout(() => setToast(""), 2000);
   };
 
-  const filteredProducts = selectedCategory
-    ? productList.filter((p) => p.category === selectedCategory)
-    : productList;
+  const toggleExpand = (id: string) => {
+    setExpandedRows(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  };
 
-  const columns = [
-    { key: "name", label: "Produk", sortable: true, render: (item: any) => (
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center"><Package className="w-5 h-5 text-gray-400" /></div>
-        <div><p className="font-medium text-gray-900">{item.name}</p><p className="text-xs text-gray-500">SKU: {item.sku}</p></div>
-      </div>
-    )},
-    { key: "category", label: "Kategori", sortable: true, render: (item: any) => <Badge variant="info">{item.category}</Badge> },
-    { key: "cost_price", label: "Harga Modal", sortable: true, render: (item: any) => <span className="text-gray-600">{formatCurrency(item.cost_price)}</span> },
-    { key: "selling_price", label: "Harga Jual", sortable: true, render: (item: any) => <span className="font-medium text-gray-900">{formatCurrency(item.selling_price)}</span> },
-    { key: "stock", label: "Stok", sortable: true, render: (item: any) => {
-      const status = getStockStatus(item.stock, item.min_stock);
-      return <Badge variant={status === "safe" ? "success" : status === "warning" ? "warning" : "danger"}>{item.stock} {item.unit}</Badge>;
-    }},
-    { key: "actions", label: "Aksi", render: (item: any) => (
-      <div className="flex items-center gap-1">
-        <button onClick={() => router.push(`/products/edit/${item.id}`)} className="p-1.5 rounded-md hover:bg-blue-50 text-blue-600 cursor-pointer"><Edit className="w-4 h-4" /></button>
-        <button onClick={() => setDeleteTarget(item)} className="p-1.5 rounded-md hover:bg-red-50 text-red-600 cursor-pointer"><Trash2 className="w-4 h-4" /></button>
-      </div>
-    )},
-  ];
+  const filtered = products.filter(p => {
+    const q = search.toLowerCase();
+    const matchSearch = !q || (p.name || "").toLowerCase().includes(q) || (p.sku || "").toLowerCase().includes(q);
+    const matchCat = !catFilter || p.category === catFilter;
+    return matchSearch && matchCat;
+  });
+
+  const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
+  const multiLevelCount = products.filter(p => (p.product_units || []).length > 1).length;
+  const totalLevels = products.reduce((s, p) => s + (p.product_units || []).length, 0);
 
   return (
-    <div className="space-y-6">
-      {/* Toast */}
-      {toast && (
-        <div className={`fixed z-[9999] ${toast.type === "success" ? "top-4 right-4 sm:top-6 sm:right-6" : "top-4 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-auto"} animate-in slide-in-from-top fade-in duration-200`}>
-          <div className={`px-4 py-2.5 rounded-xl shadow-xl text-sm font-medium text-white ${toast.type === "success" ? "bg-[#16A34A]" : "bg-[#DC2626]"}`}>
-            {toast.msg}
-          </div>
-        </div>
-      )}
+    <div className="space-y-4">
+      {toast && <div className="fixed z-[9999] top-4 right-4 animate-in slide-in-from-top fade-in duration-200"><div className="px-4 py-2.5 rounded-xl shadow-xl text-sm font-medium text-white bg-[#DC2626]">{toast}</div></div>}
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Manajemen Produk</h1><p className="text-[10px] text-[#9CA3AF] font-light mt-0.5">Kelola semua produk toko Anda</p></div>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Produk</h1><p className="text-[10px] text-[#9CA3AF] font-light">Manajemen Katalog & Multi Satuan</p></div>
         <Link href="/products/tambah"><Button><Plus className="w-4 h-4" />Tambah Produk</Button></Link>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <button onClick={() => setSelectedCategory("")} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${!selectedCategory ? "bg-[#072C2C] text-white" : "bg-white text-[#072C2C]/70 border border-[#072C2C]/10 hover:border-[#FF5F03]/30"}`}>Semua ({productList.length})</button>
-        {categories.map((cat) => {
-          const count = productList.filter((p) => p.category === cat.name).length;
-          if (count === 0) return null;
-          return <button key={cat.id} onClick={() => setSelectedCategory(cat.name)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${selectedCategory === cat.name ? "bg-[#072C2C] text-white" : "bg-white text-[#072C2C]/70 border border-[#072C2C]/10 hover:border-[#FF5F03]/30"}`}>{cat.name} ({count})</button>;
-        })}
+      {/* KPI */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total SKU</p><p className="font-[Oswald] text-[22px] font-semibold text-[#072C2C] mt-1">{products.length}</p></div>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#FF5F03]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Multi Satuan</p><p className="font-[Oswald] text-[22px] font-semibold text-[#072C2C] mt-1">{multiLevelCount} produk</p></div>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Tingkatan</p><p className="font-[Oswald] text-[22px] font-semibold text-[#072C2C] mt-1">{totalLevels}</p></div>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#D97706]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Kategori</p><p className="font-[Oswald] text-[22px] font-semibold text-[#072C2C] mt-1">{categories.length}</p></div>
       </div>
 
-      <Card><CardContent><DataTable columns={columns} data={filteredProducts} searchPlaceholder="Cari produk, SKU, atau barcode..." searchKeys={["name", "sku", "barcode", "category"]} /></CardContent></Card>
+      {/* Table */}
+      <Card>
+        {/* Toolbar */}
+        <div className="flex items-center gap-2 p-3 border-b border-[#D9D6C8] flex-wrap">
+          <div className="flex items-center gap-2 flex-1 min-w-[160px] bg-[#EDEADE] border border-[#D9D6C8] rounded px-2.5 py-1.5">
+            <Search className="w-3.5 h-3.5 text-[#9CA3AF]" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari nama, SKU..." className="bg-transparent outline-none text-xs w-full text-[#111827] placeholder-[#9CA3AF]" />
+          </div>
+          <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} className="bg-[#EDEADE] border border-[#D9D6C8] rounded px-2.5 py-1.5 text-[11px] text-[#4B5563] outline-none cursor-pointer">
+            <option value="">Semua Kategori</option>
+            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
 
-      {/* Delete Confirmation Dialog */}
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr className="border-b border-[#D9D6C8]">
+                <th className="w-[30px] px-2 py-2 bg-[#EDEADE]"></th>
+                <th className="text-left px-2.5 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Produk</th>
+                <th className="text-left px-2.5 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">SKU</th>
+                <th className="text-left px-2.5 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Kategori</th>
+                <th className="text-left px-2.5 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Tingkatan</th>
+                <th className="text-right px-2.5 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Stok</th>
+                <th className="text-left px-2.5 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-[#9CA3AF] text-sm">Tidak ada produk</td></tr>}
+              {filtered.map((p) => {
+                const units = (p.product_units || []).sort((a: any, b: any) => a.level - b.level);
+                const baseUnit = units[0];
+                const isOpen = expandedRows.has(p.id);
+                const levelColors = ["bg-[#072C2C]/10 text-[#072C2C]", "bg-[#FF5F03]/10 text-[#FF5F03]", "bg-[#D97706]/10 text-[#D97706]"];
+                return (
+                  <Fragment key={p.id}>
+                    <tr className="border-b border-[#D9D6C8] hover:bg-[#FAFAF8] transition-colors">
+                      <td className="px-2 py-2">
+                        {units.length > 1 && <button onClick={() => toggleExpand(p.id)} className="w-6 h-6 rounded border border-[#D9D6C8] flex items-center justify-center cursor-pointer hover:bg-[#EDEADE]">
+                          {isOpen ? <ChevronDown className="w-3 h-3 text-[#072C2C]" /> : <ChevronRight className="w-3 h-3 text-[#9CA3AF]" />}
+                        </button>}
+                      </td>
+                      <td className="px-2.5 py-2"><div className="font-medium text-[#111827]">{p.name}</div></td>
+                      <td className="px-2.5 py-2 font-mono text-[11px] text-[#9CA3AF]">{p.sku || "—"}</td>
+                      <td className="px-2.5 py-2"><Badge variant="info">{p.category || "—"}</Badge></td>
+                      <td className="px-2.5 py-2"><div className="flex gap-1 flex-wrap">{units.map((u: any, i: number) => <span key={u.id} className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${levelColors[i] || levelColors[0]}`}>{u.name}</span>)}</div></td>
+                      <td className="px-2.5 py-2 text-right font-mono font-bold text-[11px]">{baseUnit ? `${baseUnit.stock} ${baseUnit.name}` : `${p.stock || 0} ${p.unit || ""}`}</td>
+                      <td className="px-2.5 py-2">
+                        <div className="flex gap-1">
+                          <button onClick={() => router.push(`/products/edit/${p.id}`)} className="w-6 h-6 rounded border border-[#D9D6C8] flex items-center justify-center cursor-pointer hover:bg-[#EFF6FF] hover:border-[#bfdbfe] hover:text-[#1D4ED8] text-[#9CA3AF]"><Edit className="w-3 h-3" /></button>
+                          <button onClick={() => setDeleteTarget(p)} className="w-6 h-6 rounded border border-[#D9D6C8] flex items-center justify-center cursor-pointer hover:bg-[#FEF2F2] hover:border-[#fecaca] hover:text-[#DC2626] text-[#9CA3AF]"><Trash2 className="w-3 h-3" /></button>
+                        </div>
+                      </td>
+                    </tr>
+                    {/* Expand Row */}
+                    {isOpen && units.length > 1 && (
+                      <tr className="bg-[#FAFAF8] border-b border-[#D9D6C8]">
+                        <td colSpan={7} className="px-4 py-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            {units.map((u: any, i: number) => {
+                              const margin = u.buy_price > 0 ? Math.round((u.sell_price - u.buy_price) / u.sell_price * 100) : 0;
+                              const nextUnit = units[i + 1];
+                              const borderColor = ["border-t-[#072C2C]", "border-t-[#FF5F03]", "border-t-[#D97706]"][i] || "";
+                              return (
+                                <div key={u.id} className={`bg-white border border-[#D9D6C8] rounded p-3 border-t-[3px] ${borderColor}`}>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-bold text-[#111827]">{u.name}</span>
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${levelColors[i]}`}>Level {u.level}</span>
+                                  </div>
+                                  <p className="text-[10px] text-[#9CA3AF] mb-2">{u.conversion ? `1 ${u.name} = ${u.conversion} ${nextUnit?.name || "unit"}` : "Satuan terkecil"}</p>
+                                  <div className="space-y-1 text-[11px]">
+                                    <div className="flex justify-between"><span className="text-[#9CA3AF]">Harga Beli</span><span className="font-mono font-bold text-[#DC2626]">{formatCurrency(u.buy_price)}</span></div>
+                                    <div className="flex justify-between"><span className="text-[#9CA3AF]">Harga Jual</span><span className="font-mono font-bold text-[#16A34A]">{formatCurrency(u.sell_price)}</span></div>
+                                    <div className="flex justify-between"><span className="text-[#9CA3AF]">Margin</span><span className={`font-mono font-bold ${margin >= 20 ? "text-[#16A34A]" : margin >= 10 ? "text-[#D97706]" : "text-[#DC2626]"}`}>{margin}%</span></div>
+                                  </div>
+                                  <div className="mt-2 pt-2 border-t border-[#D9D6C8] flex justify-between text-[11px]"><span className="text-[#9CA3AF]">Stok</span><span className="font-mono font-bold">{u.stock} {u.name}</span></div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="px-3 py-2 border-t border-[#D9D6C8] text-[11px] text-[#9CA3AF]">Menampilkan {filtered.length} dari {products.length} produk</div>
+      </Card>
+
+      {/* Delete Confirmation */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/60" onClick={() => setDeleteTarget(null)} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center animate-in fade-in zoom-in-95 duration-150">
             <div className="w-14 h-14 bg-[#fee2e2] rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
             </div>
-            <h3 className="text-lg font-bold text-[#072C2C] mb-1">Hapus?</h3>
+            <h3 className="text-lg font-bold text-[#072C2C] mb-1">Hapus Produk?</h3>
             <p className="text-sm text-[#072C2C]/60 mb-5">{deleteTarget.name} akan dihapus secara permanen.</p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteTarget(null)} className="flex-1 px-4 py-2.5 bg-[#4B5563] text-white font-medium text-sm rounded-xl cursor-pointer hover:bg-[#374151] transition-colors">Batal</button>
-              <button onClick={handleDelete} className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#DC2626] text-white font-bold text-sm rounded-xl cursor-pointer hover:bg-[#b91c1c] transition-colors">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-                Hapus
-              </button>
+              <button onClick={() => setDeleteTarget(null)} className="flex-1 px-4 py-2.5 bg-[#4B5563] text-white font-medium text-sm rounded-xl cursor-pointer">Batal</button>
+              <button onClick={handleDelete} className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#DC2626] text-white font-bold text-sm rounded-xl cursor-pointer"><Trash2 className="w-4 h-4" />Hapus</button>
             </div>
           </div>
         </div>

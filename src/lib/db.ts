@@ -93,6 +93,32 @@ export async function getStockMovements() {
   return data || [];
 }
 
+// ============ PRODUCT UNITS (Multi-level) ============
+export async function getProductUnits(productId: string) {
+  const { data } = await supabase.from("product_units").select("*").eq("product_id", productId).order("level");
+  return data || [];
+}
+
+export async function getProductsWithUnits() {
+  const { data, error } = await supabase
+    .from("products")
+    .select("*, product_units(*)")
+    .order("created_at", { ascending: false });
+  if (error) { console.error("getProductsWithUnits error:", error); return []; }
+  return data || [];
+}
+
+export async function saveProductUnits(productId: string, units: { level: number; name: string; conversion: number | null; stock: number; buy_price: number; sell_price: number }[]) {
+  // Delete existing units for this product
+  await supabase.from("product_units").delete().eq("product_id", productId);
+  // Insert new units
+  if (units.length > 0) {
+    const rows = units.map(u => ({ product_id: productId, ...u }));
+    const { error } = await supabase.from("product_units").insert(rows);
+    if (error) console.error("saveProductUnits error:", error);
+  }
+}
+
 // ============ USERS ============
 export async function getUsers() {
   const { data } = await supabase.from("users").select("*").order("created_at");
