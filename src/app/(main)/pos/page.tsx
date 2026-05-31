@@ -429,108 +429,95 @@ export default function POSPage() {
         {/* Desktop Right Panel - KERANJANG */}
         <div className="hidden lg:flex flex-shrink-0 w-[320px] xl:w-[350px] bg-white border-l border-[#072C2C]/10 flex-col min-h-0">
           {/* Header */}
-          <div className="px-4 py-3 border-b border-[#072C2C]/10 flex-shrink-0">
+          <div className="px-3 py-2 border-b border-[#072C2C]/10 flex-shrink-0">
             <div className="flex items-center justify-between">
               <h2 className="font-bold text-[#072C2C] text-sm">KERANJANG</h2>
               <span className="bg-[#FF5F03] text-white text-[10px] font-bold px-2 py-0.5 rounded-md">{cart.length} item</span>
             </div>
           </div>
 
-          {/* Scrollable area: cart items + payment */}
-          <div className="flex-1 overflow-y-auto">
-            {/* Cart Items */}
-            <div className="px-4 py-2 space-y-1.5">
-              {cart.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-[#072C2C]/20">
-                  <ShoppingCart className="w-12 h-12 mb-2" />
-                  <p className="text-xs font-medium text-[#072C2C]/40">Keranjang kosong</p>
-                  <p className="text-[10px] text-[#072C2C]/30 mt-0.5">Pilih satuan produk di kiri</p>
+          {/* Cart Items - scrollable */}
+          <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+            {cart.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-[#072C2C]/20">
+                <ShoppingCart className="w-10 h-10 mb-2" />
+                <p className="text-xs font-medium text-[#072C2C]/40">Keranjang kosong</p>
+                <p className="text-[10px] text-[#072C2C]/30">Pilih satuan produk di kiri</p>
+              </div>
+            ) : cart.map((item) => (
+              <div key={`${item.productId}-${item.unit}`} className="flex items-center gap-2 p-2 bg-[#F9F8F4] rounded-lg border border-[#072C2C]/5">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-semibold text-[#072C2C] leading-tight">{item.name}</p>
+                  <p className="text-[9px] text-[#072C2C]/50">{item.unit} · {formatCurrency(item.price)}</p>
                 </div>
-              ) : cart.map((item) => (
-                <div key={`${item.productId}-${item.unit}`} className="flex items-center gap-2 p-2.5 bg-[#F9F8F4] rounded-lg border border-[#072C2C]/5">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-[#072C2C]">{item.name}</p>
-                    <p className="text-[10px] text-[#072C2C]/50">{item.unit} · {formatCurrency(item.price)}</p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => updateQuantity(item.productId, item.unit, -1)} className="w-6 h-6 rounded bg-white border border-[#072C2C]/10 flex items-center justify-center hover:bg-[#DC2626]/5 cursor-pointer"><Minus className="w-2.5 h-2.5" /></button>
-                    <span className="w-6 text-center text-xs font-bold">{item.quantity}</span>
-                    <button onClick={() => updateQuantity(item.productId, item.unit, 1)} className="w-6 h-6 rounded bg-white border border-[#072C2C]/10 flex items-center justify-center hover:bg-[#16A34A]/5 cursor-pointer"><Plus className="w-2.5 h-2.5" /></button>
-                  </div>
-                  <div className="text-right min-w-[60px]">
-                    <p className="text-xs font-bold text-[#072C2C]">{formatCurrency(item.subtotal)}</p>
-                    <button onClick={() => removeFromCart(item.productId, item.unit)} className="text-[#DC2626]/50 hover:text-[#DC2626] cursor-pointer"><Trash2 className="w-3 h-3" /></button>
-                  </div>
+                <div className="flex items-center gap-0.5">
+                  <button onClick={() => updateQuantity(item.productId, item.unit, -1)} className="w-5 h-5 rounded bg-white border border-[#072C2C]/10 flex items-center justify-center hover:bg-[#DC2626]/5 cursor-pointer"><Minus className="w-2.5 h-2.5" /></button>
+                  <span className="w-5 text-center text-[11px] font-bold">{item.quantity}</span>
+                  <button onClick={() => updateQuantity(item.productId, item.unit, 1)} className="w-5 h-5 rounded bg-white border border-[#072C2C]/10 flex items-center justify-center hover:bg-[#16A34A]/5 cursor-pointer"><Plus className="w-2.5 h-2.5" /></button>
                 </div>
+                <div className="text-right min-w-[55px]">
+                  <p className="text-[11px] font-bold text-[#072C2C]">{formatCurrency(item.subtotal)}</p>
+                </div>
+                <button onClick={() => removeFromCart(item.productId, item.unit)} className="text-[#DC2626]/40 hover:text-[#DC2626] cursor-pointer flex-shrink-0"><Trash2 className="w-3 h-3" /></button>
+              </div>
+            ))}
+          </div>
+
+          {/* Payment Section - fixed bottom, ultra compact */}
+          <div className="flex-shrink-0 border-t border-[#072C2C]/10 px-3 py-2 bg-white space-y-1.5">
+            {/* Subtotal + Discount inline */}
+            <div className="flex justify-between text-[11px]">
+              <span className="text-[#072C2C]/50">Subtotal</span>
+              <span className="text-[#072C2C] font-medium">{formatCurrency(subtotal)}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-[#072C2C]/50">Diskon</span>
+              <input type="text" inputMode="numeric" value={discountInput} onChange={(e) => setDiscountInput(e.target.value.replace(/\D/g, ""))} placeholder="0" className="flex-1 px-1.5 py-0.5 text-[11px] border border-[#072C2C]/10 rounded text-right focus:outline-none focus:ring-1 focus:ring-[#FF5F03]/30" />
+              <select value={discountType} onChange={(e) => setDiscountType(e.target.value as "rp" | "persen")} className="px-1 py-0.5 text-[11px] border border-[#072C2C]/10 rounded bg-white cursor-pointer">
+                <option value="rp">Rp</option>
+                <option value="persen">%</option>
+              </select>
+            </div>
+            {calculatedDiscount > 0 && (
+              <div className="flex justify-between text-[11px]">
+                <span className="text-[#072C2C]/50">Diskon</span>
+                <span className="text-[#DC2626]">- {formatCurrency(calculatedDiscount)}</span>
+              </div>
+            )}
+            {/* Total */}
+            <div className="flex justify-between items-center py-1 border-t border-[#072C2C]/10">
+              <span className="text-xs font-bold text-[#072C2C]">TOTAL</span>
+              <span className="text-base font-bold text-[#FF5F03]">{formatCurrency(total)}</span>
+            </div>
+            {/* Payment Method - single row */}
+            <div className="grid grid-cols-4 gap-1">
+              {([["cash", Banknote, "Tunai"], ["qris", QrCode, "QRIS"], ["transfer", CreditCard, "Transfer"], ["edc", Smartphone, "EDC"]] as const).map(([method, Icon, label]) => (
+                <button key={method} onClick={() => setPaymentMethod(method)} className={`flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-md text-[9px] font-medium cursor-pointer ${paymentMethod === method ? "bg-[#072C2C] text-white" : "bg-[#F5F4F0] border border-[#072C2C]/8 text-[#072C2C]/60 hover:border-[#FF5F03]/30"}`}>
+                  <Icon className="w-3 h-3" />{label}
+                </button>
               ))}
             </div>
-
-            {/* Payment Section - inside scroll */}
-            <div className="sticky bottom-0 border-t border-[#072C2C]/10 px-4 py-3 space-y-2 bg-white">
-              {/* Subtotal */}
-              <div className="flex justify-between text-xs">
-                <span className="text-[#072C2C]/60">Subtotal</span>
-                <span className="text-[#072C2C] font-medium">{formatCurrency(subtotal)}</span>
-              </div>
-
-              {/* Discount */}
+            {/* Cash input */}
+            {paymentMethod === "cash" && (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-[#072C2C]/60 w-12">Diskon</span>
-                <input type="text" inputMode="numeric" value={discountInput} onChange={(e) => setDiscountInput(e.target.value.replace(/\D/g, ""))} placeholder="0" className="flex-1 px-2 py-1 text-xs border border-[#072C2C]/15 rounded text-right focus:outline-none focus:ring-1 focus:ring-[#FF5F03]/30" />
-                <select value={discountType} onChange={(e) => setDiscountType(e.target.value as "rp" | "persen")} className="px-2 py-1 text-xs border border-[#072C2C]/15 rounded bg-white cursor-pointer">
-                  <option value="rp">Rp</option>
-                  <option value="persen">%</option>
-                </select>
-              </div>
-
-              {calculatedDiscount > 0 && (
-                <div className="flex justify-between text-xs">
-                  <span className="text-[#072C2C]/60">Diskon</span>
-                  <span className="text-[#DC2626] font-medium">- {formatCurrency(calculatedDiscount)}</span>
+                <div className="flex items-center gap-1 flex-1">
+                  <span className="text-[10px] text-[#072C2C]/50">Rp</span>
+                  <input type="text" inputMode="numeric" value={displayAmountPaid} onChange={(e) => handleAmountInput(e.target.value)} placeholder="0" className="flex-1 px-2 py-1 text-[11px] font-bold border border-[#072C2C]/10 rounded text-right focus:outline-none focus:ring-1 focus:ring-[#FF5F03]/30" />
                 </div>
-              )}
-
-              {/* Total */}
-              <div className="flex justify-between items-center py-2 border-t border-[#072C2C]/10">
-                <span className="text-sm font-bold text-[#072C2C]">TOTAL</span>
-                <span className="text-lg font-bold text-[#FF5F03]">{formatCurrency(total)}</span>
-              </div>
-
-              {/* Payment Method */}
-              <div>
-                <p className="text-[10px] font-semibold text-[#072C2C]/50 mb-1.5 uppercase tracking-wider">Metode Pembayaran</p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {([["cash", Banknote, "Tunai"], ["qris", QrCode, "QRIS"], ["transfer", CreditCard, "Transfer"], ["edc", Smartphone, "EDC"]] as const).map(([method, Icon, label]) => (
-                    <button key={method} onClick={() => setPaymentMethod(method)} className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${paymentMethod === method ? "bg-[#072C2C] text-white" : "bg-[#F9F8F4] border border-[#072C2C]/10 text-[#072C2C]/70 hover:border-[#FF5F03]/30"}`}>
-                      <Icon className="w-3.5 h-3.5" />{label}
-                    </button>
-                  ))}
+                <div className="text-right">
+                  <p className="text-[9px] text-[#072C2C]/40">Kembalian</p>
+                  <p className="text-[11px] font-bold text-[#16A34A]">{formatRupiah(change > 0 ? change : 0)}</p>
                 </div>
               </div>
-
-              {/* Cash input */}
-              {paymentMethod === "cash" && (
-                <div className="space-y-2 pt-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-[#072C2C]/60">Rp</span>
-                    <input type="text" inputMode="numeric" value={displayAmountPaid} onChange={(e) => handleAmountInput(e.target.value)} placeholder="0" className="flex-1 px-2.5 py-1.5 text-xs font-bold text-[#072C2C] border border-[#072C2C]/15 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#FF5F03]/30 text-right" />
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-[#072C2C]/60">Kembalian</span>
-                    <span className="font-bold text-[#16A34A]">{formatRupiah(change > 0 ? change : 0)}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Action buttons */}
-              <div className="flex flex-col gap-1.5 pt-1">
-                <button onClick={handlePayment} disabled={!canPay} className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#FF5F03] text-white font-bold text-sm rounded-xl hover:bg-[#e55503] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
-                  <Check className="w-4 h-4" />PROSES PEMBAYARAN
-                </button>
-                <button onClick={clearCart} className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-[#072C2C]/50 font-medium text-xs hover:text-[#DC2626] cursor-pointer transition-colors">
-                  <RotateCcw className="w-3 h-3" />Kosongkan
-                </button>
-              </div>
+            )}
+            {/* Buttons */}
+            <div className="flex gap-1.5">
+              <button onClick={clearCart} className="px-2 py-2 text-[#072C2C]/40 hover:text-[#DC2626] cursor-pointer rounded-lg border border-[#072C2C]/8">
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+              <button onClick={handlePayment} disabled={!canPay} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#FF5F03] text-white font-bold text-xs rounded-lg hover:bg-[#e55503] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
+                <Check className="w-3.5 h-3.5" />PROSES PEMBAYARAN
+              </button>
             </div>
           </div>
         </div>
