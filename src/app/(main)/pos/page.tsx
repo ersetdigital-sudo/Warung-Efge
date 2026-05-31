@@ -152,7 +152,23 @@ export default function POSPage() {
     const units: { name: string; price: number; stockPerUnit: number }[] = [];
     if (product.product_units && product.product_units.length > 0) {
       const sorted = [...product.product_units].sort((a: any, b: any) => (b.level || 0) - (a.level || 0));
-      for (const pu of sorted) units.push({ name: pu.name, price: pu.sell_price, stockPerUnit: pu.conversion || 1 });
+      // Calculate stockPerUnit relative to the smallest unit
+      // The smallest unit (last in sorted, lowest level) always = 1
+      // Larger units = their conversion * next unit's stockPerUnit
+      const stockPerUnitMap: Record<string, number> = {};
+      // Process from smallest to largest
+      const fromSmallest = [...sorted].reverse();
+      for (let i = 0; i < fromSmallest.length; i++) {
+        if (i === 0) {
+          stockPerUnitMap[fromSmallest[i].name] = 1; // smallest unit = 1 stock per unit
+        } else {
+          const conv = fromSmallest[i].conversion || 1;
+          stockPerUnitMap[fromSmallest[i].name] = conv * stockPerUnitMap[fromSmallest[i - 1].name];
+        }
+      }
+      for (const pu of sorted) {
+        units.push({ name: pu.name, price: pu.sell_price, stockPerUnit: stockPerUnitMap[pu.name] || 1 });
+      }
     } else {
       if (product.has_bulk_unit && product.bulk_unit && product.wholesale_price) units.push({ name: product.bulk_unit, price: product.wholesale_price, stockPerUnit: product.bulk_conversion || 1 });
       units.push({ name: product.unit, price: product.selling_price, stockPerUnit: 1 });
