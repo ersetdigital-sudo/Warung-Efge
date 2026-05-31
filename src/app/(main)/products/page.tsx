@@ -1,26 +1,35 @@
 "use client";
 
 import { useState, useEffect, Fragment } from "react";
-import { Plus, Edit, Trash2, Package, ChevronRight, ChevronDown, Search } from "lucide-react";
+import { Plus, Edit, Trash2, Package, ChevronRight, ChevronDown, Search, History, Boxes } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
-import { formatCurrency } from "@/lib/utils";
-import { getProductsWithUnits, deleteProduct } from "@/lib/db";
+import { formatCurrency, formatDate, getStockStatus } from "@/lib/utils";
+import { getProductsWithUnits, deleteProduct, getStockMovements } from "@/lib/db";
+
+type PageTab = "katalog" | "stok";
 
 export default function ProductsPage() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<PageTab>("katalog");
   const [products, setProducts] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("");
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [toast, setToast] = useState("");
+  const [movements, setMovements] = useState<any[]>([]);
 
   useEffect(() => { loadProducts(); }, []);
-  const loadProducts = async () => { const data = await getProductsWithUnits(); setProducts(data); };
+  const loadProducts = async () => {
+    const data = await getProductsWithUnits();
+    setProducts(data);
+    const movs = await getStockMovements();
+    setMovements(movs);
+  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -52,20 +61,33 @@ export default function ProductsPage() {
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Produk</h1><p className="text-[10px] text-[#9CA3AF] font-light">Manajemen Katalog & Multi Satuan</p></div>
-        <Link href="/products/tambah"><Button><Plus className="w-4 h-4" />Tambah Produk</Button></Link>
+        <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Produk & Stok</h1><p className="text-[10px] text-[#9CA3AF] font-light">Kelola katalog produk dan stok barang</p></div>
+        {activeTab === "katalog" && <Link href="/products/tambah"><Button><Plus className="w-4 h-4" />Tambah Produk</Button></Link>}
       </div>
 
-      {/* KPI */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-        <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total SKU</p><p className="font-[Oswald] text-[22px] font-semibold text-[#072C2C] mt-1">{products.length}</p></div>
-        <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#FF5F03]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Multi Satuan</p><p className="font-[Oswald] text-[22px] font-semibold text-[#072C2C] mt-1">{multiLevelCount} produk</p></div>
-        <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Tingkatan</p><p className="font-[Oswald] text-[22px] font-semibold text-[#072C2C] mt-1">{totalLevels}</p></div>
-        <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#D97706]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Kategori</p><p className="font-[Oswald] text-[22px] font-semibold text-[#072C2C] mt-1">{categories.length}</p></div>
+      {/* Tabs */}
+      <div className="flex gap-1 bg-[#EDEADE] p-1 rounded-lg w-fit">
+        <button onClick={() => setActiveTab("katalog")} className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all ${activeTab === "katalog" ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/60 hover:text-[#072C2C]"}`}>
+          <Package className="w-4 h-4" />Katalog
+        </button>
+        <button onClick={() => setActiveTab("stok")} className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all ${activeTab === "stok" ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/60 hover:text-[#072C2C]"}`}>
+          <Boxes className="w-4 h-4" />Stok & Mutasi
+        </button>
       </div>
 
-      {/* Table */}
-      <Card>
+      {/* Tab: Katalog */}
+      {activeTab === "katalog" && (
+        <>
+          {/* KPI */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total SKU</p><p className="font-[Oswald] text-[22px] font-semibold text-[#072C2C] mt-1">{products.length}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#FF5F03]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Multi Satuan</p><p className="font-[Oswald] text-[22px] font-semibold text-[#072C2C] mt-1">{multiLevelCount} produk</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Tingkatan</p><p className="font-[Oswald] text-[22px] font-semibold text-[#072C2C] mt-1">{totalLevels}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#D97706]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Kategori</p><p className="font-[Oswald] text-[22px] font-semibold text-[#072C2C] mt-1">{categories.length}</p></div>
+          </div>
+
+          {/* Table */}
+          <Card>
         {/* Toolbar */}
         <div className="flex items-center gap-2 p-3 border-b border-[#D9D6C8] flex-wrap">
           <div className="flex items-center gap-2 flex-1 min-w-[160px] bg-[#EDEADE] border border-[#D9D6C8] rounded px-2.5 py-1.5">
@@ -180,6 +202,89 @@ export default function ProductsPage() {
           </div>
         </div>
       </Card>
+        </>
+      )}
+
+      {/* Tab: Stok & Mutasi */}
+      {activeTab === "stok" && (
+        <>
+          {/* KPI Stok */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Stok Aman</p><p className="font-[Oswald] text-[22px] font-semibold text-[#072C2C] mt-1">{products.filter(p => p.stock > p.min_stock).length}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#D97706]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Stok Menipis</p><p className="font-[Oswald] text-[22px] font-semibold text-[#D97706] mt-1">{products.filter(p => p.stock > 0 && p.stock <= p.min_stock).length}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#DC2626]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Stok Habis</p><p className="font-[Oswald] text-[22px] font-semibold text-[#DC2626] mt-1">{products.filter(p => p.stock <= 0).length}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Mutasi</p><p className="font-[Oswald] text-[22px] font-semibold text-[#072C2C] mt-1">{movements.length}</p></div>
+          </div>
+
+          {/* Stock Overview Table */}
+          <Card>
+            <div className="px-3.5 py-2.5 border-b border-[#D9D6C8] flex items-center justify-between">
+              <div className="font-[Oswald] text-[12px] font-semibold text-[#072C2C] uppercase tracking-wider">Ringkasan Stok</div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[12px]">
+                <thead>
+                  <tr className="border-b border-[#D9D6C8]">
+                    <th className="text-left px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Produk</th>
+                    <th className="text-left px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Kategori</th>
+                    <th className="text-right px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Stok</th>
+                    <th className="text-right px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Min</th>
+                    <th className="text-center px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map(p => {
+                    const status = getStockStatus(p.stock, p.min_stock);
+                    return (
+                      <tr key={p.id} className="border-b border-[#D9D6C8] hover:bg-[#FAFAF8]">
+                        <td className="px-3 py-2"><p className="font-medium text-[#111827]">{p.name}</p><p className="text-[10px] text-[#9CA3AF]">{p.sku}</p></td>
+                        <td className="px-3 py-2 text-[#4B5563]">{p.category}</td>
+                        <td className="px-3 py-2 text-right font-mono font-bold">{p.stock} {p.unit}</td>
+                        <td className="px-3 py-2 text-right text-[#9CA3AF]">{p.min_stock}</td>
+                        <td className="px-3 py-2 text-center"><Badge variant={status === "safe" ? "success" : status === "warning" ? "warning" : "danger"}>{status === "safe" ? "Aman" : status === "warning" ? "Menipis" : "Habis"}</Badge></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          {/* Riwayat Mutasi */}
+          <Card>
+            <div className="px-3.5 py-2.5 border-b border-[#D9D6C8] flex items-center gap-2">
+              <History className="w-4 h-4 text-[#072C2C]/50" />
+              <div className="font-[Oswald] text-[12px] font-semibold text-[#072C2C] uppercase tracking-wider">Riwayat Mutasi Stok</div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[12px]">
+                <thead>
+                  <tr className="border-b border-[#D9D6C8]">
+                    <th className="text-left px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Tanggal</th>
+                    <th className="text-left px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Produk</th>
+                    <th className="text-center px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Tipe</th>
+                    <th className="text-right px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Jumlah</th>
+                    <th className="text-left px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Catatan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {movements.length === 0 && <tr><td colSpan={5} className="text-center py-8 text-[#9CA3AF] text-sm">Belum ada mutasi stok</td></tr>}
+                  {movements.slice(0, 50).map((m: any) => (
+                    <tr key={m.id} className="border-b border-[#D9D6C8] hover:bg-[#FAFAF8]">
+                      <td className="px-3 py-2 text-[#4B5563]">{formatDate(m.created_at)}</td>
+                      <td className="px-3 py-2 font-medium text-[#111827]">{m.product_name}</td>
+                      <td className="px-3 py-2 text-center"><Badge variant={m.type === "in" ? "success" : m.type === "out" ? "danger" : "warning"}>{m.type === "in" ? "Masuk" : m.type === "out" ? "Keluar" : "Koreksi"}</Badge></td>
+                      <td className={`px-3 py-2 text-right font-mono font-bold ${m.type === "in" ? "text-[#16A34A]" : m.type === "out" ? "text-[#DC2626]" : "text-[#072C2C]"}`}>{m.type === "in" ? "+" : "-"}{m.quantity} {m.unit}</td>
+                      <td className="px-3 py-2 text-[#9CA3AF] max-w-[200px] truncate">{m.notes || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {movements.length > 50 && <div className="px-3 py-2 border-t border-[#D9D6C8] text-[11px] text-[#9CA3AF]">Menampilkan 50 dari {movements.length} mutasi</div>}
+          </Card>
+        </>
+      )}
 
       {/* Delete Confirmation */}
       {deleteTarget && (

@@ -12,7 +12,6 @@ import {
   ClipboardList,
   Users,
   BarChart3,
-  Boxes,
   UserCircle,
   X,
   Store,
@@ -30,8 +29,7 @@ interface SidebarProps {
 const menuItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/pos", icon: ShoppingCart, label: "Kasir (POS)" },
-  { href: "/products", icon: Package, label: "Produk" },
-  { href: "/stock", icon: Boxes, label: "Stok" },
+  { href: "/products", icon: Package, label: "Produk & Stok" },
   { href: "/purchases", icon: ClipboardList, label: "Pembelian" },
   { href: "/suppliers", icon: Truck, label: "Supplier" },
   { href: "/customers", icon: Users, label: "Pelanggan" },
@@ -65,7 +63,7 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
         {[
           { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
           { href: "/pos", icon: ShoppingCart, label: "Kasir" },
-          { href: "/stock", icon: Boxes, label: "Stok" },
+          { href: "/products", icon: Package, label: "Produk" },
           { href: "/reports", icon: BarChart3, label: "Laporan" },
         ].map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
