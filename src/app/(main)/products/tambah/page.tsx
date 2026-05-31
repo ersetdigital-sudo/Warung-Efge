@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ScanBarcode, X } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { categories } from "@/data/mock-data";
 import { addProduct, saveProductUnits } from "@/lib/db";
@@ -13,12 +13,48 @@ export default function AddProductPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [sku, setSku] = useState("");
+  const [barcode, setBarcode] = useState("");
   const [category, setCategory] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannerError, setScannerError] = useState("");
+  const scanVideoRef = useRef<HTMLVideoElement>(null);
+  const scanReaderRef = useRef<any>(null);
+  const scanStreamRef = useRef<MediaStream | null>(null);
   const [units, setUnits] = useState<UnitLevel[]>([
     { level: 1, active: true, name: "", conversion: "", stock: "", buyPrice: "", sellPrice: "" },
     { level: 2, active: true, name: "", conversion: "", stock: "", buyPrice: "", sellPrice: "" },
     { level: 3, active: true, name: "", conversion: "", stock: "", buyPrice: "", sellPrice: "" },
   ]);
+
+  // Barcode scanner
+  const stopScanner = () => {
+    try { scanStreamRef.current?.getTracks().forEach(t => { try { t.stop(); } catch {} }); scanStreamRef.current = null; if (scanReaderRef.current) { try { scanReaderRef.current.reset(); } catch {} scanReaderRef.current = null; } } catch {}
+  };
+
+  const openScanner = async () => {
+    setScannerError(""); setShowScanner(true);
+    try {
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
+      const { DecodeHintType, BarcodeFormat } = await import("@zxing/library");
+      const hints = new Map();
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.UPC_A, BarcodeFormat.UPC_E, BarcodeFormat.CODE_128, BarcodeFormat.CODE_39, BarcodeFormat.ITF]);
+      hints.set(DecodeHintType.TRY_HARDER, true);
+      const reader = new BrowserMultiFormatReader(hints);
+      scanReaderRef.current = reader;
+      setTimeout(async () => {
+        if (!scanVideoRef.current) return;
+        try {
+          await reader.decodeFromVideoDevice(undefined, scanVideoRef.current, (result) => {
+            if (result) { const code = result.getText(); setBarcode(code); stopScanner(); setShowScanner(false); }
+          });
+          if (scanVideoRef.current?.srcObject) scanStreamRef.current = scanVideoRef.current.srcObject as MediaStream;
+        } catch { setScannerError("Kamera tidak dapat diakses. Pastikan izin kamera sudah diberikan."); }
+      }, 200);
+    } catch { setScannerError("Kamera tidak dapat diakses."); }
+  };
+
+  const closeScanner = () => { stopScanner(); setScannerError(""); setShowScanner(false); };
+  useEffect(() => { return () => { stopScanner(); }; }, []);
 
   const updateUnit = (level: number, field: string, value: string) => {
     setUnits(prev => prev.map(u => u.level === level ? { ...u, [field]: value } : u));
@@ -43,6 +79,7 @@ export default function AddProductPage() {
     const product = await addProduct({
       name: name.trim(),
       sku: sku.trim() || `SKU-${Date.now().toString(36).toUpperCase()}`,
+      barcode: barcode.trim() || null,
       category: category || "Lain-lain",
       selling_price: Number(baseUnit.sellPrice) || 0,
       cost_price: Number(baseUnit.buyPrice) || 0,
@@ -100,6 +137,16 @@ export default function AddProductPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div><label className="block text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-1">Nama Produk *</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="cth: Sampoerna Mild" className="w-full px-3 py-2 border-[1.5px] border-[#D9D6C8] rounded text-sm focus:outline-none focus:border-[#FF5F03]" /></div>
               <div><label className="block text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-1">SKU</label><input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="SKU-001" className="w-full px-3 py-2 border-[1.5px] border-[#D9D6C8] rounded text-sm font-mono focus:outline-none focus:border-[#FF5F03]" /></div>
+              <div>
+                <label className="block text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-1">Barcode</label>
+                <div className="flex gap-2">
+                  <input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Scan atau ketik barcode" className="flex-1 px-3 py-2 border-[1.5px] border-[#D9D6C8] rounded text-sm font-mono focus:outline-none focus:border-[#FF5F03]" />
+                  <button type="button" onClick={openScanner} className="flex items-center gap-1.5 px-3 py-2 bg-[#FF5F03] text-white rounded text-xs font-medium cursor-pointer hover:bg-[#e55503]">
+                    <ScanBarcode className="w-4 h-4" />Scan
+                  </button>
+                </div>
+                {barcode && <p className="text-[10px] text-[#16A34A] mt-1 font-mono">✓ {barcode}</p>}
+              </div>
               <div><label className="block text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-1">Kategori</label><select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-3 py-2 border-[1.5px] border-[#D9D6C8] rounded text-sm focus:outline-none focus:border-[#FF5F03] cursor-pointer"><option value="">Pilih Kategori</option>{categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}</select></div>
             </div>
           </div>
@@ -167,6 +214,34 @@ export default function AddProductPage() {
           </div>
         </div>
       </div>
+
+      {/* Barcode Scanner Modal */}
+      {showScanner && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/70" onClick={closeScanner} />
+          <div className="relative bg-black w-full h-full sm:w-[480px] sm:h-auto sm:max-h-[80vh] sm:rounded-2xl overflow-hidden flex flex-col">
+            <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent">
+              <p className="text-white text-sm font-medium">Scan Barcode Produk</p>
+              <button onClick={closeScanner} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center cursor-pointer"><X className="w-5 h-5 text-white" /></button>
+            </div>
+            <div className="flex-1 relative min-h-[300px] sm:min-h-[360px]">
+              <video ref={scanVideoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-[70%] max-w-[280px] aspect-[3/2] relative">
+                  <div className="absolute top-0 left-0 w-6 h-6 border-t-3 border-l-3 border-white rounded-tl-lg" />
+                  <div className="absolute top-0 right-0 w-6 h-6 border-t-3 border-r-3 border-white rounded-tr-lg" />
+                  <div className="absolute bottom-0 left-0 w-6 h-6 border-b-3 border-l-3 border-white rounded-bl-lg" />
+                  <div className="absolute bottom-0 right-0 w-6 h-6 border-b-3 border-r-3 border-white rounded-br-lg" />
+                  <div className="absolute top-1/2 left-2 right-2 h-0.5 bg-[#FF5F03] opacity-80 animate-pulse" />
+                </div>
+              </div>
+            </div>
+            <div className="bg-black px-4 py-4 text-center">
+              {scannerError ? <p className="text-[#DC2626] text-sm">{scannerError}</p> : <p className="text-white/70 text-sm">Arahkan kamera ke barcode produk</p>}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
