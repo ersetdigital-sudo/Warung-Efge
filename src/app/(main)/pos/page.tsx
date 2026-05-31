@@ -361,41 +361,32 @@ export default function POSPage() {
 
           {/* Product Grid - Cards with unit rows */}
           <div className="flex-1 overflow-y-auto px-3 sm:px-4 lg:px-5 pb-32 lg:pb-4">
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 lg:gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 lg:gap-3 auto-rows-min">
               {filteredProducts.map((product) => {
                 const isOutOfStock = product.stock <= 0;
                 const cartCount = getCartCountForProduct(product.id);
                 const units = getProductUnits(product);
-                // Default unit is the base unit (level 1 / product.unit)
                 const defaultUnit = product.unit || (units.length > 0 ? units[units.length - 1].name : "Pcs");
                 return (
-                  <div key={product.id} className={`relative bg-white border rounded-xl overflow-hidden transition-all ${isOutOfStock ? "opacity-50" : ""} ${cartCount > 0 ? "border-[#FF5F03] ring-1 ring-[#FF5F03]/20" : "border-[#072C2C]/10"}`}>
-                    {/* Stock badge top-right */}
-                    <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-[#072C2C]/5 rounded text-[9px] font-medium text-[#072C2C]/50">
+                  <div key={product.id} className={`relative bg-white border rounded-xl flex flex-col transition-all ${isOutOfStock ? "opacity-50" : ""} ${cartCount > 0 ? "border-[#FF5F03] ring-1 ring-[#FF5F03]/20" : "border-[#072C2C]/8"}`}>
+                    {/* Stock badge */}
+                    <div className="absolute top-1.5 right-1.5 px-1 py-0.5 bg-[#072C2C]/5 rounded text-[9px] font-medium text-[#072C2C]/50">
                       {product.stock}
                     </div>
-                    {/* Cart count badge */}
                     {cartCount > 0 && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-[#FF5F03] rounded-full flex items-center justify-center shadow-sm z-10">
-                        <span className="text-white text-[10px] font-bold">{cartCount}</span>
+                      <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#FF5F03] rounded-full flex items-center justify-center shadow z-10">
+                        <span className="text-white text-[9px] font-bold">{cartCount}</span>
                       </div>
                     )}
 
-                    {/* Product header - compact */}
-                    <div className="px-2.5 pt-2.5 pb-1.5">
-                      <div className="flex items-start gap-2">
-                        <div className="w-7 h-7 bg-[#EDEADE] rounded-md flex items-center justify-center flex-shrink-0">
-                          <ShoppingCart className="w-3.5 h-3.5 text-[#072C2C]/20" />
-                        </div>
-                        <div className="flex-1 min-w-0 pr-5">
-                          <p className="text-[11px] sm:text-xs font-semibold text-[#072C2C] leading-tight line-clamp-2">{product.name}</p>
-                          <p className="text-[9px] text-[#072C2C]/40 mt-0.5">{product.category}</p>
-                        </div>
-                      </div>
+                    {/* Product name + category */}
+                    <div className="px-2.5 pt-2.5 pb-1">
+                      <p className="text-[11px] font-bold text-[#072C2C] leading-snug line-clamp-2">{product.name}</p>
+                      <p className="text-[9px] text-[#072C2C]/40">{product.category}</p>
                     </div>
 
-                    {/* Unit rows - compact clickable rows */}
-                    <div className="px-2 pb-2 space-y-0.5">
+                    {/* Unit buttons - each row is a tap target */}
+                    <div className="px-1.5 pb-1.5 mt-auto flex flex-col gap-[3px]">
                       {units.map((u) => {
                         const inCart = cart.find(i => i.productId === product.id && i.unit === u.name);
                         const isDefault = u.name === defaultUnit;
@@ -404,16 +395,16 @@ export default function POSPage() {
                             key={u.name}
                             onClick={() => !isOutOfStock && addToCart(product.id, u.name, u.price, u.stockPerUnit)}
                             disabled={isOutOfStock}
-                            className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-left transition-all cursor-pointer active:scale-[0.97] ${
+                            className={`w-full flex items-center justify-between px-2 py-[6px] rounded-md transition-all cursor-pointer active:scale-[0.97] ${
                               inCart
-                                ? "bg-[#FF5F03] text-white"
+                                ? "bg-[#FF5F03] shadow-sm"
                                 : isDefault
                                   ? "bg-[#FF5F03]/10 border border-[#FF5F03]/30"
-                                  : "hover:bg-[#EDEADE]/60 border border-transparent"
+                                  : "bg-[#f5f4f0] border border-transparent hover:border-[#072C2C]/10"
                             } ${isOutOfStock ? "cursor-not-allowed" : ""}`}
                           >
-                            <span className={`text-[11px] font-medium ${inCart ? "text-white" : isDefault ? "text-[#FF5F03]" : "text-[#072C2C]/60"}`}>{u.name}</span>
-                            <span className={`text-[11px] font-bold ${inCart ? "text-white" : isDefault ? "text-[#FF5F03]" : "text-[#072C2C]/80"}`}>Rp {u.price.toLocaleString("id-ID")}</span>
+                            <span className={`text-[10px] sm:text-[11px] font-medium ${inCart ? "text-white" : isDefault ? "text-[#FF5F03]" : "text-[#072C2C]/60"}`}>{u.name}</span>
+                            <span className={`text-[10px] sm:text-[11px] font-bold tabular-nums ${inCart ? "text-white" : isDefault ? "text-[#FF5F03]" : "text-[#072C2C]"}`}>Rp {u.price.toLocaleString("id-ID")}</span>
                           </button>
                         );
                       })}
