@@ -5,7 +5,6 @@ export async function getProducts() {
   const { data, error } = await supabase
     .from("products")
     .select("*")
-    .eq("is_archived", false)
     .order("created_at", { ascending: false });
   if (error) { console.error("getProducts error:", error); return []; }
   return data || [];
@@ -29,8 +28,8 @@ export async function updateProduct(id: string, updates: Record<string, unknown>
 }
 
 export async function deleteProduct(id: string) {
-  // Soft delete
-  const { error } = await supabase.from("products").update({ is_archived: true }).eq("id", id);
+  // Hard delete — remove from database completely
+  const { error } = await supabase.from("products").delete().eq("id", id);
   if (error) console.error("deleteProduct error:", error);
   return !error;
 }
