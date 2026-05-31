@@ -157,6 +157,30 @@ export default function ProductsPage() {
         <div className="px-3 py-2 border-t border-[#D9D6C8] text-[11px] text-[#9CA3AF]">Menampilkan {filtered.length} dari {products.length} produk</div>
       </Card>
 
+      {/* Panduan Multi Satuan */}
+      <Card>
+        <div className="px-3.5 py-2.5 border-b border-[#D9D6C8]">
+          <div className="font-[Oswald] text-[12px] font-semibold text-[#072C2C] uppercase tracking-wider">Panduan Multi Satuan</div>
+        </div>
+        <div className="p-3.5 text-[11px] text-[#4B5563] leading-relaxed space-y-2.5">
+          <div className="flex items-start gap-2">
+            <div className="w-[18px] h-[18px] rounded-full bg-[#072C2C] text-white flex items-center justify-center text-[9px] font-bold flex-shrink-0 mt-0.5">1</div>
+            <div><strong>Level 1 (Terbesar)</strong> — misal <em>Slop</em> isi 10 bungkus</div>
+          </div>
+          <div className="flex items-start gap-2">
+            <div className="w-[18px] h-[18px] rounded-full bg-[#FF5F03] text-white flex items-center justify-center text-[9px] font-bold flex-shrink-0 mt-0.5">2</div>
+            <div><strong>Level 2 (Tengah)</strong> — misal <em>Bungkus</em> isi 12 batang</div>
+          </div>
+          <div className="flex items-start gap-2">
+            <div className="w-[18px] h-[18px] rounded-full bg-[#D97706] text-white flex items-center justify-center text-[9px] font-bold flex-shrink-0 mt-0.5">3</div>
+            <div><strong>Level 3 (Terkecil)</strong> — misal <em>Batang</em> (satuan eceran)</div>
+          </div>
+          <div className="bg-[#EDEADE] border border-[#D9D6C8] rounded p-2.5 text-[10px] text-[#9CA3AF] mt-2">
+            💡 Stok & harga tiap level dihitung otomatis dari konversi. Klik ▶ di baris produk untuk melihat detail.
+          </div>
+        </div>
+      </Card>
+
       {/* Delete Confirmation */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
