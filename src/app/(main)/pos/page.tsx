@@ -403,10 +403,10 @@ export default function POSPage() {
           </div>
         )}
 
-        {/* Mobile floating cart button */}
+        {/* Mobile floating cart button - above bottom nav */}
         {cart.length > 0 && !showCart && (
-          <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 p-3" style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}>
-            <button onClick={() => setShowCart(true)} className="w-full flex items-center justify-between px-4 py-3 bg-[#FF5F03] text-white rounded-2xl shadow-xl shadow-[#FF5F03]/30 cursor-pointer active:scale-[0.98]">
+          <div className="lg:hidden fixed bottom-[68px] left-0 right-0 z-40 px-3 pb-1">
+            <button onClick={() => setShowCart(true)} className="w-full flex items-center justify-between px-4 py-3.5 bg-[#FF5F03] text-white rounded-2xl shadow-xl shadow-[#FF5F03]/30 cursor-pointer active:scale-[0.98]">
               <div className="flex items-center gap-2"><ShoppingCart className="w-5 h-5" /><span className="text-sm font-bold">{cart.length} item</span></div>
               <span className="text-base font-bold">{formatCurrency(total)}</span>
             </button>
@@ -414,16 +414,19 @@ export default function POSPage() {
         )}
       </div>
 
-      {/* Checkout Modal (Desktop) */}
+      {/* Checkout Modal - full screen on mobile, centered card on desktop */}
       {showCheckout && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-[#072C2C]/50 backdrop-blur-sm" onClick={() => setShowCheckout(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3 border-b border-[#072C2C]/10">
+        <div className="fixed inset-0 z-[60] flex flex-col sm:items-center sm:justify-center sm:p-4">
+          <div className="hidden sm:block fixed inset-0 bg-[#072C2C]/50 backdrop-blur-sm" onClick={() => setShowCheckout(false)} />
+          <div className="relative bg-white w-full h-full sm:h-auto sm:rounded-2xl sm:shadow-2xl sm:w-full sm:max-w-sm sm:max-h-[90vh] flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-b border-[#072C2C]/10 bg-white">
               <h2 className="text-base font-bold text-[#072C2C]">PROSES PEMBAYARAN</h2>
-              <button onClick={() => setShowCheckout(false)} className="p-1.5 rounded-lg hover:bg-[#EDEADE] cursor-pointer"><X className="w-5 h-5 text-[#072C2C]/60" /></button>
+              <button onClick={() => setShowCheckout(false)} className="p-2 rounded-lg hover:bg-[#EDEADE] cursor-pointer"><X className="w-5 h-5 text-[#072C2C]/60" /></button>
             </div>
-            <div className="p-5 space-y-4">
+
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {/* Total */}
               <div className="flex justify-between items-center">
                 <span className="text-sm text-[#072C2C]/60">Total</span>
@@ -435,7 +438,7 @@ export default function POSPage() {
                 <p className="text-xs font-semibold text-[#072C2C]/60 mb-2">Metode Pembayaran</p>
                 <div className="grid grid-cols-2 gap-2">
                   {([["cash", Banknote, "Tunai"], ["qris", QrCode, "QRIS"], ["transfer", CreditCard, "Transfer"], ["edc", Smartphone, "EDC"]] as const).map(([method, Icon, label]) => (
-                    <button key={method} onClick={() => setPaymentMethod(method)} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${paymentMethod === method ? "bg-[#072C2C] text-white" : "bg-[#F5F4F0] border border-[#072C2C]/10 text-[#072C2C]/70 hover:border-[#FF5F03]/30"}`}>
+                    <button key={method} onClick={() => setPaymentMethod(method)} className={`flex items-center gap-2 px-3 py-3 rounded-lg text-sm font-medium cursor-pointer transition-all ${paymentMethod === method ? "bg-[#072C2C] text-white" : "bg-[#F5F4F0] border border-[#072C2C]/10 text-[#072C2C]/70"}`}>
                       <Icon className="w-4 h-4" />{label}
                     </button>
                   ))}
@@ -446,8 +449,8 @@ export default function POSPage() {
               <div>
                 <p className="text-xs font-semibold text-[#072C2C]/60 mb-2">Diskon</p>
                 <div className="flex items-center gap-2">
-                  <input type="text" inputMode="numeric" value={discountInput} onChange={(e) => setDiscountInput(e.target.value.replace(/\D/g, ""))} placeholder="0" className="flex-1 px-3 py-2 text-sm border border-[#072C2C]/10 rounded-lg text-right focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
-                  <select value={discountType} onChange={(e) => setDiscountType(e.target.value as "rp" | "persen")} className="px-3 py-2 text-sm border border-[#072C2C]/10 rounded-lg bg-white cursor-pointer"><option value="rp">Rp</option><option value="persen">%</option></select>
+                  <input type="text" inputMode="numeric" value={discountInput} onChange={(e) => setDiscountInput(e.target.value.replace(/\D/g, ""))} placeholder="0" className="flex-1 px-3 py-2.5 text-sm border border-[#072C2C]/10 rounded-lg text-right focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
+                  <select value={discountType} onChange={(e) => setDiscountType(e.target.value as "rp" | "persen")} className="px-3 py-2.5 text-sm border border-[#072C2C]/10 rounded-lg bg-white cursor-pointer"><option value="rp">Rp</option><option value="persen">%</option></select>
                 </div>
                 {calculatedDiscount > 0 && <p className="text-xs text-[#DC2626] mt-1">Diskon: -{formatCurrency(calculatedDiscount)}</p>}
               </div>
@@ -456,10 +459,10 @@ export default function POSPage() {
               {paymentMethod === "cash" && (
                 <div>
                   <p className="text-xs font-semibold text-[#072C2C]/60 mb-2">Uang Diterima</p>
-                  <input type="text" inputMode="numeric" value={displayAmountPaid} onChange={(e) => handleAmountInput(e.target.value)} placeholder="Rp 0" className="w-full px-3 py-2.5 text-sm font-bold border border-[#072C2C]/10 rounded-lg text-right focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
+                  <input type="text" inputMode="numeric" value={displayAmountPaid} onChange={(e) => handleAmountInput(e.target.value)} placeholder="Rp 0" className="w-full px-3 py-3 text-base font-bold border border-[#072C2C]/10 rounded-lg text-right focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
                   {/* Saran nominal */}
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    <button onClick={() => setAmountPaid(String(total))} className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all ${Number(amountPaid) === total ? "bg-[#FF5F03] text-white" : "bg-[#FF5F03]/10 text-[#FF5F03] border border-[#FF5F03]/30 hover:bg-[#FF5F03]/20"}`}>Uang Pas</button>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <button onClick={() => setAmountPaid(String(total))} className={`px-4 py-2 rounded-lg text-xs font-bold cursor-pointer ${Number(amountPaid) === total ? "bg-[#FF5F03] text-white" : "bg-[#FF5F03]/10 text-[#FF5F03] border border-[#FF5F03]/30"}`}>Uang Pas</button>
                     {(() => {
                       const suggestions: number[] = [];
                       const denoms = [5000, 10000, 20000, 50000, 100000, 200000, 500000];
@@ -469,22 +472,24 @@ export default function POSPage() {
                         [rounded, rounded + 50000, rounded + 100000].forEach(v => { if (!suggestions.includes(v) && suggestions.length < 4) suggestions.push(v); });
                       }
                       return suggestions.map(amount => (
-                        <button key={amount} onClick={() => setAmountPaid(String(amount))} className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${Number(amountPaid) === amount ? "bg-[#072C2C] text-white" : "bg-[#F5F4F0] border border-[#072C2C]/10 text-[#072C2C]/70 hover:border-[#FF5F03]/30"}`}>
+                        <button key={amount} onClick={() => setAmountPaid(String(amount))} className={`px-4 py-2 rounded-lg text-xs font-medium cursor-pointer ${Number(amountPaid) === amount ? "bg-[#072C2C] text-white" : "bg-[#F5F4F0] border border-[#072C2C]/10 text-[#072C2C]/70"}`}>
                           {amount >= 1000000 ? `${(amount/1000000)}jt` : `${(amount/1000)}rb`}
                         </button>
                       ));
                     })()}
                   </div>
-                  <div className="flex justify-between items-center mt-3">
-                    <span className="text-xs text-[#072C2C]/60">Kembalian</span>
-                    <span className="text-sm font-bold text-[#16A34A]">{formatRupiah(change > 0 ? change : 0)}</span>
+                  <div className="flex justify-between items-center mt-3 p-3 bg-[#ECFDF5] rounded-lg">
+                    <span className="text-sm text-[#072C2C]/60">Kembalian</span>
+                    <span className="text-lg font-bold text-[#16A34A]">{formatRupiah(change > 0 ? change : 0)}</span>
                   </div>
                 </div>
               )}
+            </div>
 
-              {/* Pay button */}
-              <button onClick={() => { handlePayment(); setShowCheckout(false); }} disabled={!canPay} className="w-full py-3.5 bg-[#FF5F03] text-white font-bold text-sm rounded-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-[#e55503] flex items-center justify-center gap-2">
-                <Check className="w-4 h-4" />BAYAR SEKARANG
+            {/* Fixed bottom button */}
+            <div className="flex-shrink-0 px-5 py-4 border-t border-[#072C2C]/10 bg-white" style={{ paddingBottom: "env(safe-area-inset-bottom, 16px)" }}>
+              <button onClick={() => { handlePayment(); setShowCheckout(false); }} disabled={!canPay} className="w-full py-4 bg-[#FF5F03] text-white font-bold text-base rounded-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-[#e55503] flex items-center justify-center gap-2">
+                <Check className="w-5 h-5" />BAYAR SEKARANG
               </button>
             </div>
           </div>
