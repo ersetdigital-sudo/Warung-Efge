@@ -130,7 +130,14 @@ export default function POSPage() {
   useEffect(() => { if (!showReceipt) return; const h = (e: PopStateEvent) => { e.preventDefault(); setShowReceipt(false); window.history.pushState(null, "", window.location.href); }; window.history.pushState(null, "", window.location.href); window.addEventListener("popstate", h); return () => window.removeEventListener("popstate", h); }, [showReceipt]);
 
   const filteredProducts = useMemo(() => {
-    let filtered = products.filter(p => p.stock > 0); // Hide out-of-stock from kasir
+    let filtered = products.filter(p => {
+      // Check stock from product.stock OR product_units
+      if (p.stock > 0) return true;
+      if (p.product_units && p.product_units.length > 0) {
+        return p.product_units.some((u: any) => u.stock > 0);
+      }
+      return false;
+    });
     if (selectedCategory) filtered = filtered.filter((p) => p.category === selectedCategory);
     if (search) { const s = search.toLowerCase(); filtered = filtered.filter((p) => (p.name || "").toLowerCase().includes(s) || (p.barcode || "").includes(s) || (p.sku || "").toLowerCase().includes(s)); }
     return filtered;
@@ -158,11 +165,19 @@ export default function POSPage() {
 
   const addToCart = (productId: string, unitName: string, price: number, stockPerUnit: number) => {
     const product = products.find((p: any) => p.id === productId);
-    if (!product || product.stock <= 0) { if (product) showStockError(product.name); return; }
+    if (!product) return;
+    // Get effective stock - use product.stock, or sum from product_units if product.stock is 0
+    let effectiveStock = product.stock || 0;
+    if (effectiveStock <= 0 && product.product_units && product.product_units.length > 0) {
+      // Try to get stock from the smallest unit level
+      const smallestUnit = [...product.product_units].sort((a: any, b: any) => (a.level || 0) - (b.level || 0))[0];
+      if (smallestUnit && smallestUnit.stock > 0) effectiveStock = smallestUnit.stock;
+    }
+    if (effectiveStock <= 0) { showStockError(product.name); return; }
     const existing = cart.find((item) => item.productId === productId && item.unit === unitName);
     const newQty = existing ? existing.quantity + 1 : 1;
     const otherCartStock = cart.filter(i => i.productId === productId && i.unit !== unitName).reduce((sum, i) => sum + (i.quantity * i.stockPerUnit), 0);
-    if ((newQty * stockPerUnit + otherCartStock) > product.stock) { showStockError(product.name); return; }
+    if ((newQty * stockPerUnit + otherCartStock) > effectiveStock) { showStockError(product.name); return; }
     setCart((prev) => {
       const ex = prev.find((item) => item.productId === productId && item.unit === unitName);
       if (ex) return prev.map((item) => (item.productId === productId && item.unit === unitName) ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price } : item);
@@ -171,7 +186,19 @@ export default function POSPage() {
   };
 
   const updateQuantity = (productId: string, unit: string, delta: number) => {
-    if (delta > 0) { const item = cart.find(i => i.productId === productId && i.unit === unit); const product = products.find((p: any) => p.id === productId); if (item && product) { const otherCartStock = cart.filter(i => i.productId === productId && i.unit !== unit).reduce((sum, i) => sum + (i.quantity * i.stockPerUnit), 0); if (((item.quantity + 1) * item.stockPerUnit + otherCartStock) > product.stock) { showStockError(product.name); return; } } }
+    if (delta > 0) {
+      const item = cart.find(i => i.productId === productId && i.unit === unit);
+      const product = products.find((p: any) => p.id === productId);
+      if (item && product) {
+        let effectiveStock = product.stock || 0;
+        if (effectiveStock <= 0 && product.product_units && product.product_units.length > 0) {
+          const smallestUnit = [...product.product_units].sort((a: any, b: any) => (a.level || 0) - (b.level || 0))[0];
+          if (smallestUnit && smallestUnit.stock > 0) effectiveStock = smallestUnit.stock;
+        }
+        const otherCartStock = cart.filter(i => i.productId === productId && i.unit !== unit).reduce((sum, i) => sum + (i.quantity * i.stockPerUnit), 0);
+        if (((item.quantity + 1) * item.stockPerUnit + otherCartStock) > effectiveStock) { showStockError(product.name); return; }
+      }
+    }
     setCart((prev) => prev.map((item) => { if (item.productId !== productId || item.unit !== unit) return item; const newQty = item.quantity + delta; if (newQty <= 0) return null; return { ...item, quantity: newQty, subtotal: newQty * item.price }; }).filter(Boolean) as CartItem[]);
   };
 
