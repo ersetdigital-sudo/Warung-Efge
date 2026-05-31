@@ -91,19 +91,37 @@ export default function POSPage() {
       const { BrowserMultiFormatReader } = await import("@zxing/browser");
       const { DecodeHintType, BarcodeFormat } = await import("@zxing/library");
       const hints = new Map();
-      hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.UPC_A, BarcodeFormat.UPC_E, BarcodeFormat.CODE_128, BarcodeFormat.CODE_39, BarcodeFormat.CODE_93, BarcodeFormat.ITF, BarcodeFormat.QR_CODE, BarcodeFormat.DATA_MATRIX]);
-      hints.set(DecodeHintType.TRY_HARDER, true);
-      const reader = new BrowserMultiFormatReader(hints);
+      // Only common product barcode formats for speed
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.CODE_128, BarcodeFormat.UPC_A]);
+      // TRY_HARDER = false for faster scanning (default)
+      const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 100 });
       scanReaderRef.current = reader;
-      setTimeout(async () => {
-        if (!scanVideoRef.current) return;
-        try {
-          await reader.decodeFromVideoDevice(undefined, scanVideoRef.current, (result) => {
-            if (result) { const code = result.getText(); const product = products.find(p => p.barcode === code); if (product) { stopScanner(); setShowScanner(false); addToCart(product.id, product.unit, product.selling_price, 1); setScanNotification("Produk ditambahkan ✓"); setTimeout(() => setScanNotification(""), 2000); } else { setScannerMsg("Produk tidak ditemukan."); setTimeout(() => setScannerMsg(""), 2000); } }
-          });
-          if (scanVideoRef.current?.srcObject) scanStreamRef.current = scanVideoRef.current.srcObject as MediaStream;
-        } catch { setScannerError("Kamera tidak dapat diakses."); }
-      }, 200);
+      // Start immediately, no delay
+      if (!scanVideoRef.current) return;
+      try {
+        // Request high-res rear camera for better barcode reading
+        const constraints = { video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        scanVideoRef.current.srcObject = stream;
+        scanStreamRef.current = stream;
+        await scanVideoRef.current.play();
+
+        reader.decodeFromVideoElement(scanVideoRef.current, (result) => {
+          if (result) {
+            const code = result.getText();
+            const product = products.find(p => p.barcode === code);
+            if (product) {
+              stopScanner(); setShowScanner(false);
+              addToCart(product.id, product.unit, product.selling_price, 1);
+              setScanNotification("✓ " + product.name);
+              setTimeout(() => setScanNotification(""), 2000);
+            } else {
+              setScannerMsg(`Barcode ${code} tidak ditemukan`);
+              setTimeout(() => setScannerMsg(""), 2000);
+            }
+          }
+        });
+      } catch { setScannerError("Kamera tidak dapat diakses. Pastikan izin kamera diberikan."); }
     } catch { setScannerError("Kamera tidak dapat diakses."); }
   };
   const closeScanner = () => { stopScanner(); setScannerError(""); setScannerMsg(""); setShowScanner(false); };
