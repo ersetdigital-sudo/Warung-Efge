@@ -5,7 +5,7 @@ import { TrendingUp, DollarSign, Package, Users, Truck } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { getProducts, getTransactions, getCustomers, getSuppliers } from "@/lib/db";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
 
 type ReportType = "sales" | "profit" | "products" | "debts";
 type PeriodType = "week" | "month" | "3month" | "6month" | "year";
@@ -77,26 +77,36 @@ export default function ReportsPage() {
   const marginPct = totalSales > 0 ? (grossProfit / totalSales * 100) : 0;
   const profitPer100 = Math.round(marginPct);
 
-  // Chart data from real transactions
+  // Chart data from real transactions — group by date for current period
   const chartData = useMemo(() => {
     if (transactions.length === 0) {
-      return [{ name: "Belum ada data", sales: 0 }];
+      // Show last 7 days with 0
+      return Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(); d.setDate(d.getDate() - (6 - i));
+        return { name: `${d.getDate()}/${d.getMonth() + 1}`, sales: 0 };
+      });
     }
 
-    // Group transactions by month
-    const monthlyMap: Record<string, number> = {};
-    const monthLabels = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+    // Group by date (last 30 days)
+    const dailyMap: Record<string, number> = {};
+    const now = new Date();
+    const daysBack = 14; // Show last 14 days
+
+    for (let i = daysBack - 1; i >= 0; i--) {
+      const d = new Date(now); d.setDate(d.getDate() - i);
+      const key = `${d.getDate()}/${d.getMonth() + 1}`;
+      dailyMap[key] = 0;
+    }
 
     for (const trx of transactions) {
       const date = new Date(trx.created_at);
-      const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
-      const label = `${monthLabels[date.getMonth()]}`;
-      if (!monthlyMap[label]) monthlyMap[label] = 0;
-      monthlyMap[label] += trx.total || 0;
+      const key = `${date.getDate()}/${date.getMonth() + 1}`;
+      if (dailyMap[key] !== undefined) {
+        dailyMap[key] += trx.total || 0;
+      }
     }
 
-    const result = Object.entries(monthlyMap).map(([name, sales]) => ({ name, sales }));
-    return result.length > 0 ? result : [{ name: "Belum ada", sales: 0 }];
+    return Object.entries(dailyMap).map(([name, sales]) => ({ name, sales }));
   }, [transactions]);
 
   // Product data from real transaction_items
@@ -219,7 +229,7 @@ export default function ReportsPage() {
               <p className="text-[10px] text-[#16A34A] font-medium mt-0.5">▲ 8% dari periode lalu</p>
             </div>
           </div>
-          <Card><CardHeader><h3 className="text-base font-semibold text-[#072C2C]">Penjualan {activePeriodLabel}</h3></CardHeader><CardContent><div className="h-56 lg:h-72"><ResponsiveContainer width="100%" height="100%"><BarChart data={chartData}><CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" /><XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={11} /><YAxis axisLine={false} tickLine={false} fontSize={11} tickFormatter={(v) => `${(v/1000000).toFixed(1)}jt`} /><Tooltip formatter={(value) => [formatCurrency(value as number), "Penjualan"]} contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0", backgroundColor: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }} cursor={{ fill: "transparent" }} /><Bar dataKey="sales" fill="#FF5F03" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div></CardContent></Card>
+          <Card><CardHeader><h3 className="text-base font-semibold text-[#072C2C]">Penjualan 14 Hari Terakhir</h3></CardHeader><CardContent><div className="h-56 lg:h-72"><ResponsiveContainer width="100%" height="100%"><AreaChart data={chartData}><defs><linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#FF5F03" stopOpacity={0.2}/><stop offset="95%" stopColor="#FF5F03" stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="#072C2C08" vertical={false} /><XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "#9CA3AF" }} /><YAxis axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "#9CA3AF" }} tickFormatter={(v) => v >= 1000000 ? `${(v/1000000).toFixed(1)}jt` : v >= 1000 ? `${(v/1000).toFixed(0)}rb` : String(v)} /><Tooltip formatter={(value) => [formatCurrency(value as number), "Penjualan"]} contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0", backgroundColor: "#ffffff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }} /><Area type="monotone" dataKey="sales" stroke="#FF5F03" strokeWidth={2.5} fill="url(#salesGrad)" dot={{ r: 3, fill: "#FF5F03", stroke: "#fff", strokeWidth: 2 }} activeDot={{ r: 5, fill: "#FF5F03" }} /></AreaChart></ResponsiveContainer></div></CardContent></Card>
         </div>
       )}
 
