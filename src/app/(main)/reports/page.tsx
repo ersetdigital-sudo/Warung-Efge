@@ -19,9 +19,6 @@ function IconBox() { return <svg width="24" height="24" viewBox="0 0 24 24" fill
 function IconCheckCircle() { return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>; }
 function IconPie() { return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#072C2C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2v10l7 4"/></svg>; }
 
-// Simulated multipliers per period
-const periodMultipliers: Record<string, number> = { week: 0.25, month: 1, "3month": 3.1, "6month": 6.4, year: 12.8 };
-
 export default function ReportsPage() {
   const [activeReport, setActiveReport] = useState<ReportType>("sales");
   const [period, setPeriod] = useState<PeriodType>("month");
@@ -57,67 +54,63 @@ export default function ReportsPage() {
     { id: "year", label: "Tahun Ini" },
   ];
 
-  // Simulate data based on period/month selection
-  const multiplier = useMemo(() => {
-    if (selectedMonth) {
-      const monthIdx = selectedMonth.month;
-      const monthFactors = [0.8, 0.9, 0.85, 1.1, 1.0, 1.2, 0.95, 0.88, 1.05, 1.15, 1.3, 1.4];
-      return monthFactors[monthIdx];
-    }
-    return periodMultipliers[period] || 1;
-  }, [period, selectedMonth]);
+  // Filter transactions by selected period
+  const filteredTransactions = useMemo(() => {
+    if (transactions.length === 0) return [];
+    const now = new Date();
 
-  const baseSales = transactions.reduce((s: number, t: any) => s + (t.total || 0), 0);
-  const baseTransactions = transactions.length;
-  const totalSales = baseSales > 0 ? Math.round(baseSales * multiplier) : 0;
-  const totalTransactions = baseTransactions > 0 ? Math.round(baseTransactions * multiplier) : 0;
+    if (selectedMonth) {
+      return transactions.filter((t: any) => {
+        const d = new Date(t.created_at);
+        return d.getMonth() === selectedMonth.month && d.getFullYear() === selectedMonth.year;
+      });
+    }
+
+    const startDate = new Date();
+    switch (period) {
+      case "week": startDate.setDate(now.getDate() - 7); break;
+      case "month": startDate.setMonth(now.getMonth() - 1); break;
+      case "3month": startDate.setMonth(now.getMonth() - 3); break;
+      case "6month": startDate.setMonth(now.getMonth() - 6); break;
+      case "year": startDate.setFullYear(now.getFullYear() - 1); break;
+    }
+    return transactions.filter((t: any) => new Date(t.created_at) >= startDate);
+  }, [transactions, period, selectedMonth]);
+
+  const totalSales = filteredTransactions.reduce((s: number, t: any) => s + (t.total || 0), 0);
+  const totalTransactions = filteredTransactions.length;
   const avgTransaction = totalTransactions > 0 ? Math.round(totalSales / totalTransactions) : 0;
   const totalCOGS = Math.round(totalSales * 0.62);
   const grossProfit = totalSales - totalCOGS;
   const marginPct = totalSales > 0 ? (grossProfit / totalSales * 100) : 0;
   const profitPer100 = Math.round(marginPct);
 
-  // Chart data from real transactions — group by date for current period
+  // Chart data — group filtered transactions by date
   const chartData = useMemo(() => {
-    if (transactions.length === 0) {
-      // Show last 7 days with 0
+    if (filteredTransactions.length === 0) {
       return Array.from({ length: 7 }, (_, i) => {
         const d = new Date(); d.setDate(d.getDate() - (6 - i));
         return { name: `${d.getDate()}/${d.getMonth() + 1}`, sales: 0 };
       });
     }
 
-    // Group by date (last 30 days)
     const dailyMap: Record<string, number> = {};
-    const now = new Date();
-    const daysBack = 14; // Show last 14 days
-
-    for (let i = daysBack - 1; i >= 0; i--) {
-      const d = new Date(now); d.setDate(d.getDate() - i);
-      const key = `${d.getDate()}/${d.getMonth() + 1}`;
-      dailyMap[key] = 0;
-    }
-
-    for (const trx of transactions) {
+    for (const trx of filteredTransactions) {
       const date = new Date(trx.created_at);
       const key = `${date.getDate()}/${date.getMonth() + 1}`;
-      if (dailyMap[key] !== undefined) {
-        dailyMap[key] += trx.total || 0;
-      }
+      dailyMap[key] = (dailyMap[key] || 0) + (trx.total || 0);
     }
 
     return Object.entries(dailyMap).map(([name, sales]) => ({ name, sales }));
-  }, [transactions]);
+  }, [filteredTransactions]);
 
-  // Product data from real transaction_items
+  // Product data from filtered transaction_items
   const simProductData = useMemo(() => {
-    if (transactions.length === 0 && products.length > 0) {
-      // No transactions yet — show products with 0 sold
+    if (filteredTransactions.length === 0 && products.length > 0) {
       return products.slice(0, 5).map(p => ({ name: p.name, sold: 0, revenue: 0 }));
     }
-    // Aggregate from transaction_items
     const salesMap: Record<string, { name: string; sold: number; revenue: number }> = {};
-    for (const trx of transactions) {
+    for (const trx of filteredTransactions) {
       const items = trx.transaction_items || [];
       for (const item of items) {
         const key = item.product_name || "Unknown";
@@ -127,22 +120,22 @@ export default function ReportsPage() {
       }
     }
     return Object.values(salesMap).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
-  }, [transactions, products]);
+  }, [filteredTransactions, products]);
 
   const totalProductRevenue = simProductData.reduce((s, p) => s + p.revenue, 0) || 1;
   const horizontalProductData = simProductData.map(p => ({ ...p, contribution: ((p.revenue / totalProductRevenue) * 100).toFixed(1) }));
 
-  // Slow-selling products: products with lowest sales
+  // Slow-selling products: products with lowest sales in period
   const slowProducts = useMemo(() => {
     const salesMap: Record<string, number> = {};
-    for (const trx of transactions) {
+    for (const trx of filteredTransactions) {
       for (const item of (trx.transaction_items || [])) {
         const name = item.product_name || "";
         salesMap[name] = (salesMap[name] || 0) + (item.quantity || 0);
       }
     }
     return products.map(p => ({ ...p, totalSold: salesMap[p.name] || 0 })).sort((a, b) => a.totalSold - b.totalSold).slice(0, 5);
-  }, [products, transactions]);
+  }, [products, filteredTransactions]);
 
   const getMarginLabel = () => {
     if (marginPct >= 20) return { text: "Margin sehat ✓", color: "text-[#16A34A]" };
