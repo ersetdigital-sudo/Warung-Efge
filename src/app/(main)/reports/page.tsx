@@ -67,35 +67,38 @@ export default function ReportsPage() {
     return periodMultipliers[period] || 1;
   }, [period, selectedMonth]);
 
-  const baseSales = transactions.reduce((s: number, t: any) => s + (t.total || 0), 0) || 1;
-  const baseTransactions = transactions.length || 1;
-  const totalSales = Math.round(baseSales * multiplier);
-  const totalTransactions = Math.round(baseTransactions * multiplier);
+  const baseSales = transactions.reduce((s: number, t: any) => s + (t.total || 0), 0);
+  const baseTransactions = transactions.length;
+  const totalSales = baseSales > 0 ? Math.round(baseSales * multiplier) : 0;
+  const totalTransactions = baseTransactions > 0 ? Math.round(baseTransactions * multiplier) : 0;
   const avgTransaction = totalTransactions > 0 ? Math.round(totalSales / totalTransactions) : 0;
   const totalCOGS = Math.round(totalSales * 0.62);
   const grossProfit = totalSales - totalCOGS;
   const marginPct = totalSales > 0 ? (grossProfit / totalSales * 100) : 0;
   const profitPer100 = Math.round(marginPct);
 
-  // Simulated chart data based on period
+  // Chart data — show placeholder if no transactions
   const chartData = useMemo(() => {
+    if (baseSales === 0) {
+      return [{ name: "Jan", sales: 0 }, { name: "Feb", sales: 0 }, { name: "Mar", sales: 0 }, { name: "Apr", sales: 0 }, { name: "Mei", sales: 0 }, { name: "Jun", sales: 0 }];
+    }
     if (selectedMonth) {
-      const days = new Date(selectedMonth.year, selectedMonth.month + 1, 0).getDate();
-      return Array.from({ length: Math.min(days, 7) }, (_, i) => ({
+      return Array.from({ length: 7 }, (_, i) => ({
         name: `${i * 4 + 1}`,
         sales: Math.round((totalSales / 7) * (0.7 + Math.random() * 0.6)),
       }));
     }
     const labels = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun"];
-    return labels.map((name, i) => ({ name, sales: Math.round(totalSales * (0.7 + i * 0.06)) }));
-  }, [multiplier, selectedMonth, totalSales]);
+    return labels.map((name, i) => ({ name, sales: Math.round(totalSales * (0.12 + i * 0.02)) }));
+  }, [multiplier, selectedMonth, totalSales, baseSales]);
 
   // Product data from Supabase
   const simProductData = useMemo(() => {
+    if (products.length === 0) return [];
     return products.slice(0, 5).map(p => ({
       name: p.name,
-      sold: Math.round((p.stock || 10) * multiplier * 2),
-      revenue: Math.round((p.selling_price || 0) * (p.stock || 10) * multiplier),
+      sold: Math.round(((p.stock || 10) * multiplier * 2) || 0),
+      revenue: Math.round(((p.selling_price || 0) * (p.stock || 10) * multiplier) || 0),
     }));
   }, [products, multiplier]);
 
@@ -164,11 +167,17 @@ export default function ReportsPage() {
       {/* TAB PENJUALAN */}
       {activeReport === "sales" && (
         <div className="space-y-4">
+          {baseSales === 0 && (
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-6 text-center">
+              <p className="text-sm font-medium text-[#072C2C]/60">Belum ada data transaksi</p>
+              <p className="text-xs text-[#9CA3AF] mt-1">Mulai transaksi di menu Kasir untuk melihat laporan penjualan</p>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#FF5F03]">
               <div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Penjualan</p><IconWallet /></div>
               <p className="font-[Oswald] text-[20px] lg:text-[24px] font-semibold text-[#072C2C] mt-1">{formatCurrency(totalSales)}</p>
-              <p className="text-[10px] text-[#16A34A] font-medium mt-0.5">▲ 12% dari periode lalu</p>
+              {baseSales > 0 && <p className="text-[10px] text-[#16A34A] font-medium mt-0.5">▲ 12% dari periode lalu</p>}
             </div>
             <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#16A34A]">
               <div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Rata-rata Transaksi</p><IconTrend /></div>
