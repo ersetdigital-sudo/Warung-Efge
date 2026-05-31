@@ -8,7 +8,8 @@ import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import { formatCurrency, formatDate, getStockStatus } from "@/lib/utils";
-import { getProductsWithUnits, deleteProduct, getStockMovements } from "@/lib/db";
+import { getProductsWithUnits, deleteProduct, getStockMovements, addStockMovement } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 
 type PageTab = "katalog" | "stok";
 
@@ -22,6 +23,10 @@ export default function ProductsPage() {
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [toast, setToast] = useState("");
   const [movements, setMovements] = useState<any[]>([]);
+  const [showStockIn, setShowStockIn] = useState(false);
+  const [stockInProduct, setStockInProduct] = useState("");
+  const [stockInQty, setStockInQty] = useState("");
+  const [stockInNote, setStockInNote] = useState("");
 
   useEffect(() => { loadProducts(); }, []);
   const loadProducts = async () => {
@@ -29,6 +34,38 @@ export default function ProductsPage() {
     setProducts(data);
     const movs = await getStockMovements();
     setMovements(movs);
+  };
+
+  const handleStockIn = async () => {
+    if (!stockInProduct || !stockInQty) return;
+    const product = products.find(p => p.id === stockInProduct);
+    if (!product) return;
+    const qty = Number(stockInQty);
+    if (qty <= 0) return;
+
+    // Update stock
+    const newStock = (product.stock || 0) + qty;
+    await supabase.from("products").update({ stock: newStock }).eq("id", product.id);
+
+    // Record movement
+    await addStockMovement({
+      product_id: product.id,
+      product_name: product.name,
+      type: "in",
+      quantity: qty,
+      unit: product.unit,
+      notes: stockInNote || `Stok masuk ${qty} ${product.unit}`,
+      user_name: "Pak Efge",
+    });
+
+    // Reset & reload
+    setShowStockIn(false);
+    setStockInProduct("");
+    setStockInQty("");
+    setStockInNote("");
+    setToast("Stok berhasil ditambahkan!");
+    setTimeout(() => setToast(""), 2000);
+    await loadProducts();
   };
 
   const handleDelete = async () => {
@@ -57,7 +94,7 @@ export default function ProductsPage() {
 
   return (
     <div className="space-y-4">
-      {toast && <div className="fixed z-[9999] top-4 right-4 animate-in slide-in-from-top fade-in duration-200"><div className="px-4 py-2.5 rounded-xl shadow-xl text-sm font-medium text-white bg-[#DC2626]">{toast}</div></div>}
+      {toast && <div className="fixed z-[9999] top-4 right-4 animate-in slide-in-from-top fade-in duration-200"><div className={`px-4 py-2.5 rounded-xl shadow-xl text-sm font-medium text-white ${toast.includes("berhasil") ? "bg-[#16A34A]" : "bg-[#DC2626]"}`}>{toast}</div></div>}
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -208,6 +245,13 @@ export default function ProductsPage() {
       {/* Tab: Stok & Mutasi */}
       {activeTab === "stok" && (
         <>
+          {/* Action buttons */}
+          <div className="flex gap-2">
+            <button onClick={() => setShowStockIn(true)} className="flex items-center gap-1.5 px-4 py-2 bg-[#16A34A] text-white text-sm font-medium rounded-lg cursor-pointer hover:bg-[#15803d]">
+              <Plus className="w-4 h-4" />Stok Masuk
+            </button>
+          </div>
+
           {/* KPI Stok */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
             <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Stok Aman</p><p className="font-[Oswald] text-[22px] font-semibold text-[#072C2C] mt-1">{products.filter(p => p.stock > p.min_stock).length}</p></div>
@@ -284,6 +328,39 @@ export default function ProductsPage() {
             {movements.length > 50 && <div className="px-3 py-2 border-t border-[#D9D6C8] text-[11px] text-[#9CA3AF]">Menampilkan 50 dari {movements.length} mutasi</div>}
           </Card>
         </>
+      )}
+
+      {/* Stock In Modal */}
+      {showStockIn && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setShowStockIn(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5 space-y-4">
+            <h3 className="text-lg font-bold text-[#072C2C]">Stok Masuk</h3>
+
+            <div>
+              <label className="text-xs font-medium text-[#072C2C]/60 mb-1 block">Pilih Produk</label>
+              <select value={stockInProduct} onChange={(e) => setStockInProduct(e.target.value)} className="w-full px-3 py-2.5 text-sm border border-[#D9D6C8] rounded-lg bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30">
+                <option value="">-- Pilih produk --</option>
+                {products.map(p => <option key={p.id} value={p.id}>{p.name} (stok: {p.stock} {p.unit})</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-[#072C2C]/60 mb-1 block">Jumlah Masuk ({products.find(p => p.id === stockInProduct)?.unit || "unit"})</label>
+              <input type="number" inputMode="numeric" value={stockInQty} onChange={(e) => setStockInQty(e.target.value)} placeholder="0" className="w-full px-3 py-2.5 text-sm border border-[#D9D6C8] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-[#072C2C]/60 mb-1 block">Catatan (opsional)</label>
+              <input type="text" value={stockInNote} onChange={(e) => setStockInNote(e.target.value)} placeholder="Misal: Beli dari supplier X" className="w-full px-3 py-2.5 text-sm border border-[#D9D6C8] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => setShowStockIn(false)} className="flex-1 px-4 py-2.5 bg-[#4B5563] text-white font-medium text-sm rounded-xl cursor-pointer">Batal</button>
+              <button onClick={handleStockIn} disabled={!stockInProduct || !stockInQty || Number(stockInQty) <= 0} className="flex-1 px-4 py-2.5 bg-[#16A34A] text-white font-bold text-sm rounded-xl cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">Simpan</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Delete Confirmation */}
