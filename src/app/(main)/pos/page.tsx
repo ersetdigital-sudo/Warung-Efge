@@ -4,7 +4,9 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, QrCode, Banknote, Printer, ScanBarcode, AlertTriangle, RotateCcw, X, Check } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/utils";
-import { products, categories } from "@/data/mock-data";
+import { categories } from "@/data/mock-data";
+import { getProducts, addTransaction } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 
 interface CartItem {
   productId: string;
@@ -27,6 +29,10 @@ export default function POSPage() {
   const [showCart, setShowCart] = useState(false);
   const [trxId] = useState(() => `TRX-${String(Math.floor(Math.random() * 9000) + 1000)}`);
   const receiptRef = useRef<HTMLDivElement>(null);
+  const [products, setProducts] = useState<any[]>([]);
+
+  // Load products from Supabase
+  useEffect(() => { getProducts().then(setProducts); }, []);
 
   // Barcode scanner state
   const [showScanner, setShowScanner] = useState(false);
@@ -166,7 +172,7 @@ export default function POSPage() {
     setCart((prev) => {
       const existing = prev.find((item) => item.productId === productId);
       if (existing) return prev.map((item) => item.productId === productId ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price } : item);
-      return [...prev, { productId: product.id, name: product.name, price: product.sellingPrice, quantity: 1, unit: product.unit, subtotal: product.sellingPrice }];
+      return [...prev, { productId: product.id, name: product.name, price: product.selling_price, quantity: 1, unit: product.unit, subtotal: product.selling_price }];
     });
   };
 
@@ -324,7 +330,7 @@ export default function POSPage() {
           <div className="flex-1 overflow-y-auto px-3 sm:px-4 lg:px-5 pb-32 lg:pb-5">
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-2 sm:gap-2.5 lg:gap-3">
               {filteredProducts.map((product) => {
-                const isLowStock = product.stock <= product.minStock;
+                const isLowStock = product.stock <= product.min_stock;
                 const inCart = cart.find((item) => item.productId === product.id);
                 return (
                   <button key={product.id} onClick={() => addToCart(product.id)} className={`relative bg-white border rounded-xl lg:rounded-2xl p-2.5 lg:p-4 text-left transition-all group cursor-pointer ${inCart ? "border-[#FF5F03] ring-2 ring-[#FF5F03]/20 shadow-md" : "border-[#072C2C]/10 hover:border-[#FF5F03]/40 hover:shadow-md"}`}>
@@ -337,7 +343,7 @@ export default function POSPage() {
                       <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-[#072C2C]/15 group-hover:text-[#FF5F03]/40" />
                     </div>
                     <p className="text-[11px] sm:text-xs lg:text-sm font-semibold text-[#072C2C] truncate">{product.name}</p>
-                    <p className="text-xs sm:text-sm lg:text-lg font-bold text-[#FF5F03] mt-0.5 lg:mt-1">{formatCurrency(product.sellingPrice)}</p>
+                    <p className="text-xs sm:text-sm lg:text-lg font-bold text-[#FF5F03] mt-0.5 lg:mt-1">{formatCurrency(product.selling_price)}</p>
                     <div className="flex items-center gap-1 mt-1">
                       {isLowStock && <AlertTriangle className="w-3 h-3 text-[#D97706]" />}
                       <p className={`text-[9px] sm:text-[10px] lg:text-xs ${isLowStock ? "text-[#D97706] font-medium" : "text-[#072C2C]/50"}`}>Stok: {product.stock} {product.unit}</p>

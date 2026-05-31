@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDownToLine, ArrowUpFromLine, Settings2, ClipboardCheck, History, MoreVertical } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
@@ -9,12 +9,11 @@ import Badge from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
 import DataTable from "@/components/ui/DataTable";
 import { formatDate, formatNumber, getStockStatus } from "@/lib/utils";
-import { products, stockMovements, transactions } from "@/data/mock-data";
-import { Product } from "@/types";
+import { getProducts, deleteProduct, getStockMovements, addStockMovement } from "@/lib/db";
 
 type TabType = "overview" | "movements" | "opname";
 
-function ActionDropdown({ product, onDelete }: { product: Product; onDelete: (p: Product) => void }) {
+function ActionDropdown({ product, onDelete }: { product: any; onDelete: (p: any) => void }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   return (
@@ -44,10 +43,19 @@ export default function StockPage() {
   const [showInModal, setShowInModal] = useState(false);
   const [showOutModal, setShowOutModal] = useState(false);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [toast, setToast] = useState("");
-  const [productList, setProductList] = useState(products);
-  const lowStock = productList.filter((p) => p.stock <= p.minStock);
+  const [productList, setProductList] = useState<any[]>([]);
+  const [movements, setMovements] = useState<any[]>([]);
+
+  useEffect(() => { loadData(); }, []);
+  const loadData = async () => {
+    const [prods, movs] = await Promise.all([getProducts(), getStockMovements()]);
+    setProductList(prods);
+    setMovements(movs);
+  };
+
+  const lowStock = productList.filter((p) => p.stock <= p.min_stock);
 
   const tabs = [
     { id: "overview" as TabType, label: "Ringkasan Stok", icon: ClipboardCheck },
@@ -55,38 +63,29 @@ export default function StockPage() {
     { id: "opname" as TabType, label: "Stock Opname", icon: Settings2 },
   ];
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleteTarget) return;
-    // Check if product has transactions
-    const hasTransactions = transactions.some(t => t.items.some(i => i.productId === deleteTarget.id));
-    if (hasTransactions) {
-      // Soft delete - just remove from view (in real app: mark as archived)
-      setProductList(prev => prev.filter(p => p.id !== deleteTarget.id));
-    } else {
-      // Hard delete
-      setProductList(prev => prev.filter(p => p.id !== deleteTarget.id));
-    }
+    const success = await deleteProduct(deleteTarget.id);
+    if (success) { await loadData(); setToast("Produk berhasil dihapus"); setTimeout(() => setToast(""), 2000); }
     setDeleteTarget(null);
-    setToast("Produk berhasil dihapus");
-    setTimeout(() => setToast(""), 2000);
   };
 
   const stockColumns = [
-    { key: "name", label: "Produk", sortable: true, render: (item: Product) => <div><p className="font-medium text-gray-900">{item.name}</p><p className="text-xs text-gray-500">SKU: {item.sku}</p></div> },
+    { key: "name", label: "Produk", sortable: true, render: (item: any) => <div><p className="font-medium text-gray-900">{item.name}</p><p className="text-xs text-gray-500">SKU: {item.sku}</p></div> },
     { key: "category", label: "Kategori", sortable: true },
-    { key: "stock", label: "Stok", sortable: true, render: (item: Product) => { const s = getStockStatus(item.stock, item.minStock); return <Badge variant={s === "safe" ? "success" : s === "warning" ? "warning" : "danger"}>{formatNumber(item.stock)} {item.unit}</Badge>; } },
-    { key: "minStock", label: "Min. Stok", render: (item: Product) => <span className="text-sm text-gray-500">{item.minStock} {item.unit}</span> },
-    { key: "status", label: "Status", render: (item: Product) => { const s = getStockStatus(item.stock, item.minStock); return <Badge variant={s === "safe" ? "success" : s === "warning" ? "warning" : "danger"}>{s === "safe" ? "Aman" : s === "warning" ? "Menipis" : "Habis"}</Badge>; } },
-    { key: "actions", label: "", render: (item: Product) => <ActionDropdown product={item} onDelete={setDeleteTarget} /> },
+    { key: "stock", label: "Stok", sortable: true, render: (item: any) => { const s = getStockStatus(item.stock, item.min_stock); return <Badge variant={s === "safe" ? "success" : s === "warning" ? "warning" : "danger"}>{formatNumber(item.stock)} {item.unit}</Badge>; } },
+    { key: "min_stock", label: "Min. Stok", render: (item: any) => <span className="text-sm text-gray-500">{item.min_stock} {item.unit}</span> },
+    { key: "status", label: "Status", render: (item: any) => { const s = getStockStatus(item.stock, item.min_stock); return <Badge variant={s === "safe" ? "success" : s === "warning" ? "warning" : "danger"}>{s === "safe" ? "Aman" : s === "warning" ? "Menipis" : "Habis"}</Badge>; } },
+    { key: "actions", label: "", render: (item: any) => <ActionDropdown product={item} onDelete={setDeleteTarget} /> },
   ];
 
   const movementColumns = [
-    { key: "date", label: "Tanggal", sortable: true, render: (item: typeof stockMovements[0]) => <span className="text-sm text-gray-600">{formatDate(item.date)}</span> },
-    { key: "productName", label: "Produk", sortable: true },
-    { key: "type", label: "Tipe", render: (item: typeof stockMovements[0]) => { const labels: Record<string, string> = { in: "Masuk", out: "Keluar", adjustment: "Penyesuaian", opname: "Opname" }; const variants: Record<string, "success"|"danger"|"warning"|"info"> = { in: "success", out: "danger", adjustment: "warning", opname: "info" }; return <Badge variant={variants[item.type]}>{labels[item.type]}</Badge>; } },
-    { key: "quantity", label: "Jumlah", render: (item: typeof stockMovements[0]) => <span className={`font-medium ${item.type === "in" ? "text-green-600" : item.type === "out" ? "text-red-600" : "text-gray-700"}`}>{item.type === "in" ? "+" : item.type === "out" ? "-" : ""}{item.quantity} {item.unit}</span> },
-    { key: "notes", label: "Catatan", render: (item: typeof stockMovements[0]) => <span className="text-sm text-gray-500">{item.notes}</span> },
-    { key: "user", label: "User" },
+    { key: "created_at", label: "Tanggal", sortable: true, render: (item: any) => <span className="text-sm text-gray-600">{formatDate(item.created_at)}</span> },
+    { key: "product_name", label: "Produk", sortable: true },
+    { key: "type", label: "Tipe", render: (item: any) => { const labels: Record<string, string> = { in: "Masuk", out: "Keluar", adjustment: "Penyesuaian", opname: "Opname" }; const variants: Record<string, "success"|"danger"|"warning"|"info"> = { in: "success", out: "danger", adjustment: "warning", opname: "info" }; return <Badge variant={variants[item.type]}>{labels[item.type]}</Badge>; } },
+    { key: "quantity", label: "Jumlah", render: (item: any) => <span className={`font-medium ${item.type === "in" ? "text-green-600" : item.type === "out" ? "text-red-600" : "text-gray-700"}`}>{item.type === "in" ? "+" : item.type === "out" ? "-" : ""}{item.quantity} {item.unit}</span> },
+    { key: "notes", label: "Catatan", render: (item: any) => <span className="text-sm text-gray-500">{item.notes}</span> },
+    { key: "user_name", label: "User" },
   ];
 
   return (
@@ -125,7 +124,7 @@ export default function StockPage() {
       </div>
 
       {activeTab === "overview" && <Card><CardContent><DataTable columns={stockColumns} data={productList} searchPlaceholder="Cari produk..." searchKeys={["name", "sku", "category"]} /></CardContent></Card>}
-      {activeTab === "movements" && <Card><CardContent><DataTable columns={movementColumns} data={stockMovements} searchPlaceholder="Cari pergerakan stok..." searchKeys={["productName", "notes", "user"]} /></CardContent></Card>}
+      {activeTab === "movements" && <Card><CardContent><DataTable columns={movementColumns} data={movements} searchPlaceholder="Cari pergerakan stok..." searchKeys={["product_name", "notes", "user_name"]} /></CardContent></Card>}
       {activeTab === "opname" && <Card><CardHeader><div className="flex items-center justify-between"><h3 className="text-base font-semibold text-gray-900">Stock Opname</h3><Button size="sm"><ClipboardCheck className="w-4 h-4" />Mulai Opname</Button></div></CardHeader><CardContent><div className="text-center py-12"><ClipboardCheck className="w-12 h-12 text-gray-300 mx-auto mb-3" /><h3 className="text-lg font-medium text-gray-900">Stock Opname</h3><p className="text-sm text-gray-500 mt-1">Klik Mulai Opname untuk pengecekan stok fisik</p></div></CardContent></Card>}
 
       {/* Delete Confirmation Dialog */}
@@ -157,9 +156,11 @@ export default function StockPage() {
 }
 
 function StockForm({ onClose }: { onClose: () => void }) {
+  const [prods, setProds] = useState<any[]>([]);
+  useEffect(() => { getProducts().then(setProds); }, []);
   return (
     <form className="space-y-4">
-      <div><label className="block text-sm font-medium text-gray-700 mb-1">Produk</label><select className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"><option value="">Pilih Produk</option>{products.map((p) => <option key={p.id} value={p.id}>{p.name} (Stok: {p.stock} {p.unit})</option>)}</select></div>
+      <div><label className="block text-sm font-medium text-gray-700 mb-1">Produk</label><select className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"><option value="">Pilih Produk</option>{prods.map((p) => <option key={p.id} value={p.id}>{p.name} (Stok: {p.stock} {p.unit})</option>)}</select></div>
       <div className="grid grid-cols-2 gap-4">
         <div><label className="block text-sm font-medium text-gray-700 mb-1">Jumlah</label><input type="number" placeholder="0" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
         <div><label className="block text-sm font-medium text-gray-700 mb-1">Satuan</label><select className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"><option>Pcs</option><option>Dus</option><option>Pak</option><option>Kg</option><option>Karung</option></select></div>
