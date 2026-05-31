@@ -18,7 +18,10 @@ interface CartItem {
   hasBulkUnit?: boolean;
   bulkUnit?: string;
   bulkConversion?: number;
-  selectedUnit?: string; // current selected unit
+  retailPrice?: number;
+  sellingPrice?: number;
+  wholesalePrice?: number;
+  selectedUnit?: string;
 }
 
 export default function POSPage() {
@@ -181,7 +184,7 @@ export default function POSPage() {
     setCart((prev) => {
       const existing = prev.find((item) => item.productId === productId);
       if (existing) return prev.map((item) => item.productId === productId ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price } : item);
-      return [...prev, { productId: product.id, name: product.name, price: product.selling_price, quantity: 1, unit: product.unit, subtotal: product.selling_price, hasBulkUnit: product.has_bulk_unit, bulkUnit: product.bulk_unit, bulkConversion: product.bulk_conversion, selectedUnit: product.unit }];
+      return [...prev, { productId: product.id, name: product.name, price: product.selling_price, quantity: 1, unit: product.unit, subtotal: product.selling_price, hasBulkUnit: product.has_bulk_unit, bulkUnit: product.bulk_unit, bulkConversion: product.bulk_conversion, selectedUnit: product.unit, retailPrice: product.retail_price, sellingPrice: product.selling_price, wholesalePrice: product.wholesale_price }];
     });
   };
 
@@ -199,10 +202,13 @@ export default function POSPage() {
   const changeCartUnit = (productId: string, newUnit: string) => {
     setCart((prev) => prev.map((item) => {
       if (item.productId !== productId) return item;
-      const product = products.find((p: any) => p.id === productId);
-      if (!product) return item;
-      const isBulk = newUnit === item.bulkUnit;
-      const price = isBulk ? product.selling_price * (item.bulkConversion || 1) : product.selling_price;
+      let price = item.sellingPrice || 0;
+      if (newUnit === item.bulkUnit) {
+        price = item.wholesalePrice || (item.sellingPrice || 0) * (item.bulkConversion || 1);
+      } else if (newUnit !== item.unit && item.retailPrice) {
+        // Retail/eceran unit (smallest)
+        price = item.retailPrice;
+      }
       return { ...item, selectedUnit: newUnit, price, subtotal: item.quantity * price };
     }));
   };
@@ -365,6 +371,9 @@ export default function POSPage() {
                     </div>
                     <p className="text-[11px] sm:text-xs lg:text-sm font-semibold text-[#072C2C] truncate">{product.name}</p>
                     <p className="text-xs sm:text-sm lg:text-lg font-bold text-[#FF5F03] mt-0.5 lg:mt-1">{formatCurrency(product.selling_price)}</p>
+                    {product.has_bulk_unit && product.retail_price > 0 && (
+                      <p className="text-[8px] sm:text-[9px] text-[#072C2C]/50">Eceran: {formatCurrency(product.retail_price)}</p>
+                    )}
                     <div className="flex items-center gap-1 mt-1">
                       {isLowStock && <AlertTriangle className="w-3 h-3 text-[#D97706]" />}
                       <p className={`text-[9px] sm:text-[10px] lg:text-xs ${isLowStock ? "text-[#D97706] font-medium" : "text-[#072C2C]/50"}`}>Stok: {product.stock} {product.unit}</p>
@@ -533,6 +542,7 @@ export default function POSPage() {
                 </div>
                 {item.hasBulkUnit && item.bulkUnit && (
                   <select value={item.selectedUnit || item.unit} onChange={(e) => changeCartUnit(item.productId, e.target.value)} className="text-[10px] px-1.5 py-1 border border-[#D9D6C8] rounded text-[#072C2C] bg-white cursor-pointer">
+                    {item.retailPrice && item.retailPrice > 0 && <option value="eceran">Eceran</option>}
                     <option value={item.unit}>{item.unit}</option>
                     <option value={item.bulkUnit}>{item.bulkUnit}</option>
                   </select>
