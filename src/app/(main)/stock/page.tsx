@@ -73,7 +73,7 @@ export default function StockPage() {
   const stockColumns = [
     { key: "name", label: "Produk", sortable: true, render: (item: any) => <div><p className="font-medium text-gray-900">{item.name}</p><p className="text-xs text-gray-500">SKU: {item.sku}</p></div> },
     { key: "category", label: "Kategori", sortable: true },
-    { key: "stock", label: "Stok", sortable: true, render: (item: any) => { const s = getStockStatus(item.stock, item.min_stock); return <Badge variant={s === "safe" ? "success" : s === "warning" ? "warning" : "danger"}>{formatNumber(item.stock)} {item.unit}</Badge>; } },
+    { key: "stock", label: "Stok", sortable: true, render: (item: any) => { const s = getStockStatus(item.stock, item.min_stock); const bulkDisplay = item.has_bulk_unit && item.bulk_conversion ? ` (${Math.floor(item.stock / item.bulk_conversion)} ${item.bulk_unit})` : ""; return <Badge variant={s === "safe" ? "success" : s === "warning" ? "warning" : "danger"}>{formatNumber(item.stock)} {item.unit}{bulkDisplay}</Badge>; } },
     { key: "min_stock", label: "Min. Stok", render: (item: any) => <span className="text-sm text-gray-500">{item.min_stock} {item.unit}</span> },
     { key: "status", label: "Status", render: (item: any) => { const s = getStockStatus(item.stock, item.min_stock); return <Badge variant={s === "safe" ? "success" : s === "warning" ? "warning" : "danger"}>{s === "safe" ? "Aman" : s === "warning" ? "Menipis" : "Habis"}</Badge>; } },
     { key: "actions", label: "", render: (item: any) => <ActionDropdown product={item} onDelete={setDeleteTarget} /> },

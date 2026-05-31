@@ -209,3 +209,9 @@ INSERT INTO users (name, email, role, is_active) VALUES
   ('Ahmad Fauzi', 'ahmad@warung.com', 'admin', true),
   ('Sari Dewi', 'sari@warung.com', 'cashier', true),
   ('Budi Santoso', 'budi@warung.com', 'cashier', false);
+
+
+-- MIGRATION: Add bulk unit columns (run this if tables already exist)
+-- ALTER TABLE products ADD COLUMN IF NOT EXISTS has_bulk_unit BOOLEAN DEFAULT FALSE;
+-- ALTER TABLE products ADD COLUMN IF NOT EXISTS bulk_unit TEXT;
+-- ALTER TABLE products ADD COLUMN IF NOT EXISTS bulk_conversion NUMERIC;

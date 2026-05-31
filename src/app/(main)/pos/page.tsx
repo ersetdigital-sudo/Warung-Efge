@@ -15,6 +15,10 @@ interface CartItem {
   quantity: number;
   unit: string;
   subtotal: number;
+  hasBulkUnit?: boolean;
+  bulkUnit?: string;
+  bulkConversion?: number;
+  selectedUnit?: string; // current selected unit
 }
 
 export default function POSPage() {
@@ -172,7 +176,7 @@ export default function POSPage() {
     setCart((prev) => {
       const existing = prev.find((item) => item.productId === productId);
       if (existing) return prev.map((item) => item.productId === productId ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price } : item);
-      return [...prev, { productId: product.id, name: product.name, price: product.selling_price, quantity: 1, unit: product.unit, subtotal: product.selling_price }];
+      return [...prev, { productId: product.id, name: product.name, price: product.selling_price, quantity: 1, unit: product.unit, subtotal: product.selling_price, hasBulkUnit: product.has_bulk_unit, bulkUnit: product.bulk_unit, bulkConversion: product.bulk_conversion, selectedUnit: product.unit }];
     });
   };
 
@@ -186,6 +190,18 @@ export default function POSPage() {
   };
 
   const removeFromCart = (productId: string) => setCart((prev) => prev.filter((item) => item.productId !== productId));
+
+  const changeCartUnit = (productId: string, newUnit: string) => {
+    setCart((prev) => prev.map((item) => {
+      if (item.productId !== productId) return item;
+      const product = products.find((p: any) => p.id === productId);
+      if (!product) return item;
+      const isBulk = newUnit === item.bulkUnit;
+      const price = isBulk ? product.selling_price * (item.bulkConversion || 1) : product.selling_price;
+      return { ...item, selectedUnit: newUnit, price, subtotal: item.quantity * price };
+    }));
+  };
+
   const clearCart = () => { setCart([]); setDiscount(0); setAmountPaid(""); };
   const handlePayment = () => { setShowReceipt(true); setShowCart(false); };
   const handleNewTransaction = () => { setCart([]); setDiscount(0); setAmountPaid(""); setIsDebt(false); setShowReceipt(false); };
@@ -503,13 +519,19 @@ export default function POSPage() {
               <div key={item.productId} className="flex items-center gap-2 p-2.5 bg-[#EDEADE]/50 rounded-lg border border-[#072C2C]/5">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-[#072C2C] truncate">{item.name}</p>
-                  <p className="text-[10px] text-[#072C2C]/50">{formatCurrency(item.price)} / {item.unit}</p>
+                  <p className="text-[10px] text-[#072C2C]/50">{formatCurrency(item.price)} / {item.selectedUnit || item.unit}</p>
                 </div>
                 <div className="flex items-center gap-1">
                   <button onClick={() => updateQuantity(item.productId, -1)} className="w-6 h-6 rounded bg-white border border-[#072C2C]/10 flex items-center justify-center hover:bg-[#DC2626]/5 cursor-pointer"><Minus className="w-2.5 h-2.5" /></button>
                   <span className="w-6 text-center text-xs font-bold">{item.quantity}</span>
                   <button onClick={() => updateQuantity(item.productId, 1)} className="w-6 h-6 rounded bg-white border border-[#072C2C]/10 flex items-center justify-center hover:bg-[#16A34A]/5 cursor-pointer"><Plus className="w-2.5 h-2.5" /></button>
                 </div>
+                {item.hasBulkUnit && item.bulkUnit && (
+                  <select value={item.selectedUnit || item.unit} onChange={(e) => changeCartUnit(item.productId, e.target.value)} className="text-[10px] px-1.5 py-1 border border-[#D9D6C8] rounded text-[#072C2C] bg-white cursor-pointer">
+                    <option value={item.unit}>{item.unit}</option>
+                    <option value={item.bulkUnit}>{item.bulkUnit}</option>
+                  </select>
+                )}
                 <div className="text-right min-w-[70px]">
                   <p className="text-xs font-bold text-[#072C2C]">{formatCurrency(item.subtotal)}</p>
                   <button onClick={() => removeFromCart(item.productId)} className="text-[#DC2626]/50 hover:text-[#DC2626] cursor-pointer"><Trash2 className="w-3 h-3" /></button>

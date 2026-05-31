@@ -15,6 +15,9 @@ export default function AddProductPage() {
   const [showCamera, setShowCamera] = useState(false);
   const [cameraError, setCameraError] = useState("");
   const [barcodeDetected, setBarcodeDetected] = useState(false);
+  const [hasBulkUnit, setHasBulkUnit] = useState(false);
+  const [bulkUnit, setBulkUnit] = useState("");
+  const [bulkConversion, setBulkConversion] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const readerRef = useRef<any>(null);
@@ -74,6 +77,8 @@ export default function AddProductPage() {
   const handleSubmit = async () => {
     if (hasExpiry && !expiryDate) { alert("Tanggal expired wajib diisi"); return; }
     if (hasExpiry && expiryDate && new Date(expiryDate) < new Date()) { alert("Tanggal expired tidak boleh yang sudah lewat"); return; }
+    if (hasBulkUnit && !bulkUnit) { alert("Satuan beli wajib diisi"); return; }
+    if (hasBulkUnit && (!bulkConversion || Number(bulkConversion) <= 1)) { alert("Konversi harus angka lebih dari 1"); return; }
 
     const form = document.querySelector("form") as HTMLFormElement;
     if (!form) return;
@@ -94,6 +99,9 @@ export default function AddProductPage() {
       min_stock: Number(formData.get("minStock")) || 0,
       unit: (formData.get("unit") as string) || "Pcs",
       expiry_date: hasExpiry && expiryDate ? expiryDate : null,
+      has_bulk_unit: hasBulkUnit,
+      bulk_unit: hasBulkUnit ? bulkUnit : null,
+      bulk_conversion: hasBulkUnit ? Number(bulkConversion) : null,
     };
 
     const result = await addProduct(newProduct);
@@ -190,12 +198,34 @@ export default function AddProductPage() {
                 <input type="checkbox" checked={hasExpiry} onChange={(e) => setHasExpiry(e.target.checked)} className="w-4 h-4 rounded accent-[#FF5F03]" />
                 <span className="text-sm font-medium text-[#072C2C]">Produk ini memiliki tanggal expired</span>
               </label>
-              {/* Animated expiry field */}
               <div className={`overflow-hidden transition-all duration-300 ease-in-out ${hasExpiry ? "max-h-24 opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"}`}>
                 <div className="max-w-xs">
                   <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Tanggal Expired</label>
                   <input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} min={new Date().toISOString().split("T")[0]} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
                 </div>
+              </div>
+            </div>
+
+            {/* Bulk Unit Toggle */}
+            <div className="mt-4">
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <input type="checkbox" checked={hasBulkUnit} onChange={(e) => setHasBulkUnit(e.target.checked)} className="w-4 h-4 rounded accent-[#FF5F03]" />
+                <span className="text-sm font-medium text-[#072C2C]">Produk ini dijual dalam satuan berbeda (eceran & grosir)</span>
+              </label>
+              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${hasBulkUnit ? "max-h-48 opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"}`}>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Satuan Beli (grosir)</label>
+                    <input type="text" value={bulkUnit} onChange={(e) => setBulkUnit(e.target.value)} placeholder="Contoh: Renceng, Dus, Karung, Slop" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Konversi</label>
+                    <input type="number" value={bulkConversion} onChange={(e) => setBulkConversion(e.target.value)} placeholder="Contoh: 10" min="2" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
+                  </div>
+                </div>
+                {bulkUnit && bulkConversion && Number(bulkConversion) > 1 && (
+                  <p className="text-xs text-[#16A34A] font-medium mt-2 bg-[#F0FDF4] px-3 py-1.5 rounded-lg inline-block">1 {bulkUnit} = {bulkConversion} {(document.querySelector('[name="unit"]') as HTMLSelectElement)?.value || "Pcs"}</p>
+                )}
               </div>
             </div>
           </div>
