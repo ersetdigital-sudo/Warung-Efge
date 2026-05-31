@@ -443,7 +443,25 @@ export default function POSPage() {
                 <div>
                   <p className="text-xs font-semibold text-[#072C2C]/60 mb-2">Uang Diterima</p>
                   <input type="text" inputMode="numeric" value={displayAmountPaid} onChange={(e) => handleAmountInput(e.target.value)} placeholder="Rp 0" className="w-full px-3 py-2.5 text-sm font-bold border border-[#072C2C]/10 rounded-lg text-right focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
-                  <div className="flex justify-between items-center mt-2">
+                  {/* Saran nominal */}
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    <button onClick={() => setAmountPaid(String(total))} className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all ${Number(amountPaid) === total ? "bg-[#FF5F03] text-white" : "bg-[#FF5F03]/10 text-[#FF5F03] border border-[#FF5F03]/30 hover:bg-[#FF5F03]/20"}`}>Uang Pas</button>
+                    {(() => {
+                      const suggestions: number[] = [];
+                      const denoms = [5000, 10000, 20000, 50000, 100000, 200000, 500000];
+                      for (const d of denoms) { if (d >= total && suggestions.length < 4) suggestions.push(d); }
+                      if (suggestions.length === 0 || suggestions[0] < total) {
+                        const rounded = Math.ceil(total / 50000) * 50000;
+                        [rounded, rounded + 50000, rounded + 100000].forEach(v => { if (!suggestions.includes(v) && suggestions.length < 4) suggestions.push(v); });
+                      }
+                      return suggestions.map(amount => (
+                        <button key={amount} onClick={() => setAmountPaid(String(amount))} className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${Number(amountPaid) === amount ? "bg-[#072C2C] text-white" : "bg-[#F5F4F0] border border-[#072C2C]/10 text-[#072C2C]/70 hover:border-[#FF5F03]/30"}`}>
+                          {amount >= 1000000 ? `${(amount/1000000)}jt` : `${(amount/1000)}rb`}
+                        </button>
+                      ));
+                    })()}
+                  </div>
+                  <div className="flex justify-between items-center mt-3">
                     <span className="text-xs text-[#072C2C]/60">Kembalian</span>
                     <span className="text-sm font-bold text-[#16A34A]">{formatRupiah(change > 0 ? change : 0)}</span>
                   </div>
