@@ -51,6 +51,7 @@ export default function POSPage() {
   const [isDebt, setIsDebt] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [showCart, setShowCart] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
   const [trxId, setTrxId] = useState(() => `TRX-${String(Math.floor(Math.random() * 9000) + 1000)}`);
   const receiptRef = useRef<HTMLDivElement>(null);
   const [products, setProducts] = useState<any[]>([]);
@@ -291,16 +292,20 @@ export default function POSPage() {
 
         {/* RIGHT: Keranjang - fixed height, internal scroll */}
         <div className="hidden lg:flex flex-shrink-0 w-[300px] xl:w-[330px] bg-white border-l border-[#072C2C]/10 flex-col h-full">
-          {/* Cart Header - fixed */}
+          {/* Cart Header */}
           <div className="flex-shrink-0 px-3 py-2.5 border-b border-[#072C2C]/10">
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-[#072C2C] text-sm">KERANJANG</h2>
-              <span className="bg-[#FF5F03] text-white text-[9px] font-bold px-2 py-0.5 rounded">{cart.length} item</span>
+              <div className="flex items-center gap-2">
+                <ShoppingCart className="w-4 h-4 text-[#072C2C]" />
+                <h2 className="font-bold text-[#072C2C] text-sm">KERANJANG</h2>
+                <span className="text-[10px] text-[#072C2C]/50">({cart.length})</span>
+              </div>
+              {cart.length > 0 && <button onClick={clearCart} className="text-[9px] text-[#DC2626]/60 hover:text-[#DC2626] cursor-pointer flex items-center gap-0.5"><RotateCcw className="w-2.5 h-2.5" />Hapus</button>}
             </div>
           </div>
 
-          {/* Cart Items - scrollable middle */}
-          <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-1">
+          {/* Cart Items - scrollable */}
+          <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-1.5">
             {cart.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-[#072C2C]/20">
                 <ShoppingCart className="w-10 h-10 mb-1" />
@@ -308,53 +313,34 @@ export default function POSPage() {
                 <p className="text-[9px] text-[#072C2C]/30">Pilih satuan produk di kiri</p>
               </div>
             ) : cart.map((item) => (
-              <div key={`${item.productId}-${item.unit}`} className="flex items-center gap-1.5 p-2 bg-[#F9F8F4] rounded-lg">
+              <div key={`${item.productId}-${item.unit}`} className="flex items-center gap-2 p-2.5 bg-[#F9F8F4] rounded-lg border border-[#072C2C]/5">
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] font-semibold text-[#072C2C] leading-tight">{item.name}</p>
                   <p className="text-[9px] text-[#072C2C]/50">{item.unit} · {formatCurrency(item.price)}</p>
                 </div>
-                <div className="flex items-center gap-0.5">
-                  <button onClick={() => updateQuantity(item.productId, item.unit, -1)} className="w-5 h-5 rounded bg-white border border-[#072C2C]/10 flex items-center justify-center cursor-pointer"><Minus className="w-2.5 h-2.5" /></button>
-                  <span className="w-5 text-center text-[10px] font-bold">{item.quantity}</span>
-                  <button onClick={() => updateQuantity(item.productId, item.unit, 1)} className="w-5 h-5 rounded bg-white border border-[#072C2C]/10 flex items-center justify-center cursor-pointer"><Plus className="w-2.5 h-2.5" /></button>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => updateQuantity(item.productId, item.unit, -1)} className="w-6 h-6 rounded-md bg-white border border-[#072C2C]/10 flex items-center justify-center cursor-pointer hover:bg-[#DC2626]/5"><Minus className="w-3 h-3" /></button>
+                  <span className="w-6 text-center text-xs font-bold">{item.quantity}</span>
+                  <button onClick={() => updateQuantity(item.productId, item.unit, 1)} className="w-6 h-6 rounded-md bg-white border border-[#072C2C]/10 flex items-center justify-center cursor-pointer hover:bg-[#16A34A]/5"><Plus className="w-3 h-3" /></button>
                 </div>
-                <p className="text-[10px] font-bold text-[#072C2C] min-w-[50px] text-right">{formatCurrency(item.subtotal)}</p>
+                <p className="text-[11px] font-bold text-[#072C2C] min-w-[55px] text-right">{formatCurrency(item.subtotal)}</p>
                 <button onClick={() => removeFromCart(item.productId, item.unit)} className="text-[#DC2626]/30 hover:text-[#DC2626] cursor-pointer"><Trash2 className="w-3 h-3" /></button>
               </div>
             ))}
           </div>
 
-          {/* Payment Footer - fixed at bottom, never scrolls */}
-          <div className="flex-shrink-0 border-t border-[#072C2C]/10 px-3 py-2 bg-white space-y-1.5">
-            <div className="flex justify-between text-[10px]"><span className="text-[#072C2C]/50">Subtotal</span><span className="font-medium">{formatCurrency(subtotal)}</span></div>
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] text-[#072C2C]/50">Diskon</span>
-              <input type="text" inputMode="numeric" value={discountInput} onChange={(e) => setDiscountInput(e.target.value.replace(/\D/g, ""))} placeholder="0" className="flex-1 px-1.5 py-0.5 text-[10px] border border-[#072C2C]/10 rounded text-right focus:outline-none focus:ring-1 focus:ring-[#FF5F03]/30" />
-              <select value={discountType} onChange={(e) => setDiscountType(e.target.value as "rp" | "persen")} className="px-1 py-0.5 text-[10px] border border-[#072C2C]/10 rounded bg-white cursor-pointer"><option value="rp">Rp</option><option value="persen">%</option></select>
-            </div>
-            {calculatedDiscount > 0 && <div className="flex justify-between text-[10px]"><span className="text-[#072C2C]/50">Diskon</span><span className="text-[#DC2626]">-{formatCurrency(calculatedDiscount)}</span></div>}
-            <div className="flex justify-between items-center py-1 border-t border-[#072C2C]/10">
-              <span className="text-xs font-bold">TOTAL</span>
-              <span className="text-sm font-bold text-[#FF5F03]">{formatCurrency(total)}</span>
-            </div>
-            {/* Payment methods */}
-            <div className="grid grid-cols-4 gap-1">
-              {([["cash", Banknote, "Tunai"], ["qris", QrCode, "QRIS"], ["transfer", CreditCard, "Transfer"], ["edc", Smartphone, "EDC"]] as const).map(([method, Icon, label]) => (
-                <button key={method} onClick={() => setPaymentMethod(method)} className={`flex flex-col items-center gap-0.5 py-1.5 rounded text-[8px] font-medium cursor-pointer ${paymentMethod === method ? "bg-[#072C2C] text-white" : "bg-[#F5F4F0] border border-[#072C2C]/8 text-[#072C2C]/60"}`}><Icon className="w-3 h-3" />{label}</button>
-              ))}
-            </div>
-            {paymentMethod === "cash" && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-[9px] text-[#072C2C]/50">Rp</span>
-                <input type="text" inputMode="numeric" value={displayAmountPaid} onChange={(e) => handleAmountInput(e.target.value)} placeholder="0" className="flex-1 px-1.5 py-1 text-[10px] font-bold border border-[#072C2C]/10 rounded text-right focus:outline-none focus:ring-1 focus:ring-[#FF5F03]/30" />
-                <div className="text-right"><p className="text-[8px] text-[#072C2C]/40">Kembalian</p><p className="text-[10px] font-bold text-[#16A34A]">{formatRupiah(change > 0 ? change : 0)}</p></div>
+          {/* Footer: Total + Checkout button */}
+          {cart.length > 0 && (
+            <div className="flex-shrink-0 border-t border-[#072C2C]/10 px-3 py-3 bg-white">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-sm font-bold text-[#072C2C]">TOTAL</span>
+                <span className="text-lg font-bold text-[#FF5F03]">{formatCurrency(total)}</span>
               </div>
-            )}
-            <div className="flex gap-1.5 pt-0.5">
-              <button onClick={clearCart} className="p-2 text-[#072C2C]/40 hover:text-[#DC2626] cursor-pointer rounded border border-[#072C2C]/8"><RotateCcw className="w-3.5 h-3.5" /></button>
-              <button onClick={handlePayment} disabled={!canPay} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#FF5F03] text-white font-bold text-[11px] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-[#e55503]"><Check className="w-3.5 h-3.5" />PROSES PEMBAYARAN</button>
+              <button onClick={() => setShowCheckout(true)} className="w-full py-3 bg-[#FF5F03] text-white font-bold text-sm rounded-xl cursor-pointer hover:bg-[#e55503] flex items-center justify-center gap-2">
+                <CreditCard className="w-4 h-4" />CHECKOUT
+              </button>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Mobile: Cart bottom sheet */}
@@ -390,29 +376,14 @@ export default function POSPage() {
               ))}
             </div>
             {cart.length > 0 && (
-              <div className="flex-shrink-0 border-t border-[#072C2C]/10 px-4 py-3 bg-white space-y-2" style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}>
-                <div className="flex justify-between text-sm"><span className="text-[#072C2C]/60">Subtotal</span><span className="font-medium">{formatCurrency(subtotal)}</span></div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-[#072C2C]/60">Diskon</span>
-                  <input type="text" inputMode="numeric" value={discountInput} onChange={(e) => setDiscountInput(e.target.value.replace(/\D/g, ""))} placeholder="0" className="flex-1 px-2 py-1 text-sm border border-[#072C2C]/10 rounded-lg text-right focus:outline-none focus:ring-1 focus:ring-[#FF5F03]/30" />
-                  <select value={discountType} onChange={(e) => setDiscountType(e.target.value as "rp" | "persen")} className="px-2 py-1 text-xs border border-[#072C2C]/10 rounded-lg bg-white cursor-pointer"><option value="rp">Rp</option><option value="persen">%</option></select>
+              <div className="flex-shrink-0 border-t border-[#072C2C]/10 px-4 py-3 bg-white space-y-3" style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}>
+                <div className="flex justify-between items-center">
+                  <span className="text-base font-bold text-[#072C2C]">TOTAL</span>
+                  <span className="text-xl font-bold text-[#FF5F03]">{formatCurrency(total)}</span>
                 </div>
-                {calculatedDiscount > 0 && <div className="flex justify-between text-sm"><span className="text-[#072C2C]/60">Diskon</span><span className="text-[#DC2626]">-{formatCurrency(calculatedDiscount)}</span></div>}
-                <div className="flex justify-between items-center pt-2 border-t border-[#072C2C]/10"><span className="font-bold">TOTAL</span><span className="text-xl font-bold text-[#FF5F03]">{formatCurrency(total)}</span></div>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {([["cash", Banknote, "Tunai"], ["qris", QrCode, "QRIS"], ["transfer", CreditCard, "Transfer"], ["edc", Smartphone, "EDC"]] as const).map(([method, Icon, label]) => (
-                    <button key={method} onClick={() => setPaymentMethod(method)} className={`flex items-center justify-center gap-1 px-2 py-2 rounded-lg text-[10px] font-medium cursor-pointer ${paymentMethod === method ? "bg-[#072C2C] text-white" : "bg-[#F5F5F0] border border-[#072C2C]/10 text-[#072C2C]/70"}`}><Icon className="w-3.5 h-3.5" />{label}</button>
-                  ))}
-                </div>
-                {paymentMethod === "cash" && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-[#072C2C]/50">Rp</span>
-                    <input type="text" inputMode="numeric" value={displayAmountPaid} onChange={(e) => handleAmountInput(e.target.value)} placeholder="0" className="flex-1 px-3 py-2 text-sm font-bold border border-[#072C2C]/10 rounded-lg text-right focus:outline-none focus:ring-1 focus:ring-[#FF5F03]/30" />
-                    <div className="text-right"><p className="text-[9px] text-[#072C2C]/40">Kembalian</p><p className="text-sm font-bold text-[#16A34A]">{formatRupiah(change > 0 ? change : 0)}</p></div>
-                  </div>
-                )}
-                <button onClick={handlePayment} disabled={!canPay} className="w-full py-3 bg-[#FF5F03] text-white font-bold text-sm rounded-xl disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"><Check className="w-4 h-4" />PROSES PEMBAYARAN</button>
-                <button onClick={clearCart} className="w-full text-center text-[10px] text-[#072C2C]/40 cursor-pointer"><RotateCcw className="w-3 h-3 inline mr-1" />Kosongkan</button>
+                <button onClick={() => { setShowCart(false); setShowCheckout(true); }} className="w-full py-3.5 bg-[#FF5F03] text-white font-bold text-sm rounded-xl cursor-pointer flex items-center justify-center gap-2">
+                  <CreditCard className="w-4 h-4" />CHECKOUT
+                </button>
               </div>
             )}
           </div>
@@ -428,6 +399,65 @@ export default function POSPage() {
           </div>
         )}
       </div>
+
+      {/* Checkout Modal (Desktop) */}
+      {showCheckout && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-[#072C2C]/50 backdrop-blur-sm" onClick={() => setShowCheckout(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-[#072C2C]/10">
+              <h2 className="text-base font-bold text-[#072C2C]">PROSES PEMBAYARAN</h2>
+              <button onClick={() => setShowCheckout(false)} className="p-1.5 rounded-lg hover:bg-[#EDEADE] cursor-pointer"><X className="w-5 h-5 text-[#072C2C]/60" /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              {/* Total */}
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-[#072C2C]/60">Total</span>
+                <span className="text-2xl font-bold text-[#FF5F03]">{formatCurrency(total)}</span>
+              </div>
+
+              {/* Payment Method */}
+              <div>
+                <p className="text-xs font-semibold text-[#072C2C]/60 mb-2">Metode Pembayaran</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {([["cash", Banknote, "Tunai"], ["qris", QrCode, "QRIS"], ["transfer", CreditCard, "Transfer"], ["edc", Smartphone, "EDC"]] as const).map(([method, Icon, label]) => (
+                    <button key={method} onClick={() => setPaymentMethod(method)} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${paymentMethod === method ? "bg-[#072C2C] text-white" : "bg-[#F5F4F0] border border-[#072C2C]/10 text-[#072C2C]/70 hover:border-[#FF5F03]/30"}`}>
+                      <Icon className="w-4 h-4" />{label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Discount */}
+              <div>
+                <p className="text-xs font-semibold text-[#072C2C]/60 mb-2">Diskon</p>
+                <div className="flex items-center gap-2">
+                  <input type="text" inputMode="numeric" value={discountInput} onChange={(e) => setDiscountInput(e.target.value.replace(/\D/g, ""))} placeholder="0" className="flex-1 px-3 py-2 text-sm border border-[#072C2C]/10 rounded-lg text-right focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
+                  <select value={discountType} onChange={(e) => setDiscountType(e.target.value as "rp" | "persen")} className="px-3 py-2 text-sm border border-[#072C2C]/10 rounded-lg bg-white cursor-pointer"><option value="rp">Rp</option><option value="persen">%</option></select>
+                </div>
+                {calculatedDiscount > 0 && <p className="text-xs text-[#DC2626] mt-1">Diskon: -{formatCurrency(calculatedDiscount)}</p>}
+              </div>
+
+              {/* Cash input */}
+              {paymentMethod === "cash" && (
+                <div>
+                  <p className="text-xs font-semibold text-[#072C2C]/60 mb-2">Uang Diterima</p>
+                  <input type="text" inputMode="numeric" value={displayAmountPaid} onChange={(e) => handleAmountInput(e.target.value)} placeholder="Rp 0" className="w-full px-3 py-2.5 text-sm font-bold border border-[#072C2C]/10 rounded-lg text-right focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-xs text-[#072C2C]/60">Kembalian</span>
+                    <span className="text-sm font-bold text-[#16A34A]">{formatRupiah(change > 0 ? change : 0)}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Pay button */}
+              <button onClick={() => { handlePayment(); setShowCheckout(false); }} disabled={!canPay} className="w-full py-3.5 bg-[#FF5F03] text-white font-bold text-sm rounded-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-[#e55503] flex items-center justify-center gap-2">
+                <Check className="w-4 h-4" />BAYAR SEKARANG
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toasts */}
       {scanNotification && <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 bg-[#16A34A] text-white rounded-xl shadow-xl text-sm font-medium flex items-center gap-2"><Check className="w-4 h-4" />{scanNotification}</div>}
