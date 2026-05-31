@@ -92,18 +92,40 @@ export default function ReportsPage() {
     return labels.map((name, i) => ({ name, sales: Math.round(totalSales * (0.12 + i * 0.02)) }));
   }, [multiplier, selectedMonth, totalSales, baseSales]);
 
-  // Product data from Supabase
+  // Product data from real transaction_items
   const simProductData = useMemo(() => {
-    if (products.length === 0) return [];
-    return products.slice(0, 5).map(p => ({
-      name: p.name,
-      sold: Math.round(((p.stock || 10) * multiplier * 2) || 0),
-      revenue: Math.round(((p.selling_price || 0) * (p.stock || 10) * multiplier) || 0),
-    }));
-  }, [products, multiplier]);
+    if (transactions.length === 0 && products.length > 0) {
+      // No transactions yet — show products with 0 sold
+      return products.slice(0, 5).map(p => ({ name: p.name, sold: 0, revenue: 0 }));
+    }
+    // Aggregate from transaction_items
+    const salesMap: Record<string, { name: string; sold: number; revenue: number }> = {};
+    for (const trx of transactions) {
+      const items = trx.transaction_items || [];
+      for (const item of items) {
+        const key = item.product_name || "Unknown";
+        if (!salesMap[key]) salesMap[key] = { name: key, sold: 0, revenue: 0 };
+        salesMap[key].sold += item.quantity || 0;
+        salesMap[key].revenue += item.subtotal || 0;
+      }
+    }
+    return Object.values(salesMap).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+  }, [transactions, products]);
 
   const totalProductRevenue = simProductData.reduce((s, p) => s + p.revenue, 0) || 1;
   const horizontalProductData = simProductData.map(p => ({ ...p, contribution: ((p.revenue / totalProductRevenue) * 100).toFixed(1) }));
+
+  // Slow-selling products: products with lowest sales
+  const slowProducts = useMemo(() => {
+    const salesMap: Record<string, number> = {};
+    for (const trx of transactions) {
+      for (const item of (trx.transaction_items || [])) {
+        const name = item.product_name || "";
+        salesMap[name] = (salesMap[name] || 0) + (item.quantity || 0);
+      }
+    }
+    return products.map(p => ({ ...p, totalSold: salesMap[p.name] || 0 })).sort((a, b) => a.totalSold - b.totalSold).slice(0, 5);
+  }, [products, transactions]);
 
   const getMarginLabel = () => {
     if (marginPct >= 20) return { text: "Margin sehat ✓", color: "text-[#16A34A]" };
@@ -273,10 +295,11 @@ export default function ReportsPage() {
           </CardContent></Card>
 
           <Card><CardHeader><h3 className="text-base font-semibold text-[#072C2C]">Produk Lambat Terjual</h3></CardHeader><CardContent className="p-0">
-            {products.slice(-5).reverse().map((p, idx) => (
+            {slowProducts.length === 0 ? <div className="p-4 text-center text-sm text-[#9CA3AF]">Belum ada data</div> :
+            slowProducts.map((p: any, idx: number) => (
               <div key={p.id} className={`flex items-center justify-between px-3.5 py-3 border-b border-[#D9D6C8] last:border-b-0 ${idx % 2 === 1 ? "bg-[#EDEADE]/30" : ""}`}>
                 <div><p className="text-sm font-medium text-[#072C2C]">{p.name}</p><p className="text-[10px] text-[#9CA3AF]">Stok: {p.stock} {p.unit}</p></div>
-                <span className="text-[11px] font-mono font-bold text-[#D97706] bg-[#D97706]/10 px-2 py-0.5 rounded">{Math.floor(Math.random() * 8) + 2} terjual</span>
+                <span className="text-[11px] font-mono font-bold text-[#D97706] bg-[#D97706]/10 px-2 py-0.5 rounded">{p.totalSold} terjual</span>
               </div>
             ))}
           </CardContent></Card>
