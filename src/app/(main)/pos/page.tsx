@@ -361,7 +361,7 @@ export default function POSPage() {
 
           {/* Product Grid - Cards with unit rows */}
           <div className="flex-1 overflow-y-auto px-3 sm:px-4 lg:px-5 pb-32 lg:pb-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 lg:gap-3">
               {filteredProducts.map((product) => {
                 const isOutOfStock = product.stock <= 0;
                 const cartCount = getCartCountForProduct(product.id);
@@ -371,7 +371,7 @@ export default function POSPage() {
                 return (
                   <div key={product.id} className={`relative bg-white border rounded-xl overflow-hidden transition-all ${isOutOfStock ? "opacity-50" : ""} ${cartCount > 0 ? "border-[#FF5F03] ring-1 ring-[#FF5F03]/20" : "border-[#072C2C]/10"}`}>
                     {/* Stock badge top-right */}
-                    <div className="absolute top-2.5 right-2.5 px-1.5 py-0.5 bg-[#072C2C]/5 rounded text-[10px] font-medium text-[#072C2C]/60">
+                    <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-[#072C2C]/5 rounded text-[9px] font-medium text-[#072C2C]/50">
                       {product.stock}
                     </div>
                     {/* Cart count badge */}
@@ -381,41 +381,39 @@ export default function POSPage() {
                       </div>
                     )}
 
-                    {/* Product header - name NOT truncated */}
-                    <div className="px-3 pt-3 pb-2">
-                      <div className="flex items-start gap-2.5">
-                        <div className="w-9 h-9 bg-[#EDEADE] rounded-lg flex items-center justify-center flex-shrink-0">
-                          <ShoppingCart className="w-4 h-4 text-[#072C2C]/20" />
+                    {/* Product header - compact */}
+                    <div className="px-2.5 pt-2.5 pb-1.5">
+                      <div className="flex items-start gap-2">
+                        <div className="w-7 h-7 bg-[#EDEADE] rounded-md flex items-center justify-center flex-shrink-0">
+                          <ShoppingCart className="w-3.5 h-3.5 text-[#072C2C]/20" />
                         </div>
-                        <div className="flex-1 min-w-0 pr-6">
-                          <p className="text-[13px] font-semibold text-[#072C2C] leading-tight line-clamp-2">{product.name}</p>
-                          <p className="text-[10px] text-[#072C2C]/40 mt-0.5">{product.category}</p>
+                        <div className="flex-1 min-w-0 pr-5">
+                          <p className="text-[11px] sm:text-xs font-semibold text-[#072C2C] leading-tight line-clamp-2">{product.name}</p>
+                          <p className="text-[9px] text-[#072C2C]/40 mt-0.5">{product.category}</p>
                         </div>
                       </div>
                     </div>
 
-                    {/* Unit rows - clickable, default unit highlighted */}
-                    <div className="px-2.5 pb-2.5 space-y-1">
+                    {/* Unit rows - compact clickable rows */}
+                    <div className="px-2 pb-2 space-y-0.5">
                       {units.map((u) => {
                         const inCart = cart.find(i => i.productId === product.id && i.unit === u.name);
                         const isDefault = u.name === defaultUnit;
-                        // Highlight: in cart = orange bg, default (not in cart) = orange outline
-                        const isHighlighted = inCart || isDefault;
                         return (
                           <button
                             key={u.name}
                             onClick={() => !isOutOfStock && addToCart(product.id, u.name, u.price, u.stockPerUnit)}
                             disabled={isOutOfStock}
-                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left transition-all cursor-pointer active:scale-[0.98] ${
+                            className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-left transition-all cursor-pointer active:scale-[0.97] ${
                               inCart
                                 ? "bg-[#FF5F03] text-white"
                                 : isDefault
-                                  ? "bg-[#FF5F03]/10 border border-[#FF5F03]/40 text-[#072C2C]"
-                                  : "bg-[#F9F8F4] hover:bg-[#EDEADE] border border-transparent text-[#072C2C]"
+                                  ? "bg-[#FF5F03]/10 border border-[#FF5F03]/30"
+                                  : "hover:bg-[#EDEADE]/60 border border-transparent"
                             } ${isOutOfStock ? "cursor-not-allowed" : ""}`}
                           >
-                            <span className={`text-xs font-medium ${inCart ? "text-white" : isDefault ? "text-[#FF5F03] font-semibold" : "text-[#072C2C]/70"}`}>{u.name}</span>
-                            <span className={`text-xs font-bold ${inCart ? "text-white" : isDefault ? "text-[#FF5F03]" : "text-[#072C2C]"}`}>Rp {u.price.toLocaleString("id-ID")}</span>
+                            <span className={`text-[11px] font-medium ${inCart ? "text-white" : isDefault ? "text-[#FF5F03]" : "text-[#072C2C]/60"}`}>{u.name}</span>
+                            <span className={`text-[11px] font-bold ${inCart ? "text-white" : isDefault ? "text-[#FF5F03]" : "text-[#072C2C]/80"}`}>Rp {u.price.toLocaleString("id-ID")}</span>
                           </button>
                         );
                       })}
