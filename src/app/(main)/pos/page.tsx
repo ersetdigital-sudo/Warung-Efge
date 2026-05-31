@@ -166,10 +166,10 @@ export default function POSPage() {
     if (selectedCategory) filtered = filtered.filter((p) => p.category === selectedCategory);
     if (search) {
       const s = search.toLowerCase();
-      filtered = filtered.filter((p) => p.name.toLowerCase().includes(s) || p.barcode.includes(s) || p.sku.toLowerCase().includes(s));
+      filtered = filtered.filter((p) => (p.name || "").toLowerCase().includes(s) || (p.barcode || "").includes(s) || (p.sku || "").toLowerCase().includes(s));
     }
     return filtered;
-  }, [search, selectedCategory]);
+  }, [search, selectedCategory, products]);
 
   const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
   const total = subtotal - discount;
