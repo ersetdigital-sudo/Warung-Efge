@@ -549,25 +549,35 @@ export default function POSPage() {
         </div>
       )}
 
-      {/* Print Area */}
+      {/* Print Area - optimized for 58mm thermal printer */}
       {printData && printMeta && (
         <div id="print-area" className="hidden print:block">
-          <div style={{ fontFamily: "'Courier New', monospace", fontSize: "12px", padding: "8px", lineHeight: "1.6" }}>
-            <p style={{ fontSize: "16px", fontWeight: "bold", textAlign: "center" }}>WARUNG EFGE</p>
-            <p style={{ fontSize: "10px", textAlign: "center", color: "#444" }}>Kasir: Pak Efge</p>
-            <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "8px 0" }} />
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px" }}><span>{printMeta.trxId}</span><span>{printMeta.date}</span></div>
-            <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "6px 0" }} />
-            {printData.map((item) => (<div key={`${item.productId}-${item.unit}`} style={{ marginBottom: "4px" }}><div style={{ display: "flex", justifyContent: "space-between" }}><span>{item.name}</span><span style={{ fontWeight: "bold" }}>{formatCurrency(item.subtotal)}</span></div><div style={{ fontSize: "10px", color: "#666" }}>{item.quantity} {item.unit} x {formatCurrency(item.price)}</div></div>))}
-            <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "6px 0" }} />
-            <div style={{ display: "flex", justifyContent: "space-between" }}><span>Subtotal</span><span>{formatCurrency(printMeta.subtotal)}</span></div>
-            {printMeta.discount > 0 && <div style={{ display: "flex", justifyContent: "space-between" }}><span>Diskon</span><span>-{formatCurrency(printMeta.discount)}</span></div>}
-            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", fontSize: "14px", marginTop: "4px" }}><span>TOTAL</span><span>{formatCurrency(printMeta.total)}</span></div>
-            <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "6px 0" }} />
-            <div style={{ display: "flex", justifyContent: "space-between" }}><span>Metode</span><span>{printMeta.method}</span></div>
-            {printMeta.method === "Tunai" && <><div style={{ display: "flex", justifyContent: "space-between" }}><span>Bayar</span><span>{formatCurrency(printMeta.paid)}</span></div><div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold" }}><span>Kembalian</span><span>{formatCurrency(printMeta.change)}</span></div></>}
-            <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "8px 0" }} />
-            <p style={{ fontSize: "10px", textAlign: "center" }}>Terima kasih!</p>
+          <div style={{ fontFamily: "'Courier New', monospace", fontSize: "11px", padding: "2mm", lineHeight: "1.5", width: "100%" }}>
+            <p style={{ fontSize: "14px", fontWeight: "bold", textAlign: "center", margin: "0 0 2px" }}>WARUNG EFGE</p>
+            <p style={{ fontSize: "9px", textAlign: "center", margin: "0 0 4px" }}>Jl. Contoh No.1 · 0812-xxxx-xxxx</p>
+            <hr />
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", margin: "2px 0" }}><span>{printMeta.trxId}</span><span>{printMeta.date}</span></div>
+            <div style={{ fontSize: "9px", margin: "0 0 2px" }}>Kasir: Pak Efge</div>
+            <hr />
+            {printData.map((item) => (
+              <div key={`${item.productId}-${item.unit}`} style={{ margin: "3px 0" }}>
+                <div style={{ fontSize: "11px" }}>{item.name}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px" }}>
+                  <span>{item.quantity}{item.unit} x {item.price.toLocaleString("id-ID")}</span>
+                  <span style={{ fontWeight: "bold" }}>{item.subtotal.toLocaleString("id-ID")}</span>
+                </div>
+              </div>
+            ))}
+            <hr />
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px" }}><span>Subtotal</span><span>{printMeta.subtotal.toLocaleString("id-ID")}</span></div>
+            {printMeta.discount > 0 && <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px" }}><span>Diskon</span><span>-{printMeta.discount.toLocaleString("id-ID")}</span></div>}
+            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", fontSize: "13px", margin: "4px 0" }}><span>TOTAL</span><span>Rp{printMeta.total.toLocaleString("id-ID")}</span></div>
+            <hr />
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px" }}><span>Bayar ({printMeta.method})</span><span>{printMeta.paid.toLocaleString("id-ID")}</span></div>
+            {printMeta.method === "Tunai" && printMeta.change > 0 && <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", fontWeight: "bold" }}><span>Kembalian</span><span>{printMeta.change.toLocaleString("id-ID")}</span></div>}
+            <hr />
+            <p style={{ fontSize: "9px", textAlign: "center", margin: "4px 0 0" }}>Terima kasih atas kunjungan Anda!</p>
+            <p style={{ fontSize: "8px", textAlign: "center", margin: "2px 0 0" }}>Barang yang dibeli tidak dapat dikembalikan</p>
           </div>
         </div>
       )}

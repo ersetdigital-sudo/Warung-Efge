@@ -55,10 +55,10 @@ select option {
   background: #072C2C66;
 }
 
-/* Print styles for receipt */
+/* Print styles for receipt - auto-fit thermal printer */
 @media print {
   @page {
-    size: 80mm auto;
+    size: 58mm auto; /* 58mm thermal (paling umum di warung) */
     margin: 0;
   }
 
@@ -76,11 +76,23 @@ select option {
     position: absolute;
     top: 0;
     left: 0;
-    width: 80mm;
-    padding: 4mm;
+    width: 58mm;
+    max-width: 58mm;
+    padding: 2mm;
     background: #fff !important;
     color: #000 !important;
     font-family: 'Courier New', monospace !important;
-    font-size: 12px !important;
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+  }
+
+  #print-area table {
+    width: 100% !important;
+  }
+
+  #print-area hr {
+    border: none !important;
+    border-top: 1px dashed #000 !important;
+    margin: 4px 0 !important;
   }
 }
