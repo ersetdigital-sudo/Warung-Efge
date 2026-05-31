@@ -9,31 +9,41 @@ import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import DataTable from "@/components/ui/DataTable";
 import { formatCurrency, getStockStatus } from "@/lib/utils";
-import { categories, transactions } from "@/data/mock-data";
-import { getProducts, deleteProduct } from "@/lib/product-store";
-import { Product } from "@/types";
+import { categories } from "@/data/mock-data";
+import { getProducts, deleteProduct } from "@/lib/db";
 
 export default function ProductsPage() {
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [productList, setProductList] = useState<Product[]>([]);
-  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [productList, setProductList] = useState<any[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Load products from store on mount
-  useEffect(() => { setProductList(getProducts()); }, []);
+  useEffect(() => { loadProducts(); }, []);
+
+  const loadProducts = async () => {
+    setLoading(true);
+    const data = await getProducts();
+    setProductList(data);
+    setLoading(false);
+  };
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 2000);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleteTarget) return;
-    deleteProduct(deleteTarget.id);
-    setProductList(getProducts());
+    const success = await deleteProduct(deleteTarget.id);
+    if (success) {
+      await loadProducts();
+      showToast("Produk berhasil dihapus", "success");
+    } else {
+      showToast("Gagal menghapus produk", "error");
+    }
     setDeleteTarget(null);
-    showToast("Produk berhasil dihapus", "success");
   };
 
   const filteredProducts = selectedCategory
@@ -41,20 +51,20 @@ export default function ProductsPage() {
     : productList;
 
   const columns = [
-    { key: "name", label: "Produk", sortable: true, render: (item: Product) => (
+    { key: "name", label: "Produk", sortable: true, render: (item: any) => (
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center"><Package className="w-5 h-5 text-gray-400" /></div>
         <div><p className="font-medium text-gray-900">{item.name}</p><p className="text-xs text-gray-500">SKU: {item.sku}</p></div>
       </div>
     )},
-    { key: "category", label: "Kategori", sortable: true, render: (item: Product) => <Badge variant="info">{item.category}</Badge> },
-    { key: "costPrice", label: "Harga Modal", sortable: true, render: (item: Product) => <span className="text-gray-600">{formatCurrency(item.costPrice)}</span> },
-    { key: "sellingPrice", label: "Harga Jual", sortable: true, render: (item: Product) => <span className="font-medium text-gray-900">{formatCurrency(item.sellingPrice)}</span> },
-    { key: "stock", label: "Stok", sortable: true, render: (item: Product) => {
-      const status = getStockStatus(item.stock, item.minStock);
+    { key: "category", label: "Kategori", sortable: true, render: (item: any) => <Badge variant="info">{item.category}</Badge> },
+    { key: "cost_price", label: "Harga Modal", sortable: true, render: (item: any) => <span className="text-gray-600">{formatCurrency(item.cost_price)}</span> },
+    { key: "selling_price", label: "Harga Jual", sortable: true, render: (item: any) => <span className="font-medium text-gray-900">{formatCurrency(item.selling_price)}</span> },
+    { key: "stock", label: "Stok", sortable: true, render: (item: any) => {
+      const status = getStockStatus(item.stock, item.min_stock);
       return <Badge variant={status === "safe" ? "success" : status === "warning" ? "warning" : "danger"}>{item.stock} {item.unit}</Badge>;
     }},
-    { key: "actions", label: "Aksi", render: (item: Product) => (
+    { key: "actions", label: "Aksi", render: (item: any) => (
       <div className="flex items-center gap-1">
         <button onClick={() => router.push(`/products/edit/${item.id}`)} className="p-1.5 rounded-md hover:bg-blue-50 text-blue-600 cursor-pointer"><Edit className="w-4 h-4" /></button>
         <button onClick={() => setDeleteTarget(item)} className="p-1.5 rounded-md hover:bg-red-50 text-red-600 cursor-pointer"><Trash2 className="w-4 h-4" /></button>

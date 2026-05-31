@@ -8,69 +8,52 @@ import Badge from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
 import DataTable from "@/components/ui/DataTable";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
-import { customers as initialCustomers, transactions } from "@/data/mock-data";
-import { Customer } from "@/types";
-
-// Simple localStorage store for customers
-const CUST_KEY = "warung-efge-customers";
-const PAYMENTS_KEY = "warung-efge-debt-payments";
-
-interface DebtPayment { id: string; customerId: string; amount: number; method: string; date: string; note: string; }
-
-function getStoredCustomers(): Customer[] {
-  if (typeof window === "undefined") return initialCustomers;
-  const s = localStorage.getItem(CUST_KEY);
-  if (s) { try { return JSON.parse(s); } catch {} }
-  return initialCustomers;
-}
-function saveCustomers(c: Customer[]) { if (typeof window !== "undefined") localStorage.setItem(CUST_KEY, JSON.stringify(c)); }
-function getPayments(): DebtPayment[] {
-  if (typeof window === "undefined") return [];
-  const s = localStorage.getItem(PAYMENTS_KEY);
-  if (s) { try { return JSON.parse(s); } catch {} }
-  return [];
-}
-function savePayments(p: DebtPayment[]) { if (typeof window !== "undefined") localStorage.setItem(PAYMENTS_KEY, JSON.stringify(p)); }
+import { transactions } from "@/data/mock-data";
+import { getCustomers, updateCustomerDebt, addDebtPayment, getDebtPayments } from "@/lib/db";
 
 export default function CustomersPage() {
-  const [customerList, setCustomerList] = useState<Customer[]>([]);
+  const [customerList, setCustomerList] = useState<any[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
-  const [showPayDebt, setShowPayDebt] = useState<Customer | null>(null);
+  const [editingCustomer, setEditingCustomer] = useState<any | null>(null);
+  const [viewingCustomer, setViewingCustomer] = useState<any | null>(null);
+  const [showPayDebt, setShowPayDebt] = useState<any | null>(null);
   const [payAmount, setPayAmount] = useState("");
   const [payMethod, setPayMethod] = useState("cash");
   const [payNote, setPayNote] = useState("");
   const [toast, setToast] = useState("");
-  const [payments, setPayments] = useState<DebtPayment[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
 
-  useEffect(() => { setCustomerList(getStoredCustomers()); setPayments(getPayments()); }, []);
+  useEffect(() => { loadData(); }, []);
 
-  const totalDebt = customerList.reduce((s, c) => s + c.debt, 0);
+  const loadData = async () => {
+    const [custs, pays] = await Promise.all([getCustomers(), getDebtPayments()]);
+    setCustomerList(custs);
+    setPayments(pays);
+  };
 
-  const handlePayDebt = () => {
+  const totalDebt = customerList.reduce((s, c) => s + (c.debt || 0), 0);
+
+  const handlePayDebt = async () => {
     if (!showPayDebt) return;
     const amount = Number(payAmount);
     if (!amount || amount <= 0) { alert("Masukkan jumlah bayar yang valid"); return; }
     if (amount > showPayDebt.debt) { alert("Jumlah bayar melebihi sisa hutang"); return; }
 
-    // Update customer debt
-    const updated = customerList.map(c => c.id === showPayDebt.id ? { ...c, debt: c.debt - amount } : c);
-    setCustomerList(updated);
-    saveCustomers(updated);
+    // Update customer debt in Supabase
+    const newDebt = showPayDebt.debt - amount;
+    const success = await updateCustomerDebt(showPayDebt.id, newDebt);
+    if (!success) { alert("Gagal menyimpan pembayaran"); return; }
 
     // Save payment record
-    const payment: DebtPayment = {
-      id: `PAY-${Date.now()}`,
-      customerId: showPayDebt.id,
+    await addDebtPayment({
+      customer_id: showPayDebt.id,
       amount,
       method: payMethod,
-      date: new Date().toISOString(),
       note: payNote || (amount >= showPayDebt.debt ? "Pelunasan" : "Cicilan"),
-    };
-    const newPayments = [payment, ...payments];
-    setPayments(newPayments);
-    savePayments(newPayments);
+    });
+
+    // Reload data
+    await loadData();
 
     // Reset & close
     setShowPayDebt(null);
@@ -82,16 +65,16 @@ export default function CustomersPage() {
   };
 
   const columns = [
-    { key: "name", label: "Nama", sortable: true, render: (item: Customer) => <button onClick={() => setViewingCustomer(item)} className="font-medium text-gray-900 hover:text-blue-600 cursor-pointer">{item.name}</button> },
-    { key: "phone", label: "Telepon", render: (item: Customer) => <div className="flex items-center gap-1.5 text-sm text-gray-600"><Phone className="w-3.5 h-3.5" />{item.phone}</div> },
-    { key: "address", label: "Alamat", render: (item: Customer) => <div className="flex items-start gap-1.5 text-sm text-gray-600 max-w-xs"><MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" /><span className="truncate">{item.address || "-"}</span></div> },
-    { key: "debt", label: "Hutang", sortable: true, render: (item: Customer) => (
+    { key: "name", label: "Nama", sortable: true, render: (item: any) => <button onClick={() => setViewingCustomer(item)} className="font-medium text-gray-900 hover:text-blue-600 cursor-pointer">{item.name}</button> },
+    { key: "phone", label: "Telepon", render: (item: any) => <div className="flex items-center gap-1.5 text-sm text-gray-600"><Phone className="w-3.5 h-3.5" />{item.phone}</div> },
+    { key: "address", label: "Alamat", render: (item: any) => <div className="flex items-start gap-1.5 text-sm text-gray-600 max-w-xs"><MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" /><span className="truncate">{item.address || "-"}</span></div> },
+    { key: "debt", label: "Hutang", sortable: true, render: (item: any) => (
       <div className="flex items-center gap-2">
         <span className={`font-medium ${item.debt > 0 ? "text-red-600" : "text-green-600"}`}>{item.debt > 0 ? formatCurrency(item.debt) : "Lunas"}</span>
         {item.debt > 0 && <button onClick={() => { setShowPayDebt(item); setPayAmount(""); setPayNote(""); }} className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-md hover:bg-green-200 font-medium cursor-pointer">Bayar</button>}
       </div>
     )},
-    { key: "actions", label: "Aksi", render: (item: Customer) => (
+    { key: "actions", label: "Aksi", render: (item: any) => (
       <div className="flex items-center gap-1">
         <button onClick={() => setEditingCustomer(item)} className="p-1.5 rounded-md hover:bg-blue-50 text-blue-600 cursor-pointer"><Edit className="w-4 h-4" /></button>
         <button className="p-1.5 rounded-md hover:bg-red-50 text-red-600 cursor-pointer"><Trash2 className="w-4 h-4" /></button>
@@ -148,13 +131,13 @@ export default function CustomersPage() {
               <div><p className="text-xs text-gray-500">Terdaftar</p><p className="text-sm font-medium">{formatDate(viewingCustomer.createdAt)}</p></div>
             </div>
             {/* Payment History */}
-            {payments.filter(p => p.customerId === viewingCustomer.id).length > 0 && (
+            {payments.filter(p => p.customer_id === viewingCustomer.id).length > 0 && (
               <div className="border-t pt-4">
                 <h4 className="text-sm font-semibold mb-3">Riwayat Pembayaran Hutang</h4>
                 <div className="space-y-2">
-                  {payments.filter(p => p.customerId === viewingCustomer.id).map(p => (
+                  {payments.filter(p => p.customer_id === viewingCustomer.id).map(p => (
                     <div key={p.id} className="flex items-center justify-between p-3 bg-[#F0FDF4] rounded-lg border border-[#16A34A]/10">
-                      <div><p className="text-sm font-medium text-[#16A34A]">+{formatCurrency(p.amount)}</p><p className="text-xs text-gray-500">{formatDateTime(p.date)} · {p.method === "cash" ? "Tunai" : "Transfer"}</p></div>
+                      <div><p className="text-sm font-medium text-[#16A34A]">+{formatCurrency(p.amount)}</p><p className="text-xs text-gray-500">{formatDateTime(p.created_at)} · {p.method === "cash" ? "Tunai" : "Transfer"}</p></div>
                       <span className="text-xs text-gray-500">{p.note}</span>
                     </div>
                   ))}

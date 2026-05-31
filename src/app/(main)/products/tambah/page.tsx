@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Camera, X, Check } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { categories } from "@/data/mock-data";
-import { addProduct } from "@/lib/product-store";
+import { addProduct } from "@/lib/db";
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -71,11 +71,10 @@ export default function AddProductPage() {
 
   const handleCloseCamera = () => { stopCamera(); setShowCamera(false); };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (hasExpiry && !expiryDate) { alert("Tanggal expired wajib diisi"); return; }
     if (hasExpiry && expiryDate && new Date(expiryDate) < new Date()) { alert("Tanggal expired tidak boleh yang sudah lewat"); return; }
 
-    // Collect form data from the DOM
     const form = document.querySelector("form") as HTMLFormElement;
     if (!form) return;
     const formData = new FormData(form);
@@ -83,25 +82,26 @@ export default function AddProductPage() {
     if (!name) { alert("Nama produk wajib diisi"); return; }
 
     const newProduct = {
-      id: String(Date.now()),
       name,
       sku: (formData.get("sku") as string) || `SKU-${Date.now().toString(36).toUpperCase()}`,
-      barcode: barcode || "",
+      barcode: barcode || null,
       category: (formData.get("category") as string) || "Lain-lain",
-      costPrice: Number(formData.get("costPrice")) || 0,
-      sellingPrice: Number(formData.get("sellingPrice")) || 0,
-      wholesalePrice: Number(formData.get("wholesalePrice")) || 0,
-      retailPrice: Number(formData.get("retailPrice")) || 0,
+      cost_price: Number(formData.get("costPrice")) || 0,
+      selling_price: Number(formData.get("sellingPrice")) || 0,
+      wholesale_price: Number(formData.get("wholesalePrice")) || 0,
+      retail_price: Number(formData.get("retailPrice")) || 0,
       stock: Number(formData.get("stock")) || 0,
-      minStock: Number(formData.get("minStock")) || 0,
+      min_stock: Number(formData.get("minStock")) || 0,
       unit: (formData.get("unit") as string) || "Pcs",
-      unitConversions: [],
-      createdAt: new Date().toISOString().split("T")[0],
-      updatedAt: new Date().toISOString().split("T")[0],
+      expiry_date: hasExpiry && expiryDate ? expiryDate : null,
     };
 
-    addProduct(newProduct);
-    router.push("/products");
+    const result = await addProduct(newProduct);
+    if (result) {
+      router.push("/products");
+    } else {
+      alert("Gagal menyimpan produk. Coba lagi.");
+    }
   };
 
   return (
