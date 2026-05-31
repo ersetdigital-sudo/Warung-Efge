@@ -223,9 +223,8 @@ export default function AddProductPage() {
                 {retailUnit && retailConversion && Number(retailConversion) > 1 && (
                   <p className="text-xs text-[#16A34A] font-medium mt-2 bg-[#F0FDF4] px-3 py-1.5 rounded-lg inline-block">1 {unitValue} = {retailConversion} {retailUnit}</p>
                 )}
-                </div>
                 {bulkUnit && bulkConversion && Number(bulkConversion) > 1 && (
-                  <p className="text-xs text-[#16A34A] font-medium mt-2 bg-[#F0FDF4] px-3 py-1.5 rounded-lg inline-block">1 {bulkUnit} = {bulkConversion} {unitValue}</p>
+                  <p className="text-xs text-[#16A34A] font-medium mt-2 bg-[#F0FDF4] px-3 py-1.5 rounded-lg inline-block ml-2">1 {bulkUnit} = {bulkConversion} {unitValue}</p>
                 )}
               </div>
             </div>
