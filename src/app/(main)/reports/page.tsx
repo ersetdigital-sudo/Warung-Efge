@@ -199,7 +199,7 @@ export default function ReportsPage() {
       {/* TAB PENJUALAN */}
       {activeReport === "sales" && (
         <div className="space-y-4">
-          {baseSales === 0 && (
+          {totalSales === 0 && (
             <div className="bg-white border border-[#D9D6C8] rounded-md p-6 text-center">
               <p className="text-sm font-medium text-[#072C2C]/60">Belum ada data transaksi</p>
               <p className="text-xs text-[#9CA3AF] mt-1">Mulai transaksi di menu Kasir untuk melihat laporan penjualan</p>
@@ -209,7 +209,7 @@ export default function ReportsPage() {
             <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#FF5F03]">
               <div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Penjualan</p><IconWallet /></div>
               <p className="font-[Oswald] text-[20px] lg:text-[24px] font-semibold text-[#072C2C] mt-1">{formatCurrency(totalSales)}</p>
-              {baseSales > 0 && <p className="text-[10px] text-[#16A34A] font-medium mt-0.5">▲ 12% dari periode lalu</p>}
+              {totalSales > 0 && <p className="text-[10px] text-[#16A34A] font-medium mt-0.5">▲ 12% dari periode lalu</p>}
             </div>
             <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#16A34A]">
               <div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Rata-rata Transaksi</p><IconTrend /></div>
