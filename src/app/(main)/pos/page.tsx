@@ -193,7 +193,7 @@ export default function POSPage() {
 
   // ==================== RENDER ====================
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <div className="flex flex-col overflow-hidden h-[calc(100dvh-64px)] md:h-dvh">
       {/* Header */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 lg:px-5 py-2 bg-white border-b border-[#072C2C]/10">
         <div>

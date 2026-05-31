@@ -199,6 +199,8 @@ export default function ProductsPage() {
                               const margin = u.buy_price > 0 ? Math.round((u.sell_price - u.buy_price) / u.sell_price * 100) : 0;
                               const nextUnit = units[i + 1];
                               const borderColor = ["border-t-[#072C2C]", "border-t-[#FF5F03]", "border-t-[#D97706]"][i] || "";
+                              // Calculate stock for this unit level from product.stock
+                              const unitStock = u.conversion && u.conversion > 0 ? Math.floor(stockVal / u.conversion) : stockVal;
                               return (
                                 <div key={u.id} className={`bg-white border border-[#D9D6C8] rounded p-3 border-t-[3px] ${borderColor}`}>
                                   <div className="flex items-center justify-between mb-2">
@@ -211,7 +213,7 @@ export default function ProductsPage() {
                                     <div className="flex justify-between"><span className="text-[#9CA3AF]">Harga Jual</span><span className="font-mono font-bold text-[#16A34A]">{formatCurrency(u.sell_price)}</span></div>
                                     <div className="flex justify-between"><span className="text-[#9CA3AF]">Margin</span><span className={`font-mono font-bold ${margin >= 20 ? "text-[#16A34A]" : margin >= 10 ? "text-[#D97706]" : "text-[#DC2626]"}`}>{margin}%</span></div>
                                   </div>
-                                  <div className="mt-2 pt-2 border-t border-[#D9D6C8] flex justify-between text-[11px]"><span className="text-[#9CA3AF]">Stok</span><span className="font-mono font-bold">{u.stock} {u.name}</span></div>
+                                  <div className="mt-2 pt-2 border-t border-[#D9D6C8] flex justify-between text-[11px]"><span className="text-[#9CA3AF]">Stok</span><span className={`font-mono font-bold ${unitStock <= 0 ? "text-[#DC2626]" : "text-[#072C2C]"}`}>{unitStock} {u.name}</span></div>
                                 </div>
                               );
                             })}

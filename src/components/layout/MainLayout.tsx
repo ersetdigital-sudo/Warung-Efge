@@ -43,7 +43,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {!isPOS && <Header onMenuClick={() => setSidebarOpen(true)} />}
-        <main className={`flex-1 overflow-y-auto pb-[80px] md:pb-4 lg:pb-6 ${isPOS ? "p-0" : "p-4 lg:p-6"}`}>{children}</main>
+        <main className={`flex-1 ${isPOS ? "p-0 overflow-hidden" : "overflow-y-auto p-4 lg:p-6 pb-[80px] md:pb-4 lg:pb-6"}`}>{children}</main>
       </div>
     </div>
   );
