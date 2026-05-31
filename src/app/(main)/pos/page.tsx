@@ -214,7 +214,47 @@ export default function POSPage() {
   };
 
   const clearCart = () => { setCart([]); setDiscount(0); setAmountPaid(""); };
-  const handlePayment = () => { setShowReceipt(true); setShowCart(false); };
+
+  const handlePayment = async () => {
+    // Save transaction to Supabase
+    const trxData = {
+      transaction_number: trxId,
+      subtotal,
+      discount,
+      total,
+      payment_method: paymentMethod,
+      amount_paid: Number(amountPaid) || 0,
+      change_amount: change > 0 ? change : 0,
+      is_debt: isDebt,
+      cashier: "Pak Efge",
+    };
+    const items = cart.map(item => ({
+      product_name: item.name,
+      quantity: item.quantity,
+      unit: item.selectedUnit || item.unit,
+      price: item.price,
+      subtotal: item.subtotal,
+    }));
+
+    await addTransaction(trxData, items);
+
+    // Update stock in Supabase
+    for (const item of cart) {
+      const product = products.find((p: any) => p.id === item.productId);
+      if (product) {
+        let stockReduction = item.quantity;
+        if (item.selectedUnit === item.bulkUnit) {
+          stockReduction = item.quantity * (item.bulkConversion || 1);
+        }
+        const newStock = Math.max(0, (product.stock || 0) - stockReduction);
+        await supabase.from("products").update({ stock: newStock }).eq("id", item.productId);
+      }
+    }
+
+    setShowReceipt(true);
+    setShowCart(false);
+  };
+
   const handleNewTransaction = () => { setCart([]); setDiscount(0); setAmountPaid(""); setIsDebt(false); setShowReceipt(false); };
 
   // Print state
