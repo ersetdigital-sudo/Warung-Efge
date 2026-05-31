@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Phone, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -8,20 +8,22 @@ import Badge from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
 import DataTable from "@/components/ui/DataTable";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { suppliers, purchases } from "@/data/mock-data";
-import { Supplier } from "@/types";
+import { getSuppliers } from "@/lib/db";
 
 export default function SuppliersPage() {
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
-  const [viewingSupplier, setViewingSupplier] = useState<Supplier | null>(null);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+
+  useEffect(() => { getSuppliers().then(setSuppliers); }, []);
+  const [editingSupplier, setEditingSupplier] = useState<any | null>(null);
+  const [viewingSupplier, setViewingSupplier] = useState<any | null>(null);
 
   const columns = [
-    { key: "name", label: "Nama Supplier", sortable: true, render: (item: Supplier) => <button onClick={() => setViewingSupplier(item)} className="font-medium text-gray-900 hover:text-blue-600 cursor-pointer">{item.name}</button> },
-    { key: "phone", label: "Telepon", render: (item: Supplier) => <div className="flex items-center gap-1.5 text-sm text-gray-600"><Phone className="w-3.5 h-3.5" />{item.phone}</div> },
-    { key: "address", label: "Alamat", render: (item: Supplier) => <div className="flex items-start gap-1.5 text-sm text-gray-600 max-w-xs"><MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" /><span className="truncate">{item.address}</span></div> },
-    { key: "debt", label: "Hutang", sortable: true, render: (item: Supplier) => <span className={`font-medium ${item.debt > 0 ? "text-red-600" : "text-green-600"}`}>{item.debt > 0 ? formatCurrency(item.debt) : "Lunas"}</span> },
-    { key: "actions", label: "Aksi", render: (item: Supplier) => (
+    { key: "name", label: "Nama Supplier", sortable: true, render: (item: any) => <button onClick={() => setViewingSupplier(item)} className="font-medium text-gray-900 hover:text-blue-600 cursor-pointer">{item.name}</button> },
+    { key: "phone", label: "Telepon", render: (item: any) => <div className="flex items-center gap-1.5 text-sm text-gray-600"><Phone className="w-3.5 h-3.5" />{item.phone}</div> },
+    { key: "address", label: "Alamat", render: (item: any) => <div className="flex items-start gap-1.5 text-sm text-gray-600 max-w-xs"><MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" /><span className="truncate">{item.address}</span></div> },
+    { key: "debt", label: "Hutang", sortable: true, render: (item: any) => <span className={`font-medium ${item.debt > 0 ? "text-red-600" : "text-green-600"}`}>{item.debt > 0 ? formatCurrency(item.debt) : "Lunas"}</span> },
+    { key: "actions", label: "Aksi", render: (item: any) => (
       <div className="flex items-center gap-1">
         <button onClick={() => setEditingSupplier(item)} className="p-1.5 rounded-md hover:bg-blue-50 text-blue-600 cursor-pointer"><Edit className="w-4 h-4" /></button>
         <button className="p-1.5 rounded-md hover:bg-red-50 text-red-600 cursor-pointer"><Trash2 className="w-4 h-4" /></button>

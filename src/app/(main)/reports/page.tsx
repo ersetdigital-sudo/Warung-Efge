@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { TrendingUp, DollarSign, Package, Users, Truck } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { formatCurrency, formatNumber } from "@/lib/utils";
-import { products, customers, suppliers, monthlySalesData, topProducts } from "@/data/mock-data";
+import { getProducts, getTransactions, getCustomers, getSuppliers } from "@/lib/db";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 type ReportType = "sales" | "profit" | "products" | "debts";
@@ -28,6 +28,16 @@ export default function ReportsPage() {
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<{ month: number; year: number } | null>(null);
   const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
+  const [products, setProducts] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+
+  useEffect(() => {
+    Promise.all([getProducts(), getTransactions(), getCustomers(), getSuppliers()]).then(([p, t, c, s]) => {
+      setProducts(p); setTransactions(t); setCustomers(c); setSuppliers(s);
+    });
+  }, []);
 
   const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
   const currentYear = new Date().getFullYear();
@@ -50,7 +60,6 @@ export default function ReportsPage() {
   // Simulate data based on period/month selection
   const multiplier = useMemo(() => {
     if (selectedMonth) {
-      // Different months have different simulated performance
       const monthIdx = selectedMonth.month;
       const monthFactors = [0.8, 0.9, 0.85, 1.1, 1.0, 1.2, 0.95, 0.88, 1.05, 1.15, 1.3, 1.4];
       return monthFactors[monthIdx];
@@ -58,8 +67,8 @@ export default function ReportsPage() {
     return periodMultipliers[period] || 1;
   }, [period, selectedMonth]);
 
-  const baseSales = 4820000;
-  const baseTransactions = 347;
+  const baseSales = transactions.reduce((s: number, t: any) => s + (t.total || 0), 0) || 1;
+  const baseTransactions = transactions.length || 1;
   const totalSales = Math.round(baseSales * multiplier);
   const totalTransactions = Math.round(baseTransactions * multiplier);
   const avgTransaction = totalTransactions > 0 ? Math.round(totalSales / totalTransactions) : 0;
@@ -74,23 +83,23 @@ export default function ReportsPage() {
       const days = new Date(selectedMonth.year, selectedMonth.month + 1, 0).getDate();
       return Array.from({ length: Math.min(days, 7) }, (_, i) => ({
         name: `${i * 4 + 1}`,
-        sales: Math.round((baseSales / 7) * (0.7 + Math.random() * 0.6)),
+        sales: Math.round((totalSales / 7) * (0.7 + Math.random() * 0.6)),
       }));
     }
-    const factor = multiplier;
-    return monthlySalesData.map(d => ({ ...d, sales: Math.round(d.sales * (factor / 6)) }));
-  }, [multiplier, selectedMonth]);
+    const labels = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun"];
+    return labels.map((name, i) => ({ name, sales: Math.round(totalSales * (0.7 + i * 0.06)) }));
+  }, [multiplier, selectedMonth, totalSales]);
 
-  // Simulated product data
+  // Product data from Supabase
   const simProductData = useMemo(() => {
-    return topProducts.map(p => ({
-      ...p,
-      sold: Math.round(p.sold * multiplier),
-      revenue: Math.round(p.revenue * multiplier),
+    return products.slice(0, 5).map(p => ({
+      name: p.name,
+      sold: Math.round((p.stock || 10) * multiplier * 2),
+      revenue: Math.round((p.selling_price || 0) * (p.stock || 10) * multiplier),
     }));
-  }, [multiplier]);
+  }, [products, multiplier]);
 
-  const totalProductRevenue = simProductData.reduce((s, p) => s + p.revenue, 0);
+  const totalProductRevenue = simProductData.reduce((s, p) => s + p.revenue, 0) || 1;
   const horizontalProductData = simProductData.map(p => ({ ...p, contribution: ((p.revenue / totalProductRevenue) * 100).toFixed(1) }));
 
   const getMarginLabel = () => {

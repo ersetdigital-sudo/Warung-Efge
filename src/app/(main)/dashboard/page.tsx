@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { TrendingUp, Receipt, AlertTriangle, Wallet, ArrowRight, Check, X, Download, Search, Bell, Calculator } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import { salesChartData, topProducts, products } from "@/data/mock-data";
+import { getProducts, getTransactions, getCustomers, getSuppliers } from "@/lib/db";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, ComposedChart, Line } from "recharts";
 
 type PeriodType = "today" | "week" | "month";
@@ -22,7 +22,6 @@ function AnimatedNumber({ value, prefix = "", suffix = "", duration = 1200 }: { 
     const animate = (now: number) => {
       const elapsed = now - startTime.current;
       const progress = Math.min(elapsed / duration, 1);
-      // Ease out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
       const current = Math.round(start + (end - start) * eased);
       setDisplay(current);
@@ -42,25 +41,13 @@ const paymentMethodData = [
   { name: "Transfer", value: 18, color: "#D97706" },
 ];
 
-const activities = [
-  { id: 1, type: "success", icon: "check", title: "Transaksi #2847 selesai", meta: "2 mnt lalu · Tunai", amount: "Rp 47.500" },
-  { id: 2, type: "warning", icon: "alert", title: "Sunlight 400ml stok kritis", meta: "14 mnt lalu · 3 pcs", amount: "" },
-  { id: 3, type: "success", icon: "check", title: "Transaksi #2846 selesai", meta: "19 mnt lalu · QRIS", amount: "Rp 28.000" },
-  { id: 4, type: "info", icon: "check", title: "Transaksi #2845 selesai", meta: "31 mnt lalu · Transfer", amount: "Rp 112.000" },
-  { id: 5, type: "danger", icon: "x", title: "Transaksi #2844 dibatalkan", meta: "45 mnt lalu · Void", amount: "" },
-  { id: 6, type: "warning", icon: "alert", title: "Sambal ABC 275ml menipis", meta: "1 jam lalu · 8 pcs", amount: "" },
-];
-
 const topProductsData = [
-  { emoji: "🍜", name: "Indomie Goreng", cat: "Beras & Mie", sold: "246 pcs", rev: "Rp 861rb", status: "Aman", statusType: "g", trend: [40, 60, 45, 80, 70, 90, 85] },
+  { emoji: "🍜", name: "Indomie Goreng", cat: "Mie & Pasta", sold: "246 pcs", rev: "Rp 861rb", status: "Aman", statusType: "g", trend: [40, 60, 45, 80, 70, 90, 85] },
   { emoji: "🫙", name: "Aqua 600ml", cat: "Minuman", sold: "198 btl", rev: "Rp 792rb", status: "Aman", statusType: "g", trend: [50, 55, 60, 50, 70, 80, 75] },
-  { emoji: "🌾", name: "Beras Premium 5kg", cat: "Beras & Mie", sold: "87 kg", rev: "Rp 652rb", status: "Menipis", statusType: "a", trend: [90, 70, 60, 75, 50, 55, 60] },
-  { emoji: "🫒", name: "Minyak Goreng 2L", cat: "Minyak & Bumbu", sold: "72 btl", rev: "Rp 448rb", status: "Aman", statusType: "g", trend: [30, 45, 40, 55, 50, 60, 58] },
-  { emoji: "🍬", name: "Gula Pasir 1kg", cat: "Minyak & Bumbu", sold: "61 kg", rev: "Rp 232rb", status: "Kritis", statusType: "r", trend: [80, 60, 50, 40, 45, 35, 30] },
+  { emoji: "🌾", name: "Beras Premium 5kg", cat: "Beras & Tepung", sold: "87 kg", rev: "Rp 652rb", status: "Menipis", statusType: "a", trend: [90, 70, 60, 75, 50, 55, 60] },
+  { emoji: "🫒", name: "Minyak Goreng 2L", cat: "Minyak & Mentega", sold: "72 btl", rev: "Rp 448rb", status: "Aman", statusType: "g", trend: [30, 45, 40, 55, 50, 60, 58] },
+  { emoji: "🍬", name: "Gula Pasir 1kg", cat: "Gula & Garam", sold: "61 kg", rev: "Rp 232rb", status: "Kritis", statusType: "r", trend: [80, 60, 50, 40, 45, 35, 30] },
 ];
-
-// Convert salesChartData for the combined bar+line chart
-const chartData = salesChartData.map(d => ({ ...d, salesK: d.sales / 1000 }));
 
 function MiniSparkline({ data, color }: { data: number[]; color: string }) {
   const max = Math.max(...data);
@@ -78,10 +65,59 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
 
 export default function DashboardPage() {
   const [period, setPeriod] = useState<PeriodType>("week");
+  const [stats, setStats] = useState({ totalSales: 0, totalTransactions: 0, lowStockCount: 0, avgTransaction: 0 });
+  const [lowStockProducts, setLowStockProducts] = useState<any[]>([]);
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+
+  useEffect(() => { loadDashboardData(); }, []);
+
+  const loadDashboardData = async () => {
+    const [prods, trxs, custs, supps] = await Promise.all([getProducts(), getTransactions(), getCustomers(), getSuppliers()]);
+
+    const totalSales = trxs.reduce((s: number, t: any) => s + (t.total || 0), 0);
+    const totalTransactions = trxs.length;
+    const avgTransaction = totalTransactions > 0 ? Math.round(totalSales / totalTransactions) : 0;
+    const lowStock = prods.filter((p: any) => p.stock <= p.min_stock);
+
+    setStats({ totalSales, totalTransactions, lowStockCount: lowStock.length, avgTransaction });
+    setLowStockProducts(lowStock.slice(0, 5));
+    setRecentTransactions(trxs.slice(0, 6));
+  };
 
   const dotColors: Record<string, string> = { success: "bg-[#F0FDF4] text-[#16A34A]", warning: "bg-[#FFFBEB] text-[#D97706]", danger: "bg-[#FEF2F2] text-[#DC2626]", info: "bg-[#EFF6FF] text-[#1D4ED8]" };
   const statusColors: Record<string, string> = { g: "#16A34A", a: "#D97706", r: "#DC2626" };
   const pillClasses: Record<string, string> = { g: "bg-[#F0FDF4] text-[#16A34A] border-[#bbf7d0]", a: "bg-[#FFFBEB] text-[#D97706] border-[#fde68a]", r: "bg-[#FEF2F2] text-[#DC2626] border-[#fecaca]" };
+
+  // Generate chart data from transactions (simulated daily breakdown)
+  const chartData = [
+    { name: "Sen", salesK: Math.round(stats.totalSales * 0.12 / 1000) },
+    { name: "Sel", salesK: Math.round(stats.totalSales * 0.14 / 1000) },
+    { name: "Rab", salesK: Math.round(stats.totalSales * 0.13 / 1000) },
+    { name: "Kam", salesK: Math.round(stats.totalSales * 0.16 / 1000) },
+    { name: "Jum", salesK: Math.round(stats.totalSales * 0.15 / 1000) },
+    { name: "Sab", salesK: Math.round(stats.totalSales * 0.18 / 1000) },
+    { name: "Min", salesK: Math.round(stats.totalSales * 0.12 / 1000) },
+  ];
+
+  // Activities from recent transactions + low stock warnings
+  const activities: { id: number; type: string; icon: string; title: string; meta: string; amount: string }[] = [
+    ...recentTransactions.slice(0, 4).map((t: any, i: number) => ({
+      id: i,
+      type: "success",
+      icon: "check",
+      title: `Transaksi ${t.transaction_number || "#" + (i + 1)} selesai`,
+      meta: `${new Date(t.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} · ${t.payment_method === "cash" ? "Tunai" : t.payment_method === "transfer" ? "Transfer" : "QRIS"}`,
+      amount: formatCurrency(t.total || 0),
+    })),
+    ...lowStockProducts.slice(0, 2).map((p: any, i: number) => ({
+      id: 100 + i,
+      type: "warning",
+      icon: "alert",
+      title: `${p.name} stok menipis`,
+      meta: `${p.stock} ${p.unit} tersisa`,
+      amount: "",
+    })),
+  ];
 
   return (
     <div className="space-y-3.5">
@@ -114,7 +150,7 @@ export default function DashboardPage() {
             <span className="flex items-center gap-0.5 text-[9px] lg:text-[10px] font-bold text-[#16A34A] font-mono"><TrendingUp className="w-[11px] h-[11px]" />+12%</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight"><AnimatedNumber value={4820000} prefix="Rp " /></span>
+            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight"><AnimatedNumber value={stats.totalSales} prefix="Rp " /></span>
             <Wallet className="w-3.5 h-3.5 text-[#9CA3AF] hidden lg:block" />
           </div>
         </div>
@@ -124,7 +160,7 @@ export default function DashboardPage() {
             <span className="flex items-center gap-0.5 text-[9px] lg:text-[10px] font-bold text-[#16A34A] font-mono"><TrendingUp className="w-[11px] h-[11px]" />+8%</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight"><AnimatedNumber value={347} /></span>
+            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight"><AnimatedNumber value={stats.totalTransactions} /></span>
             <Receipt className="w-3.5 h-3.5 text-[#9CA3AF] hidden lg:block" />
           </div>
         </div>
@@ -134,7 +170,7 @@ export default function DashboardPage() {
             <span className="flex items-center gap-0.5 text-[9px] lg:text-[10px] font-bold text-[#16A34A] font-mono"><TrendingUp className="w-[11px] h-[11px]" />+4%</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight"><AnimatedNumber value={13900} prefix="Rp " /></span>
+            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight"><AnimatedNumber value={stats.avgTransaction} prefix="Rp " /></span>
             <Calculator className="w-3.5 h-3.5 text-[#9CA3AF] hidden lg:block" />
           </div>
         </div>
@@ -144,7 +180,7 @@ export default function DashboardPage() {
             <span className="flex items-center gap-0.5 text-[9px] lg:text-[10px] font-bold text-[#DC2626] font-mono"><TrendingUp className="w-[11px] h-[11px]" />+2</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight"><AnimatedNumber value={5} suffix=" produk" /></span>
+            <span className="font-[Oswald] text-[18px] lg:text-[24px] font-semibold text-[#072C2C] tracking-tight"><AnimatedNumber value={stats.lowStockCount} suffix=" produk" /></span>
             <AlertTriangle className="w-3.5 h-3.5 text-[#9CA3AF] hidden lg:block" />
           </div>
         </div>
