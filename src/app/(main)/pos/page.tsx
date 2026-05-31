@@ -229,11 +229,12 @@ export default function POSPage() {
       cashier: "Pak Efge",
     };
     const items = cart.map(item => ({
+      product_id: item.productId,
       product_name: item.name,
       quantity: item.quantity,
       unit: item.selectedUnit || item.unit,
       price: item.price,
-      subtotal: item.subtotal,
+      subtotal: item.quantity * item.price,
     }));
 
     await addTransaction(trxData, items);
