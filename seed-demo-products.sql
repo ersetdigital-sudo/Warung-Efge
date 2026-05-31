@@ -18,7 +18,11 @@ CREATE TABLE IF NOT EXISTS product_units (
 
 -- RLS
 ALTER TABLE product_units ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "Allow all" ON product_units FOR ALL USING (true) WITH CHECK (true);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'product_units' AND policyname = 'Allow all') THEN
+    CREATE POLICY "Allow all" ON product_units FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+END $$;
 
 -- Hapus produk demo lama (opsional, uncomment jika mau reset)
 -- DELETE FROM product_units;
