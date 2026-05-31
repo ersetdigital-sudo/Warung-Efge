@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, QrCode, Banknote, Printer, ScanBarcode, AlertTriangle, RotateCcw, X, Check, Smartphone } from "lucide-react";
-import Button from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/utils";
 import { categories } from "@/data/mock-data";
 import { getProductsWithUnits, addTransaction, addStockMovement } from "@/lib/db";
@@ -489,17 +488,45 @@ export default function POSPage() {
         </div>
       )}
 
-      {/* Receipt Modal */}
+      {/* Success + Receipt Modal */}
       {showReceipt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-[#072C2C]/60 backdrop-blur-sm" onClick={handleNewTransaction} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white flex items-center justify-between px-5 py-3 border-b border-[#072C2C]/10 rounded-t-2xl z-10">
-              <h2 className="text-base font-bold text-[#072C2C]">Struk Pembayaran</h2>
-              <button onClick={handleNewTransaction} className="p-1.5 rounded-lg hover:bg-[#EDEADE] cursor-pointer"><X className="w-5 h-5 text-[#072C2C]/60" /></button>
+          <div className="fixed inset-0 bg-[#072C2C]/60 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Success header */}
+            <div className="bg-[#16A34A] px-5 py-6 text-center">
+              <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Check className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-lg font-bold text-white">Pembayaran Berhasil!</h2>
+              <p className="text-white/80 text-sm mt-1">{trxId}</p>
             </div>
-            <div className="p-5">
-              <div ref={receiptRef} style={{ fontFamily: "'Courier New', monospace", fontSize: "11px", textAlign: "center", lineHeight: "1.6" }}>
+
+            {/* Transaction summary */}
+            <div className="px-5 py-4 space-y-2">
+              <div className="flex justify-between text-sm"><span className="text-[#072C2C]/60">Total</span><span className="font-bold text-[#072C2C]">{formatCurrency(total)}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-[#072C2C]/60">Metode</span><span className="font-medium text-[#072C2C]">{paymentMethod === "cash" ? "Tunai" : paymentMethod === "transfer" ? "Transfer" : paymentMethod === "edc" ? "EDC" : "QRIS"}</span></div>
+              {paymentMethod === "cash" && Number(amountPaid) > 0 && (
+                <div className="flex justify-between text-sm"><span className="text-[#072C2C]/60">Kembalian</span><span className="font-bold text-[#16A34A]">{formatCurrency(change > 0 ? change : 0)}</span></div>
+              )}
+              {calculatedDiscount > 0 && (
+                <div className="flex justify-between text-sm"><span className="text-[#072C2C]/60">Diskon</span><span className="text-[#DC2626]">-{formatCurrency(calculatedDiscount)}</span></div>
+              )}
+            </div>
+
+            {/* Action buttons - clear and prominent */}
+            <div className="px-5 pb-5 space-y-2">
+              <button onClick={handlePrintReceipt} className="w-full flex items-center justify-center gap-2 py-3 bg-[#072C2C] text-white font-bold text-sm rounded-xl cursor-pointer hover:bg-[#0a3d3d] transition-colors">
+                <Printer className="w-4 h-4" />Cetak Struk
+              </button>
+              <button onClick={handleNewTransaction} className="w-full flex items-center justify-center gap-2 py-3 bg-[#FF5F03] text-white font-bold text-sm rounded-xl cursor-pointer hover:bg-[#e55503] transition-colors">
+                <Plus className="w-4 h-4" />Transaksi Baru
+              </button>
+            </div>
+
+            {/* Hidden receipt for print */}
+            <div ref={receiptRef} className="hidden">
+              <div style={{ fontFamily: "'Courier New', monospace", fontSize: "11px", textAlign: "center", lineHeight: "1.6" }}>
                 <p style={{ fontSize: "14px", fontWeight: "bold" }}>WARUNG EFGE</p>
                 <p style={{ fontSize: "10px", color: "#666" }}>Kasir: Pak Efge</p>
                 <p style={{ margin: "8px 0", borderTop: "1px dashed #ccc" }}></p>
@@ -514,17 +541,8 @@ export default function POSPage() {
                   {calculatedDiscount > 0 && <div style={{ display: "flex", justifyContent: "space-between" }}><span>Diskon</span><span>-{formatCurrency(calculatedDiscount)}</span></div>}
                   <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", fontSize: "13px", marginTop: "4px" }}><span>TOTAL</span><span>{formatCurrency(total)}</span></div>
                 </div>
-                <p style={{ margin: "6px 0", borderTop: "1px dashed #ccc" }}></p>
-                <div style={{ fontSize: "11px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}><span>Metode</span><span>{paymentMethod === "cash" ? "Tunai" : paymentMethod === "transfer" ? "Transfer" : paymentMethod === "edc" ? "EDC" : "QRIS"}</span></div>
-                  {paymentMethod === "cash" && <><div style={{ display: "flex", justifyContent: "space-between" }}><span>Bayar</span><span>{formatCurrency(Number(amountPaid))}</span></div><div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold" }}><span>Kembalian</span><span>{formatCurrency(change > 0 ? change : 0)}</span></div></>}
-                </div>
                 <p style={{ margin: "8px 0", borderTop: "1px dashed #ccc" }}></p>
                 <p style={{ fontSize: "10px", color: "#888" }}>Terima kasih!</p>
-              </div>
-              <div className="flex gap-2 mt-5">
-                <Button variant="outline" className="flex-1" onClick={handleNewTransaction}>Tutup</Button>
-                <button onClick={handlePrintReceipt} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#FF5F03] text-white font-medium text-sm rounded-lg cursor-pointer"><Printer className="w-4 h-4" />Cetak</button>
               </div>
             </div>
           </div>
