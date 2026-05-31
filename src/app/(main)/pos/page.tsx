@@ -112,7 +112,7 @@ export default function POSPage() {
   useEffect(() => { if (!showReceipt) return; const h = (e: PopStateEvent) => { e.preventDefault(); setShowReceipt(false); window.history.pushState(null, "", window.location.href); }; window.history.pushState(null, "", window.location.href); window.addEventListener("popstate", h); return () => window.removeEventListener("popstate", h); }, [showReceipt]);
 
   const filteredProducts = useMemo(() => {
-    let filtered = products;
+    let filtered = products.filter(p => p.stock > 0); // Hide out-of-stock from kasir
     if (selectedCategory) filtered = filtered.filter((p) => p.category === selectedCategory);
     if (search) { const s = search.toLowerCase(); filtered = filtered.filter((p) => (p.name || "").toLowerCase().includes(s) || (p.barcode || "").includes(s) || (p.sku || "").toLowerCase().includes(s)); }
     return filtered;
@@ -232,35 +232,41 @@ export default function POSPage() {
           <div className="flex-1 overflow-y-auto px-3 lg:px-4 pb-24 lg:pb-4">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {filteredProducts.map((product) => {
-                const isOutOfStock = product.stock <= 0;
                 const cartCount = getCartCountForProduct(product.id);
                 const units = getProductUnits(product);
+                const isLowStock = product.stock <= product.min_stock && product.stock > 0;
                 return (
-                  <div key={product.id} className={`relative bg-white rounded-xl border overflow-hidden ${isOutOfStock ? "opacity-40" : ""} ${cartCount > 0 ? "border-[#072C2C]/20 shadow-md" : "border-[#072C2C]/8 shadow-sm"}`}>
-                    {/* Stock badge top-right */}
-                    <div className={`absolute top-2 right-2 min-w-[20px] text-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${isOutOfStock ? "bg-[#072C2C]/10 text-[#072C2C]/40" : "bg-[#072C2C]/5 text-[#072C2C]/50"}`}>
-                      {product.stock}
+                  <div key={product.id} className={`relative bg-white rounded-xl border overflow-hidden ${cartCount > 0 ? "border-[#072C2C]/20 shadow-md" : "border-[#072C2C]/8 shadow-sm"}`}>
+                    {/* Stock info badge */}
+                    <div className={`absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
+                      cartCount > 0 ? "bg-[#FF5F03] text-white" : isLowStock ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#072C2C]/5 text-[#072C2C]/50"
+                    }`}>
+                      {cartCount > 0 ? `🛒 ${cartCount}` : isLowStock ? `⚠️ ${product.stock}` : product.stock}
                     </div>
 
-                    {/* Emoji + Name + Category */}
+                    {/* Emoji + Name + Category + Stock info */}
                     <div className="px-3 pt-3 pb-2">
                       <div className="text-[22px] mb-1.5">{getEmoji(product.category)}</div>
                       <p className="text-[12px] font-bold text-[#072C2C] leading-tight line-clamp-2">{product.name}</p>
-                      <p className="text-[9px] text-[#072C2C]/40 mt-0.5">{product.category}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-[9px] text-[#072C2C]/40">{product.category}</p>
+                        <span className={`text-[8px] font-medium px-1.5 py-0.5 rounded ${isLowStock ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#ECFDF5] text-[#16A34A]"}`}>
+                          {isLowStock ? "Stok menipis" : `Stok ${product.stock} ${product.unit}`}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Unit rows - clean, no colored borders */}
+                    {/* Unit rows */}
                     <div className="px-2.5 pb-2.5 space-y-[2px]">
                       {units.map((u) => {
                         const inCart = cart.find(i => i.productId === product.id && i.unit === u.name);
                         return (
                           <button
                             key={u.name}
-                            onClick={() => !isOutOfStock && addToCart(product.id, u.name, u.price, u.stockPerUnit)}
-                            disabled={isOutOfStock}
+                            onClick={() => addToCart(product.id, u.name, u.price, u.stockPerUnit)}
                             className={`w-full flex items-center justify-between px-2.5 py-[7px] rounded-lg transition-all cursor-pointer active:scale-[0.97] ${
                               inCart ? "bg-[#072C2C] text-white" : "hover:bg-[#f5f5f2]"
-                            } ${isOutOfStock ? "cursor-not-allowed" : ""}`}
+                            }`}
                           >
                             <span className={`text-[11px] ${inCart ? "text-white font-semibold" : "text-[#072C2C]/60 font-medium"}`}>{u.name}</span>
                             <span className={`text-[11px] font-bold tabular-nums ${inCart ? "text-white" : "text-[#072C2C]"}`}>Rp {u.price.toLocaleString("id-ID")}</span>
