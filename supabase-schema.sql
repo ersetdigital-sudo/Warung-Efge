@@ -215,3 +215,6 @@ INSERT INTO users (name, email, role, is_active) VALUES
 -- ALTER TABLE products ADD COLUMN IF NOT EXISTS has_bulk_unit BOOLEAN DEFAULT FALSE;
 -- ALTER TABLE products ADD COLUMN IF NOT EXISTS bulk_unit TEXT;
 -- ALTER TABLE products ADD COLUMN IF NOT EXISTS bulk_conversion NUMERIC;
+
+-- MIGRATION: Add retail_unit column
+-- ALTER TABLE products ADD COLUMN IF NOT EXISTS retail_unit TEXT;

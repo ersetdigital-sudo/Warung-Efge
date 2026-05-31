@@ -20,6 +20,7 @@ export default function AddProductPage() {
   const [bulkConversion, setBulkConversion] = useState("");
   const [prices, setPrices] = useState({ costPrice: "", sellingPrice: "", wholesalePrice: "", retailPrice: "" });
   const [unitValue, setUnitValue] = useState("Pcs");
+  const [retailUnit, setRetailUnit] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const readerRef = useRef<any>(null);
@@ -108,6 +109,7 @@ export default function AddProductPage() {
       newProduct.has_bulk_unit = true;
       newProduct.bulk_unit = bulkUnit;
       newProduct.bulk_conversion = Number(bulkConversion);
+      if (retailUnit) newProduct.retail_unit = retailUnit;
     }
 
     const result = await addProduct(newProduct);
@@ -178,24 +180,40 @@ export default function AddProductPage() {
             </div>
           </div>
 
-          {/* Harga */}
-          <div className="border-t border-[#D9D6C8] pt-5">
-            <h3 className="text-sm font-bold text-[#072C2C] mb-3 uppercase tracking-wider">Harga</h3>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Harga Modal (per {unitValue})</label><input type="text" inputMode="numeric" value={prices.costPrice ? `Rp ${Number(prices.costPrice).toLocaleString("id-ID")}` : ""} onChange={(e) => setPrices(p => ({ ...p, costPrice: e.target.value.replace(/\D/g, "") }))} placeholder="Rp 0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Harga Jual (per {unitValue})</label><input type="text" inputMode="numeric" value={prices.sellingPrice ? `Rp ${Number(prices.sellingPrice).toLocaleString("id-ID")}` : ""} onChange={(e) => setPrices(p => ({ ...p, sellingPrice: e.target.value.replace(/\D/g, "") }))} placeholder="Rp 0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              {hasBulkUnit && <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Harga Grosir (per {bulkUnit || "Satuan Beli"})</label><input type="text" inputMode="numeric" value={prices.wholesalePrice ? `Rp ${Number(prices.wholesalePrice).toLocaleString("id-ID")}` : ""} onChange={(e) => setPrices(p => ({ ...p, wholesalePrice: e.target.value.replace(/\D/g, "") }))} placeholder="Rp 0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>}
-              {hasBulkUnit && <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Harga Eceran (per satuan terkecil)</label><input type="text" inputMode="numeric" value={prices.retailPrice ? `Rp ${Number(prices.retailPrice).toLocaleString("id-ID")}` : ""} onChange={(e) => setPrices(p => ({ ...p, retailPrice: e.target.value.replace(/\D/g, "") }))} placeholder="Rp 0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>}
-            </div>
-          </div>
-
-          {/* Stok & Satuan */}
+          {/* Stok & Satuan — FIRST so labels are ready for Harga */}
           <div className="border-t border-[#D9D6C8] pt-5">
             <h3 className="text-sm font-bold text-[#072C2C] mb-3 uppercase tracking-wider">Stok & Satuan</h3>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Stok Awal</label><input type="number" name="stock" placeholder="0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
               <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Min Stok</label><input type="number" name="minStock" placeholder="0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
               <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Satuan Jual</label><select name="unit" value={unitValue} onChange={(e) => setUnitValue(e.target.value)} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]"><option value="">Pilih</option><option>Pcs</option><option>Kg</option><option>Liter</option><option>Botol</option><option>Bungkus</option><option>Kotak</option><option>Karung</option><option>Dus</option><option>Pak</option><option>Batang</option><option>Sachet</option></select></div>
+            </div>
+
+            {/* Bulk Unit Toggle */}
+            <div className="mt-4">
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <input type="checkbox" checked={hasBulkUnit} onChange={(e) => setHasBulkUnit(e.target.checked)} className="w-4 h-4 rounded accent-[#FF5F03]" />
+                <span className="text-sm font-medium text-[#072C2C]">Produk ini dijual dalam satuan berbeda (eceran & grosir)</span>
+              </label>
+              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${hasBulkUnit ? "max-h-64 opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"}`}>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Satuan Beli (grosir)</label>
+                    <input type="text" value={bulkUnit} onChange={(e) => setBulkUnit(e.target.value)} placeholder="Contoh: Slop, Dus, Karung" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Konversi</label>
+                    <input type="number" value={bulkConversion} onChange={(e) => { setBulkConversion(e.target.value); if (e.target.value && Number(e.target.value) > 1 && prices.sellingPrice) { setPrices(p => ({ ...p, wholesalePrice: String(Number(p.sellingPrice) * Number(e.target.value)) })); } }} placeholder="Contoh: 10" min="2" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Satuan Terkecil (opsional)</label>
+                    <input type="text" value={retailUnit} onChange={(e) => setRetailUnit(e.target.value)} placeholder="Contoh: Batang" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
+                  </div>
+                </div>
+                {bulkUnit && bulkConversion && Number(bulkConversion) > 1 && (
+                  <p className="text-xs text-[#16A34A] font-medium mt-2 bg-[#F0FDF4] px-3 py-1.5 rounded-lg inline-block">1 {bulkUnit} = {bulkConversion} {unitValue}</p>
+                )}
+              </div>
             </div>
 
             {/* Expired Toggle */}
@@ -211,28 +229,16 @@ export default function AddProductPage() {
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Bulk Unit Toggle */}
-            <div className="mt-4">
-              <label className="flex items-center gap-2.5 cursor-pointer">
-                <input type="checkbox" checked={hasBulkUnit} onChange={(e) => setHasBulkUnit(e.target.checked)} className="w-4 h-4 rounded accent-[#FF5F03]" />
-                <span className="text-sm font-medium text-[#072C2C]">Produk ini dijual dalam satuan berbeda (eceran & grosir)</span>
-              </label>
-              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${hasBulkUnit ? "max-h-48 opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"}`}>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Satuan Beli (grosir)</label>
-                    <input type="text" value={bulkUnit} onChange={(e) => setBulkUnit(e.target.value)} placeholder="Contoh: Renceng, Dus, Karung, Slop" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Konversi</label>
-                    <input type="number" value={bulkConversion} onChange={(e) => { setBulkConversion(e.target.value); if (e.target.value && Number(e.target.value) > 1 && prices.sellingPrice) { setPrices(p => ({ ...p, wholesalePrice: String(Number(p.sellingPrice) * Number(e.target.value)) })); } }} placeholder="Contoh: 10" min="2" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
-                  </div>
-                </div>
-                {bulkUnit && bulkConversion && Number(bulkConversion) > 1 && (
-                  <p className="text-xs text-[#16A34A] font-medium mt-2 bg-[#F0FDF4] px-3 py-1.5 rounded-lg inline-block">1 {bulkUnit} = {bulkConversion} {(document.querySelector('[name="unit"]') as HTMLSelectElement)?.value || "Pcs"}</p>
-                )}
-              </div>
+          {/* Harga — AFTER Stok so labels are dynamic */}
+          <div className="border-t border-[#D9D6C8] pt-5">
+            <h3 className="text-sm font-bold text-[#072C2C] mb-3 uppercase tracking-wider">Harga</h3>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Harga Modal (per {unitValue})</label><input type="text" inputMode="numeric" value={prices.costPrice ? `Rp ${Number(prices.costPrice).toLocaleString("id-ID")}` : ""} onChange={(e) => setPrices(p => ({ ...p, costPrice: e.target.value.replace(/\D/g, "") }))} placeholder="Rp 0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Harga Jual (per {unitValue})</label><input type="text" inputMode="numeric" value={prices.sellingPrice ? `Rp ${Number(prices.sellingPrice).toLocaleString("id-ID")}` : ""} onChange={(e) => setPrices(p => ({ ...p, sellingPrice: e.target.value.replace(/\D/g, "") }))} placeholder="Rp 0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              {hasBulkUnit && <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Harga Grosir (per {bulkUnit || "Satuan Beli"})</label><input type="text" inputMode="numeric" value={prices.wholesalePrice ? `Rp ${Number(prices.wholesalePrice).toLocaleString("id-ID")}` : ""} onChange={(e) => setPrices(p => ({ ...p, wholesalePrice: e.target.value.replace(/\D/g, "") }))} placeholder="Rp 0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>}
+              {hasBulkUnit && retailUnit && <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Harga Eceran (per {retailUnit})</label><input type="text" inputMode="numeric" value={prices.retailPrice ? `Rp ${Number(prices.retailPrice).toLocaleString("id-ID")}` : ""} onChange={(e) => setPrices(p => ({ ...p, retailPrice: e.target.value.replace(/\D/g, "") }))} placeholder="Rp 0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>}
             </div>
           </div>
 

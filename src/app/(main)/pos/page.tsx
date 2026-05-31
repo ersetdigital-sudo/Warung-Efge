@@ -19,6 +19,7 @@ interface CartItem {
   bulkUnit?: string;
   bulkConversion?: number;
   retailPrice?: number;
+  retailUnit?: string;
   sellingPrice?: number;
   wholesalePrice?: number;
   selectedUnit?: string;
@@ -184,7 +185,7 @@ export default function POSPage() {
     setCart((prev) => {
       const existing = prev.find((item) => item.productId === productId);
       if (existing) return prev.map((item) => item.productId === productId ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price } : item);
-      return [...prev, { productId: product.id, name: product.name, price: product.selling_price, quantity: 1, unit: product.unit, subtotal: product.selling_price, hasBulkUnit: product.has_bulk_unit, bulkUnit: product.bulk_unit, bulkConversion: product.bulk_conversion, selectedUnit: product.unit, retailPrice: product.retail_price, sellingPrice: product.selling_price, wholesalePrice: product.wholesale_price }];
+      return [...prev, { productId: product.id, name: product.name, price: product.selling_price, quantity: 1, unit: product.unit, subtotal: product.selling_price, hasBulkUnit: product.has_bulk_unit, bulkUnit: product.bulk_unit, bulkConversion: product.bulk_conversion, selectedUnit: product.unit, retailPrice: product.retail_price, retailUnit: product.retail_unit, sellingPrice: product.selling_price, wholesalePrice: product.wholesale_price }];
     });
   };
 
@@ -205,8 +206,7 @@ export default function POSPage() {
       let price = item.sellingPrice || 0;
       if (newUnit === item.bulkUnit) {
         price = item.wholesalePrice || (item.sellingPrice || 0) * (item.bulkConversion || 1);
-      } else if (newUnit !== item.unit && item.retailPrice) {
-        // Retail/eceran unit (smallest)
+      } else if (newUnit === item.retailUnit && item.retailPrice) {
         price = item.retailPrice;
       }
       return { ...item, selectedUnit: newUnit, price, subtotal: item.quantity * price };
@@ -542,7 +542,7 @@ export default function POSPage() {
                 </div>
                 {item.hasBulkUnit && item.bulkUnit && (
                   <select value={item.selectedUnit || item.unit} onChange={(e) => changeCartUnit(item.productId, e.target.value)} className="text-[10px] px-1.5 py-1 border border-[#D9D6C8] rounded text-[#072C2C] bg-white cursor-pointer">
-                    {item.retailPrice && item.retailPrice > 0 && <option value="eceran">Eceran</option>}
+                    {item.retailPrice && item.retailPrice > 0 && item.retailUnit && <option value={item.retailUnit}>{item.retailUnit}</option>}
                     <option value={item.unit}>{item.unit}</option>
                     <option value={item.bulkUnit}>{item.bulkUnit}</option>
                   </select>
