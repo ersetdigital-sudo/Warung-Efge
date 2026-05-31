@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.106.2",
     "@zxing/browser": "^0.2.0",
     "@zxing/library": "^0.22.0",
     "clsx": "^2.1.1",
