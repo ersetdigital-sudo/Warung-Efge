@@ -158,9 +158,12 @@ export default function ProductsPage() {
                 const baseUnit = units[0];
                 const isOpen = expandedRows.has(p.id);
                 const levelColors = ["bg-[#072C2C]/10 text-[#072C2C]", "bg-[#FF5F03]/10 text-[#FF5F03]", "bg-[#D97706]/10 text-[#D97706]"];
+                const stockVal = p.stock || 0;
+                const minStock = p.min_stock || 0;
+                const stockStatus = stockVal <= 0 ? "habis" : stockVal <= minStock ? "menipis" : "aman";
                 return (
                   <Fragment key={p.id}>
-                    <tr className="border-b border-[#D9D6C8] hover:bg-[#FAFAF8] transition-colors">
+                    <tr className={`border-b border-[#D9D6C8] hover:bg-[#FAFAF8] transition-colors ${stockStatus === "habis" ? "bg-[#FEF2F2]/50" : stockStatus === "menipis" ? "bg-[#FFFBEB]/50" : ""}`}>
                       <td className="px-2 py-2">
                         {units.length > 1 && <button onClick={() => toggleExpand(p.id)} className="w-6 h-6 rounded border border-[#D9D6C8] flex items-center justify-center cursor-pointer hover:bg-[#EDEADE]">
                           {isOpen ? <ChevronDown className="w-3 h-3 text-[#072C2C]" /> : <ChevronRight className="w-3 h-3 text-[#9CA3AF]" />}
@@ -170,7 +173,16 @@ export default function ProductsPage() {
                       <td className="px-2.5 py-2 font-mono text-[11px] text-[#9CA3AF]">{p.sku || "—"}</td>
                       <td className="px-2.5 py-2"><Badge variant="info">{p.category || "—"}</Badge></td>
                       <td className="px-2.5 py-2"><div className="flex gap-1 flex-wrap">{units.map((u: any, i: number) => <span key={u.id} className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${levelColors[i] || levelColors[0]}`}>{u.name}</span>)}</div></td>
-                      <td className="px-2.5 py-2 text-right font-mono font-bold text-[11px]">{baseUnit ? `${baseUnit.stock} ${baseUnit.name}` : `${p.stock || 0} ${p.unit || ""}`}</td>
+                      <td className="px-2.5 py-2 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className={`font-mono font-bold text-[11px] ${stockStatus === "habis" ? "text-[#DC2626]" : stockStatus === "menipis" ? "text-[#D97706]" : "text-[#072C2C]"}`}>
+                            {stockVal} {p.unit || ""}
+                          </span>
+                          <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${stockStatus === "habis" ? "bg-[#DC2626] text-white" : stockStatus === "menipis" ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#ECFDF5] text-[#16A34A]"}`}>
+                            {stockStatus === "habis" ? "HABIS" : stockStatus === "menipis" ? "MENIPIS" : "AMAN"}
+                          </span>
+                        </div>
+                      </td>
                       <td className="px-2.5 py-2">
                         <div className="flex gap-1">
                           <button onClick={() => router.push(`/products/edit/${p.id}`)} className="w-6 h-6 rounded border border-[#D9D6C8] flex items-center justify-center cursor-pointer hover:bg-[#EFF6FF] hover:border-[#bfdbfe] hover:text-[#1D4ED8] text-[#9CA3AF]"><Edit className="w-3 h-3" /></button>
