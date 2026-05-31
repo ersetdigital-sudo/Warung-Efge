@@ -32,14 +32,6 @@ const categoryEmoji: Record<string, string> = {
 };
 const getEmoji = (cat: string) => categoryEmoji[cat] || "📦";
 
-// Border color per unit level
-const getUnitBorderColor = (unitName: string, index: number, total: number) => {
-  if (total === 1) return "border-l-[#f97316]";
-  if (index === 0) return "border-l-[#1a2e2a]"; // terbesar
-  if (index === total - 1) return "border-l-[#eab308]"; // terkecil
-  return "border-l-[#f97316]"; // tengah
-};
-
 export default function POSPage() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -245,35 +237,34 @@ export default function POSPage() {
                 const cartCount = getCartCountForProduct(product.id);
                 const units = getProductUnits(product);
                 return (
-                  <div key={product.id} className={`relative bg-white rounded-xl shadow-sm border overflow-hidden ${isOutOfStock ? "opacity-50 grayscale" : ""} ${cartCount > 0 ? "border-[#FF5F03] ring-1 ring-[#FF5F03]/20" : "border-[#072C2C]/8"}`}>
-                    {/* Badge top-right */}
-                    <div className={`absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-bold ${isOutOfStock ? "bg-red-500 text-white" : cartCount > 0 ? "bg-[#FF5F03] text-white" : "bg-[#072C2C]/5 text-[#072C2C]/50"}`}>
-                      {isOutOfStock ? "Habis" : cartCount > 0 ? cartCount : product.stock}
+                  <div key={product.id} className={`relative bg-white rounded-xl border overflow-hidden ${isOutOfStock ? "opacity-40" : ""} ${cartCount > 0 ? "border-[#072C2C]/20 shadow-md" : "border-[#072C2C]/8 shadow-sm"}`}>
+                    {/* Stock badge top-right */}
+                    <div className={`absolute top-2 right-2 min-w-[20px] text-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${isOutOfStock ? "bg-[#072C2C]/10 text-[#072C2C]/40" : "bg-[#072C2C]/5 text-[#072C2C]/50"}`}>
+                      {product.stock}
                     </div>
 
                     {/* Emoji + Name + Category */}
                     <div className="px-3 pt-3 pb-2">
-                      <div className="text-2xl mb-1">{getEmoji(product.category)}</div>
+                      <div className="text-[22px] mb-1.5">{getEmoji(product.category)}</div>
                       <p className="text-[12px] font-bold text-[#072C2C] leading-tight line-clamp-2">{product.name}</p>
                       <p className="text-[9px] text-[#072C2C]/40 mt-0.5">{product.category}</p>
                     </div>
 
-                    {/* Unit rows with colored left border */}
-                    <div className="px-2 pb-2 space-y-[3px]">
-                      {units.map((u, idx) => {
+                    {/* Unit rows - clean, no colored borders */}
+                    <div className="px-2.5 pb-2.5 space-y-[2px]">
+                      {units.map((u) => {
                         const inCart = cart.find(i => i.productId === product.id && i.unit === u.name);
-                        const borderColor = getUnitBorderColor(u.name, idx, units.length);
                         return (
                           <button
                             key={u.name}
                             onClick={() => !isOutOfStock && addToCart(product.id, u.name, u.price, u.stockPerUnit)}
                             disabled={isOutOfStock}
-                            className={`w-full flex items-center justify-between pl-2.5 pr-2 py-[7px] rounded-md border-l-[3px] ${borderColor} transition-all cursor-pointer active:scale-[0.97] ${
-                              inCart ? "bg-[#FF5F03]/10" : "bg-[#fafaf8] hover:bg-[#f0efe8]"
+                            className={`w-full flex items-center justify-between px-2.5 py-[7px] rounded-lg transition-all cursor-pointer active:scale-[0.97] ${
+                              inCart ? "bg-[#072C2C] text-white" : "hover:bg-[#f5f5f2]"
                             } ${isOutOfStock ? "cursor-not-allowed" : ""}`}
                           >
-                            <span className={`text-[11px] font-medium ${inCart ? "text-[#FF5F03] font-semibold" : "text-[#072C2C]/70"}`}>{u.name}</span>
-                            <span className={`text-[11px] font-bold tabular-nums ${inCart ? "text-[#FF5F03]" : "text-[#072C2C]"}`}>Rp {u.price.toLocaleString("id-ID")}</span>
+                            <span className={`text-[11px] ${inCart ? "text-white font-semibold" : "text-[#072C2C]/60 font-medium"}`}>{u.name}</span>
+                            <span className={`text-[11px] font-bold tabular-nums ${inCart ? "text-white" : "text-[#072C2C]"}`}>Rp {u.price.toLocaleString("id-ID")}</span>
                           </button>
                         );
                       })}
