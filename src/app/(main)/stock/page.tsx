@@ -22,7 +22,7 @@ function ActionDropdown({ product, onDelete }: { product: any; onDelete: (p: any
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-40 bg-white border border-[#D9D6C8] rounded-lg shadow-xl py-1 w-40">
+          <div className="absolute right-0 bottom-full mb-1 z-40 bg-white border border-[#D9D6C8] rounded-lg shadow-xl py-1 w-40">
             <button onClick={() => { setOpen(false); router.push(`/products/edit/${product.id}`); }} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-[#072C2C] hover:bg-[#EDEADE] cursor-pointer">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
               Edit Produk
