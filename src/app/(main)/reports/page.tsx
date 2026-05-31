@@ -77,20 +77,27 @@ export default function ReportsPage() {
   const marginPct = totalSales > 0 ? (grossProfit / totalSales * 100) : 0;
   const profitPer100 = Math.round(marginPct);
 
-  // Chart data — show placeholder if no transactions
+  // Chart data from real transactions
   const chartData = useMemo(() => {
-    if (baseSales === 0) {
-      return [{ name: "Jan", sales: 0 }, { name: "Feb", sales: 0 }, { name: "Mar", sales: 0 }, { name: "Apr", sales: 0 }, { name: "Mei", sales: 0 }, { name: "Jun", sales: 0 }];
+    if (transactions.length === 0) {
+      return [{ name: "Belum ada data", sales: 0 }];
     }
-    if (selectedMonth) {
-      return Array.from({ length: 7 }, (_, i) => ({
-        name: `${i * 4 + 1}`,
-        sales: Math.round((totalSales / 7) * (0.7 + Math.random() * 0.6)),
-      }));
+
+    // Group transactions by month
+    const monthlyMap: Record<string, number> = {};
+    const monthLabels = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+
+    for (const trx of transactions) {
+      const date = new Date(trx.created_at);
+      const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+      const label = `${monthLabels[date.getMonth()]}`;
+      if (!monthlyMap[label]) monthlyMap[label] = 0;
+      monthlyMap[label] += trx.total || 0;
     }
-    const labels = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun"];
-    return labels.map((name, i) => ({ name, sales: Math.round(totalSales * (0.12 + i * 0.02)) }));
-  }, [multiplier, selectedMonth, totalSales, baseSales]);
+
+    const result = Object.entries(monthlyMap).map(([name, sales]) => ({ name, sales }));
+    return result.length > 0 ? result : [{ name: "Belum ada", sales: 0 }];
+  }, [transactions]);
 
   // Product data from real transaction_items
   const simProductData = useMemo(() => {
