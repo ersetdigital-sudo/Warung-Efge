@@ -73,17 +73,19 @@ select option {
 
   #print-area {
     display: block !important;
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
-    width: 58mm;
+    width: 100%;
     max-width: 58mm;
     padding: 2mm;
+    margin: 0;
     background: #fff !important;
     color: #000 !important;
     font-family: 'Courier New', monospace !important;
     font-size: 11px !important;
     line-height: 1.4 !important;
+    z-index: 99999;
   }
 
   #print-area table {

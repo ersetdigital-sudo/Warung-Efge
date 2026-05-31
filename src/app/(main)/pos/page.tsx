@@ -224,8 +224,22 @@ export default function POSPage() {
   const [printMeta, setPrintMeta] = useState<any>(null);
   const handlePrintReceipt = () => {
     if (typeof window === "undefined" || !window.print) { setPrintToast({ msg: "Cetak tidak didukung.", color: "bg-[#D97706]" }); setTimeout(() => setPrintToast(null), 3000); return; }
-    setPrintData([...cart]); setPrintMeta({ total, subtotal, discount: calculatedDiscount, method: isDebt ? "Bon/Hutang" : paymentMethod === "cash" ? "Tunai" : paymentMethod === "transfer" ? "Transfer" : paymentMethod === "edc" ? "EDC" : "QRIS", paid: Number(amountPaid), change: change > 0 ? change : 0, trxId, date: `${now.toLocaleDateString("id-ID")} ${now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}` });
-    setShowReceipt(false); setTimeout(() => { window.print(); }, 350);
+    // Save print data from current cart BEFORE clearing anything
+    const printItems = [...cart];
+    const meta = { total, subtotal, discount: calculatedDiscount, method: isDebt ? "Bon/Hutang" : paymentMethod === "cash" ? "Tunai" : paymentMethod === "transfer" ? "Transfer" : paymentMethod === "edc" ? "EDC" : "QRIS", paid: Number(amountPaid), change: change > 0 ? change : 0, trxId, date: `${now.toLocaleDateString("id-ID")} ${now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}` };
+    setPrintData(printItems);
+    setPrintMeta(meta);
+    setShowReceipt(false);
+    // Wait for React to render print area, then print
+    setTimeout(() => {
+      const printArea = document.getElementById("print-area");
+      if (printArea && printArea.children.length > 0) {
+        window.print();
+      } else {
+        // Fallback: try again after another tick
+        setTimeout(() => { window.print(); }, 200);
+      }
+    }, 500);
     const afterPrint = () => { setPrintData(null); setPrintMeta(null); handleNewTransaction(); setPrintToast({ msg: "Transaksi selesai ✓", color: "bg-[#16A34A]" }); setTimeout(() => setPrintToast(null), 2000); window.removeEventListener("afterprint", afterPrint); };
     window.addEventListener("afterprint", afterPrint);
   };
@@ -605,9 +619,9 @@ export default function POSPage() {
         </div>
       )}
 
-      {/* Print Area - optimized for 58mm thermal printer */}
-      {printData && printMeta && (
-        <div id="print-area" className="hidden print:block">
+      {/* Print Area - always in DOM, filled when printing */}
+      <div id="print-area" style={{ position: "fixed", top: "-9999px", left: "-9999px", width: "58mm" }}>
+        {printData && printMeta && (
           <div style={{ fontFamily: "'Courier New', monospace", fontSize: "11px", padding: "2mm", lineHeight: "1.5", width: "100%" }}>
             <p style={{ fontSize: "14px", fontWeight: "bold", textAlign: "center", margin: "0 0 2px" }}>WARUNG EFGE</p>
             <p style={{ fontSize: "9px", textAlign: "center", margin: "0 0 4px" }}>Jl. Contoh No.1 · 0812-xxxx-xxxx</p>
@@ -635,8 +649,8 @@ export default function POSPage() {
             <p style={{ fontSize: "9px", textAlign: "center", margin: "4px 0 0" }}>Terima kasih atas kunjungan Anda!</p>
             <p style={{ fontSize: "8px", textAlign: "center", margin: "2px 0 0" }}>Barang yang dibeli tidak dapat dikembalikan</p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
