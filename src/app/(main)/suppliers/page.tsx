@@ -69,12 +69,7 @@ export default function SuppliersPage() {
               <div><p className="text-xs text-gray-500">Hutang</p><p className={`text-sm font-bold ${viewingSupplier.debt > 0 ? "text-red-600" : "text-green-600"}`}>{viewingSupplier.debt > 0 ? formatCurrency(viewingSupplier.debt) : "Lunas"}</p></div>
             </div>
             <div className="border-t pt-4"><h4 className="text-sm font-semibold mb-3">Riwayat Pembelian</h4>
-              <div className="space-y-2">{purchases.filter(p => p.supplierId === viewingSupplier.id).map(p => (
-                <div key={p.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div><p className="text-sm font-medium">{p.id}</p><p className="text-xs text-gray-500">{formatDate(p.date)}</p></div>
-                  <div className="text-right"><p className="text-sm font-medium">{formatCurrency(p.totalAmount)}</p><Badge variant={p.status === "paid" ? "success" : "warning"}>{p.status === "paid" ? "Lunas" : "Sebagian"}</Badge></div>
-                </div>
-              ))}</div>
+              <p className="text-sm text-gray-500">Data pembelian akan ditampilkan dari database.</p>
             </div>
           </div>
         )}
