@@ -39,6 +39,7 @@ export default function POSPage() {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [successToast, setSuccessToast] = useState("");
+  const [stockError, setStockError] = useState("");
 
   // Load products from Supabase - reload on every focus/navigation
   useEffect(() => {
@@ -180,17 +181,53 @@ export default function POSPage() {
   const total = subtotal - discount;
   const change = Number(amountPaid) - total;
 
+  // Calculate stock needed based on unit
+  const calcStockNeeded = (qty: number, selectedUnit: string, product: any) => {
+    if (selectedUnit === product.bulk_unit) return qty * (product.bulk_conversion || 1);
+    if (selectedUnit === (product.retail_unit || "eceran") && product.retail_conversion > 0) return Math.ceil(qty / product.retail_conversion);
+    return qty; // normal unit
+  };
+
+  const showStockError = (productName: string, stock: number, unit: string, needed: number, selectedUnit: string) => {
+    setStockError(`Stok ${productName} hanya ${stock} ${unit}, tidak cukup untuk ${needed} ${selectedUnit}`);
+    setTimeout(() => setStockError(""), 3000);
+  };
+
   const addToCart = (productId: string) => {
-    const product = products.find((p) => p.id === productId);
+    const product = products.find((p: any) => p.id === productId);
     if (!product) return;
+    if (product.stock <= 0) { showStockError(product.name, 0, product.unit, 1, product.unit); return; }
+
+    const existing = cart.find((item) => item.productId === productId);
+    const newQty = existing ? existing.quantity + 1 : 1;
+    const selectedUnit = existing?.selectedUnit || product.unit;
+    const needed = calcStockNeeded(newQty, selectedUnit, product);
+
+    if (needed > product.stock) {
+      showStockError(product.name, product.stock, product.unit, needed, selectedUnit);
+      return;
+    }
+
     setCart((prev) => {
-      const existing = prev.find((item) => item.productId === productId);
-      if (existing) return prev.map((item) => item.productId === productId ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price } : item);
+      const ex = prev.find((item) => item.productId === productId);
+      if (ex) return prev.map((item) => item.productId === productId ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price } : item);
       return [...prev, { productId: product.id, name: product.name, price: product.selling_price, quantity: 1, unit: product.unit, subtotal: product.selling_price, hasBulkUnit: product.has_bulk_unit, bulkUnit: product.bulk_unit, bulkConversion: product.bulk_conversion, selectedUnit: product.unit, retailPrice: product.retail_price, retailUnit: product.retail_unit, sellingPrice: product.selling_price, wholesalePrice: product.wholesale_price }];
     });
   };
 
   const updateQuantity = (productId: string, delta: number) => {
+    if (delta > 0) {
+      const item = cart.find(i => i.productId === productId);
+      const product = products.find((p: any) => p.id === productId);
+      if (item && product) {
+        const newQty = item.quantity + 1;
+        const needed = calcStockNeeded(newQty, item.selectedUnit || item.unit, product);
+        if (needed > product.stock) {
+          showStockError(product.name, product.stock, product.unit, needed, item.selectedUnit || item.unit);
+          return;
+        }
+      }
+    }
     setCart((prev) => prev.map((item) => {
       if (item.productId !== productId) return item;
       const newQty = item.quantity + delta;
@@ -202,15 +239,25 @@ export default function POSPage() {
   const removeFromCart = (productId: string) => setCart((prev) => prev.filter((item) => item.productId !== productId));
 
   const changeCartUnit = (productId: string, newUnit: string) => {
-    setCart((prev) => prev.map((item) => {
-      if (item.productId !== productId) return item;
-      let price = item.sellingPrice || 0;
-      if (newUnit === item.bulkUnit) {
-        price = item.wholesalePrice || (item.sellingPrice || 0) * (item.bulkConversion || 1);
-      } else if ((newUnit === item.retailUnit || newUnit === "eceran") && item.retailPrice) {
-        price = item.retailPrice;
+    const item = cart.find(i => i.productId === productId);
+    const product = products.find((p: any) => p.id === productId);
+    if (!item || !product) return;
+
+    const needed = calcStockNeeded(item.quantity, newUnit, product);
+    if (needed > product.stock) {
+      showStockError(product.name, product.stock, product.unit, needed, newUnit);
+      return; // Don't change unit
+    }
+
+    setCart((prev) => prev.map((i) => {
+      if (i.productId !== productId) return i;
+      let price = i.sellingPrice || 0;
+      if (newUnit === i.bulkUnit) {
+        price = i.wholesalePrice || (i.sellingPrice || 0) * (i.bulkConversion || 1);
+      } else if ((newUnit === (product.retail_unit || "eceran")) && i.retailPrice) {
+        price = i.retailPrice;
       }
-      return { ...item, selectedUnit: newUnit, price, subtotal: item.quantity * price };
+      return { ...i, selectedUnit: newUnit, price, subtotal: i.quantity * price };
     }));
   };
 
@@ -435,9 +482,16 @@ export default function POSPage() {
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-2 sm:gap-2.5 lg:gap-3">
               {filteredProducts.map((product) => {
                 const isLowStock = product.stock <= product.min_stock;
+                const isOutOfStock = product.stock <= 0;
                 const inCart = cart.find((item) => item.productId === product.id);
                 return (
-                  <button key={product.id} onClick={() => addToCart(product.id)} className={`relative bg-white border rounded-xl lg:rounded-2xl p-2.5 lg:p-4 text-left transition-all group cursor-pointer ${inCart ? "border-[#FF5F03] ring-2 ring-[#FF5F03]/20 shadow-md" : "border-[#072C2C]/10 hover:border-[#FF5F03]/40 hover:shadow-md"}`}>
+                  <button key={product.id} onClick={() => !isOutOfStock && addToCart(product.id)} className={`relative bg-white border rounded-xl lg:rounded-2xl p-2.5 lg:p-4 text-left transition-all group ${isOutOfStock ? "opacity-50 cursor-not-allowed" : "cursor-pointer"} ${inCart ? "border-[#FF5F03] ring-2 ring-[#FF5F03]/20 shadow-md" : "border-[#072C2C]/10 hover:border-[#FF5F03]/40 hover:shadow-md"}`}>
+                    {isOutOfStock && (
+                      <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-[#DC2626] text-white text-[8px] font-bold rounded">HABIS</div>
+                    )}
+                    {!isOutOfStock && isLowStock && !inCart && (
+                      <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-[#D97706] text-white text-[8px] font-bold rounded">MENIPIS</div>
+                    )}
                     {inCart && (
                       <div className="absolute -top-1.5 -right-1.5 w-5 h-5 lg:w-6 lg:h-6 bg-[#FF5F03] rounded-full flex items-center justify-center shadow-sm">
                         <span className="text-white text-[10px] lg:text-xs font-bold">{inCart.quantity}</span>
@@ -711,6 +765,21 @@ export default function POSPage() {
             <div>
               <p className="text-sm font-bold">Transaksi Berhasil!</p>
               <p className="text-xs text-white/80">Transaksi {successToast} telah dicatat</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stock Error Toast */}
+      {stockError && (
+        <div className="fixed z-[9999] top-4 right-4 sm:top-6 sm:right-6 left-4 sm:left-auto animate-in slide-in-from-top fade-in duration-200">
+          <div className="bg-[#DC2626] text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3">
+            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6"/><path d="M9 9l6 6"/></svg>
+            </div>
+            <div>
+              <p className="text-sm font-bold">Stok Tidak Cukup!</p>
+              <p className="text-xs text-white/80">{stockError}</p>
             </div>
           </div>
         </div>
