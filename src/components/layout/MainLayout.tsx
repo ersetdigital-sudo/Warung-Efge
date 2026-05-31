@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 
@@ -10,6 +11,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
+  const isPOS = pathname === "/pos";
 
   useEffect(() => {
     // Read from localStorage on mount
@@ -39,8 +42,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         onToggleCollapse={handleToggleCollapse}
       />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 pb-[80px] md:pb-4 lg:pb-6">{children}</main>
+        {!isPOS && <Header onMenuClick={() => setSidebarOpen(true)} />}
+        <main className={`flex-1 overflow-y-auto pb-[80px] md:pb-4 lg:pb-6 ${isPOS ? "p-0" : "p-4 lg:p-6"}`}>{children}</main>
       </div>
     </div>
   );

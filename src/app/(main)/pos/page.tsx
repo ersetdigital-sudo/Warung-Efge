@@ -312,8 +312,8 @@ export default function POSPage() {
 
   // ==================== RENDER ====================
   return (
-    <div className="flex flex-col -m-4 lg:-m-6" style={{ height: "calc(100vh - 4rem)" }}>
-      {/* Top Header Bar */}
+    <div className="flex flex-col h-screen">
+      {/* Top Header Bar - minimal, no search/bell/user */}
       <div className="flex items-center justify-between px-4 lg:px-6 py-2.5 bg-white border-b border-[#072C2C]/10">
         <div>
           <h1 className="text-base lg:text-lg font-bold text-[#072C2C] tracking-tight">KASIR POS</h1>
@@ -366,10 +366,12 @@ export default function POSPage() {
                 const isOutOfStock = product.stock <= 0;
                 const cartCount = getCartCountForProduct(product.id);
                 const units = getProductUnits(product);
+                // Default unit is the base unit (level 1 / product.unit)
+                const defaultUnit = product.unit || (units.length > 0 ? units[units.length - 1].name : "Pcs");
                 return (
                   <div key={product.id} className={`relative bg-white border rounded-xl overflow-hidden transition-all ${isOutOfStock ? "opacity-50" : ""} ${cartCount > 0 ? "border-[#FF5F03] ring-1 ring-[#FF5F03]/20" : "border-[#072C2C]/10"}`}>
                     {/* Stock badge top-right */}
-                    <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-[#072C2C]/5 rounded text-[10px] font-medium text-[#072C2C]/60">
+                    <div className="absolute top-2.5 right-2.5 px-1.5 py-0.5 bg-[#072C2C]/5 rounded text-[10px] font-medium text-[#072C2C]/60">
                       {product.stock}
                     </div>
                     {/* Cart count badge */}
@@ -379,32 +381,41 @@ export default function POSPage() {
                       </div>
                     )}
 
-                    {/* Product header */}
+                    {/* Product header - name NOT truncated */}
                     <div className="px-3 pt-3 pb-2">
-                      <div className="flex items-start gap-2">
-                        <div className="w-8 h-8 bg-[#EDEADE] rounded-lg flex items-center justify-center flex-shrink-0">
+                      <div className="flex items-start gap-2.5">
+                        <div className="w-9 h-9 bg-[#EDEADE] rounded-lg flex items-center justify-center flex-shrink-0">
                           <ShoppingCart className="w-4 h-4 text-[#072C2C]/20" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[#072C2C] truncate">{product.name}</p>
-                          <p className="text-[10px] text-[#072C2C]/40">{product.category}</p>
+                        <div className="flex-1 min-w-0 pr-6">
+                          <p className="text-[13px] font-semibold text-[#072C2C] leading-tight line-clamp-2">{product.name}</p>
+                          <p className="text-[10px] text-[#072C2C]/40 mt-0.5">{product.category}</p>
                         </div>
                       </div>
                     </div>
 
-                    {/* Unit rows - clickable */}
-                    <div className="px-2 pb-2 space-y-1">
+                    {/* Unit rows - clickable, default unit highlighted */}
+                    <div className="px-2.5 pb-2.5 space-y-1">
                       {units.map((u) => {
                         const inCart = cart.find(i => i.productId === product.id && i.unit === u.name);
+                        const isDefault = u.name === defaultUnit;
+                        // Highlight: in cart = orange bg, default (not in cart) = orange outline
+                        const isHighlighted = inCart || isDefault;
                         return (
                           <button
                             key={u.name}
                             onClick={() => !isOutOfStock && addToCart(product.id, u.name, u.price, u.stockPerUnit)}
                             disabled={isOutOfStock}
-                            className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-left transition-all cursor-pointer ${inCart ? "bg-[#FF5F03]/10 border border-[#FF5F03]/30" : "bg-[#F9F8F4] hover:bg-[#EDEADE] border border-transparent"} ${isOutOfStock ? "cursor-not-allowed" : ""}`}
+                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left transition-all cursor-pointer active:scale-[0.98] ${
+                              inCart
+                                ? "bg-[#FF5F03] text-white"
+                                : isDefault
+                                  ? "bg-[#FF5F03]/10 border border-[#FF5F03]/40 text-[#072C2C]"
+                                  : "bg-[#F9F8F4] hover:bg-[#EDEADE] border border-transparent text-[#072C2C]"
+                            } ${isOutOfStock ? "cursor-not-allowed" : ""}`}
                           >
-                            <span className={`text-xs font-medium ${inCart ? "text-[#FF5F03]" : "text-[#072C2C]/70"}`}>{u.name}</span>
-                            <span className={`text-xs font-bold ${inCart ? "text-[#FF5F03]" : "text-[#072C2C]"}`}>Rp {u.price.toLocaleString("id-ID")}</span>
+                            <span className={`text-xs font-medium ${inCart ? "text-white" : isDefault ? "text-[#FF5F03] font-semibold" : "text-[#072C2C]/70"}`}>{u.name}</span>
+                            <span className={`text-xs font-bold ${inCart ? "text-white" : isDefault ? "text-[#FF5F03]" : "text-[#072C2C]"}`}>Rp {u.price.toLocaleString("id-ID")}</span>
                           </button>
                         );
                       })}
