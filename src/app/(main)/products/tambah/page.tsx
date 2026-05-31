@@ -86,7 +86,7 @@ export default function AddProductPage() {
     const name = formData.get("name") as string;
     if (!name) { alert("Nama produk wajib diisi"); return; }
 
-    const newProduct = {
+    const newProduct: Record<string, unknown> = {
       name,
       sku: (formData.get("sku") as string) || `SKU-${Date.now().toString(36).toUpperCase()}`,
       barcode: barcode || null,
@@ -99,16 +99,20 @@ export default function AddProductPage() {
       min_stock: Number(formData.get("minStock")) || 0,
       unit: (formData.get("unit") as string) || "Pcs",
       expiry_date: hasExpiry && expiryDate ? expiryDate : null,
-      has_bulk_unit: hasBulkUnit,
-      bulk_unit: hasBulkUnit ? bulkUnit : null,
-      bulk_conversion: hasBulkUnit ? Number(bulkConversion) : null,
     };
+
+    // Only add bulk columns if they exist in DB
+    if (hasBulkUnit) {
+      newProduct.has_bulk_unit = true;
+      newProduct.bulk_unit = bulkUnit;
+      newProduct.bulk_conversion = Number(bulkConversion);
+    }
 
     const result = await addProduct(newProduct);
     if (result) {
       router.push("/products");
     } else {
-      alert("Gagal menyimpan produk. Coba lagi.");
+      alert("Gagal menyimpan produk. Buka Console (F12) untuk lihat detail error.");
     }
   };
 

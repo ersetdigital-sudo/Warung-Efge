@@ -18,7 +18,7 @@ export async function getProductById(id: string) {
 
 export async function addProduct(product: Record<string, unknown>) {
   const { data, error } = await supabase.from("products").insert(product).select().single();
-  if (error) { console.error("addProduct error:", error); return null; }
+  if (error) { console.error("addProduct error:", error.message, error.details, error.hint); return null; }
   return data;
 }
 
