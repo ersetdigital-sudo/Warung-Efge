@@ -4,23 +4,37 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Camera, X, Check } from "lucide-react";
 import Button from "@/components/ui/Button";
-import { categories, products } from "@/data/mock-data";
+import { categories } from "@/data/mock-data";
+import { getProductById, updateProduct } from "@/lib/db";
 
 export default function EditProductPage() {
   const router = useRouter();
   const params = useParams();
   const productId = params.id as string;
-  const product = products.find(p => p.id === productId);
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   const [hasExpiry, setHasExpiry] = useState(false);
   const [expiryDate, setExpiryDate] = useState("");
-  const [barcode, setBarcode] = useState(product?.barcode || "");
+  const [barcode, setBarcode] = useState("");
   const [showCamera, setShowCamera] = useState(false);
   const [cameraError, setCameraError] = useState("");
   const [barcodeDetected, setBarcodeDetected] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const readerRef = useRef<any>(null);
+
+  useEffect(() => {
+    getProductById(productId).then((p) => {
+      setProduct(p);
+      if (p) {
+        setBarcode(p.barcode || "");
+        setHasExpiry(!!p.expiry_date);
+        setExpiryDate(p.expiry_date || "");
+      }
+      setLoading(false);
+    });
+  }, [productId]);
 
   useEffect(() => { return () => { stopCamera(); }; }, []);
 
@@ -47,8 +61,33 @@ export default function EditProductPage() {
     } catch { setCameraError("Kamera tidak dapat diakses. Silakan ketik barcode manual."); setShowCamera(false); }
   };
 
-  const handleSubmit = () => { router.push("/products"); };
+  const handleSubmit = async () => {
+    if (!product) return;
+    const form = document.querySelector("form") as HTMLFormElement;
+    if (!form) return;
+    const formData = new FormData(form);
 
+    const updates: Record<string, unknown> = {
+      name: formData.get("name") || product.name,
+      sku: formData.get("sku") || product.sku,
+      barcode: barcode || null,
+      category: formData.get("category") || product.category,
+      cost_price: Number(formData.get("costPrice")) || product.cost_price,
+      selling_price: Number(formData.get("sellingPrice")) || product.selling_price,
+      wholesale_price: Number(formData.get("wholesalePrice")) || product.wholesale_price,
+      retail_price: Number(formData.get("retailPrice")) || product.retail_price,
+      stock: Number(formData.get("stock")) ?? product.stock,
+      min_stock: Number(formData.get("minStock")) ?? product.min_stock,
+      unit: formData.get("unit") || product.unit,
+      expiry_date: hasExpiry && expiryDate ? expiryDate : null,
+    };
+
+    const success = await updateProduct(productId, updates);
+    if (success) router.push("/products");
+    else alert("Gagal menyimpan. Coba lagi.");
+  };
+
+  if (loading) return <div className="p-8 text-center text-[#072C2C]/50">Memuat...</div>;
   if (!product) return <div className="p-8 text-center text-[#072C2C]/50">Produk tidak ditemukan</div>;
 
   return (
@@ -65,9 +104,9 @@ export default function EditProductPage() {
           <div>
             <h3 className="text-sm font-bold text-[#072C2C] mb-3 uppercase tracking-wider">Informasi Produk</h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Nama Produk</label><input type="text" defaultValue={product.name} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Kategori</label><select defaultValue={product.category} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]"><option value="">Pilih Kategori</option>{categories.map((cat) => <option key={cat.id} value={cat.name}>{cat.name}</option>)}</select></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">SKU</label><input type="text" defaultValue={product.sku} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Nama Produk</label><input type="text" name="name" defaultValue={product.name} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Kategori</label><select name="category" defaultValue={product.category} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]"><option value="">Pilih Kategori</option>{categories.map((cat) => <option key={cat.id} value={cat.name}>{cat.name}</option>)}</select></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">SKU</label><input type="text" name="sku" defaultValue={product.sku} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
               <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Barcode</label>
                 <div className="flex gap-2">
                   <input type="text" value={barcode} onChange={(e) => setBarcode(e.target.value)} className="flex-1 px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
@@ -82,17 +121,17 @@ export default function EditProductPage() {
           <div className="border-t border-[#D9D6C8] pt-5">
             <h3 className="text-sm font-bold text-[#072C2C] mb-3 uppercase tracking-wider">Harga</h3>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Modal</label><input type="number" defaultValue={product.costPrice} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Jual</label><input type="number" defaultValue={product.sellingPrice} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Grosir</label><input type="number" defaultValue={product.wholesalePrice} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Eceran</label><input type="number" defaultValue={product.retailPrice} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Modal</label><input type="number" name="costPrice" defaultValue={product.cost_price} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Jual</label><input type="number" name="sellingPrice" defaultValue={product.selling_price} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Grosir</label><input type="number" name="wholesalePrice" defaultValue={product.wholesale_price} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Eceran</label><input type="number" name="retailPrice" defaultValue={product.retail_price} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
             </div>
           </div>
           <div className="border-t border-[#D9D6C8] pt-5">
             <h3 className="text-sm font-bold text-[#072C2C] mb-3 uppercase tracking-wider">Stok & Satuan</h3>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Stok</label><input type="number" defaultValue={product.stock} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Min Stok</label><input type="number" defaultValue={product.minStock} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Stok</label><input type="number" name="stock" defaultValue={product.stock} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Min Stok</label><input type="number" name="minStock" defaultValue={product.min_stock} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
               <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Satuan</label><select defaultValue={product.unit} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]"><option value="">Pilih</option><option>Pcs</option><option>Kg</option><option>Liter</option><option>Botol</option><option>Bungkus</option><option>Kotak</option><option>Karung</option><option>Dus</option><option>Pak</option></select></div>
             </div>
             <div className="mt-4">
