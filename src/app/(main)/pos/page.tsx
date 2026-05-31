@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, QrCode, Banknote, Printer, ScanBarcode, AlertTriangle, RotateCcw, X, Check } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, QrCode, Banknote, Printer, ScanBarcode, AlertTriangle, RotateCcw, X, Check, Smartphone } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/utils";
 import { categories } from "@/data/mock-data";
@@ -30,7 +30,9 @@ export default function POSPage() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [discount, setDiscount] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "transfer" | "qris">("cash");
+  const [discountType, setDiscountType] = useState<"rp" | "persen">("rp");
+  const [discountInput, setDiscountInput] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "transfer" | "qris" | "edc">("cash");
   const [amountPaid, setAmountPaid] = useState("");
   const [isDebt, setIsDebt] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
@@ -40,13 +42,32 @@ export default function POSPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [successToast, setSuccessToast] = useState("");
   const [stockError, setStockError] = useState("");
+  const [todayTrxCount, setTodayTrxCount] = useState(0);
+  const [todayOmzet, setTodayOmzet] = useState(0);
 
-  // Load products from Supabase - reload on every focus/navigation
+  // Load products from Supabase
   useEffect(() => {
     const load = () => { getProducts().then(setProducts); };
     load();
     window.addEventListener("focus", load);
     return () => window.removeEventListener("focus", load);
+  }, []);
+
+  // Load today's transaction stats
+  useEffect(() => {
+    const loadStats = async () => {
+      const today = new Date().toISOString().split("T")[0];
+      const { data } = await supabase
+        .from("transactions")
+        .select("total")
+        .gte("created_at", today + "T00:00:00")
+        .lte("created_at", today + "T23:59:59");
+      if (data) {
+        setTodayTrxCount(data.length);
+        setTodayOmzet(data.reduce((sum: number, t: any) => sum + (t.total || 0), 0));
+      }
+    };
+    loadStats();
   }, []);
 
   // Barcode scanner state
@@ -59,7 +80,6 @@ export default function POSPage() {
   const scanReaderRef = useRef<any>(null);
   const scanStreamRef = useRef<MediaStream | null>(null);
 
-  // Check camera availability
   useEffect(() => {
     if (typeof navigator !== "undefined" && navigator.mediaDevices) {
       navigator.mediaDevices.enumerateDevices().then(devices => {
@@ -89,21 +109,17 @@ export default function POSPage() {
     try {
       const { BrowserMultiFormatReader } = await import("@zxing/browser");
       const { DecodeHintType, BarcodeFormat } = await import("@zxing/library");
-
       const hints = new Map();
       hints.set(DecodeHintType.POSSIBLE_FORMATS, [
         BarcodeFormat.EAN_13, BarcodeFormat.EAN_8,
         BarcodeFormat.UPC_A, BarcodeFormat.UPC_E,
         BarcodeFormat.CODE_128, BarcodeFormat.CODE_39, BarcodeFormat.CODE_93,
-        BarcodeFormat.ITF,
-        BarcodeFormat.QR_CODE, BarcodeFormat.DATA_MATRIX,
+        BarcodeFormat.ITF, BarcodeFormat.QR_CODE, BarcodeFormat.DATA_MATRIX,
         BarcodeFormat.CODABAR, BarcodeFormat.RSS_14, BarcodeFormat.RSS_EXPANDED,
       ]);
       hints.set(DecodeHintType.TRY_HARDER, true);
-
       const reader = new BrowserMultiFormatReader(hints);
       scanReaderRef.current = reader;
-
       setTimeout(async () => {
         if (!scanVideoRef.current) return;
         try {
@@ -117,7 +133,7 @@ export default function POSPage() {
                 setScanNotification("Produk ditambahkan ✓");
                 setTimeout(() => setScanNotification(""), 2000);
               } else {
-                setScannerMsg("Produk tidak ditemukan. Coba scan ulang atau cari manual.");
+                setScannerMsg("Produk tidak ditemukan.");
                 setTimeout(() => setScannerMsg(""), 2000);
               }
             }
@@ -125,43 +141,26 @@ export default function POSPage() {
           if (scanVideoRef.current?.srcObject) {
             scanStreamRef.current = scanVideoRef.current.srcObject as MediaStream;
           }
-        } catch { setScannerError("Kamera tidak dapat diakses. Pastikan izin kamera sudah diberikan di browser."); }
+        } catch { setScannerError("Kamera tidak dapat diakses."); }
       }, 200);
-    } catch { setScannerError("Kamera tidak dapat diakses. Pastikan izin kamera sudah diberikan di browser."); }
+    } catch { setScannerError("Kamera tidak dapat diakses."); }
   };
 
-  const closeScanner = () => {
-    stopScanner();
-    setScannerError("");
-    setScannerMsg("");
-    setShowScanner(false);
-  };
-
-  // Cleanup on unmount
+  const closeScanner = () => { stopScanner(); setScannerError(""); setScannerMsg(""); setShowScanner(false); };
   useEffect(() => { return () => { stopScanner(); }; }, []);
 
-  // Android back button: use beforeunload-style approach without pushState
+  // Android back button handling
   useEffect(() => {
     if (!showScanner) return;
-    const handleBack = (e: PopStateEvent) => {
-      e.preventDefault();
-      closeScanner();
-      // Re-push current state to prevent actual navigation
-      window.history.pushState(null, "", window.location.href);
-    };
+    const handleBack = (e: PopStateEvent) => { e.preventDefault(); closeScanner(); window.history.pushState(null, "", window.location.href); };
     window.history.pushState(null, "", window.location.href);
     window.addEventListener("popstate", handleBack);
     return () => { window.removeEventListener("popstate", handleBack); };
   }, [showScanner]);
 
-  // Android back button handling for receipt modal
   useEffect(() => {
     if (!showReceipt) return;
-    const handleBack = (e: PopStateEvent) => {
-      e.preventDefault();
-      setShowReceipt(false);
-      window.history.pushState(null, "", window.location.href);
-    };
+    const handleBack = (e: PopStateEvent) => { e.preventDefault(); setShowReceipt(false); window.history.pushState(null, "", window.location.href); };
     window.history.pushState(null, "", window.location.href);
     window.addEventListener("popstate", handleBack);
     return () => { window.removeEventListener("popstate", handleBack); };
@@ -178,14 +177,19 @@ export default function POSPage() {
   }, [search, selectedCategory, products]);
 
   const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
-  const total = subtotal - discount;
+  const calculatedDiscount = useMemo(() => {
+    if (discountType === "persen") {
+      return Math.round(subtotal * (Number(discountInput) || 0) / 100);
+    }
+    return Number(discountInput) || 0;
+  }, [discountType, discountInput, subtotal]);
+  const total = Math.max(0, subtotal - calculatedDiscount);
   const change = Number(amountPaid) - total;
 
-  // Calculate stock needed based on unit
   const calcStockNeeded = (qty: number, selectedUnit: string, product: any) => {
     if (selectedUnit === product.bulk_unit) return qty * (product.bulk_conversion || 1);
     if (selectedUnit === (product.retail_unit || "eceran") && product.retail_conversion > 0) return Math.ceil(qty / product.retail_conversion);
-    return qty; // normal unit
+    return qty;
   };
 
   const showStockError = (productName: string, stock: number, unit: string, needed: number, selectedUnit: string) => {
@@ -197,17 +201,11 @@ export default function POSPage() {
     const product = products.find((p: any) => p.id === productId);
     if (!product) return;
     if (product.stock <= 0) { showStockError(product.name, 0, product.unit, 1, product.unit); return; }
-
     const existing = cart.find((item) => item.productId === productId);
     const newQty = existing ? existing.quantity + 1 : 1;
     const selectedUnit = existing?.selectedUnit || product.unit;
     const needed = calcStockNeeded(newQty, selectedUnit, product);
-
-    if (needed > product.stock) {
-      showStockError(product.name, product.stock, product.unit, needed, selectedUnit);
-      return;
-    }
-
+    if (needed > product.stock) { showStockError(product.name, product.stock, product.unit, needed, selectedUnit); return; }
     setCart((prev) => {
       const ex = prev.find((item) => item.productId === productId);
       if (ex) return prev.map((item) => item.productId === productId ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price } : item);
@@ -222,10 +220,7 @@ export default function POSPage() {
       if (item && product) {
         const newQty = item.quantity + 1;
         const needed = calcStockNeeded(newQty, item.selectedUnit || item.unit, product);
-        if (needed > product.stock) {
-          showStockError(product.name, product.stock, product.unit, needed, item.selectedUnit || item.unit);
-          return;
-        }
+        if (needed > product.stock) { showStockError(product.name, product.stock, product.unit, needed, item.selectedUnit || item.unit); return; }
       }
     }
     setCart((prev) => prev.map((item) => {
@@ -242,33 +237,24 @@ export default function POSPage() {
     const item = cart.find(i => i.productId === productId);
     const product = products.find((p: any) => p.id === productId);
     if (!item || !product) return;
-
     const needed = calcStockNeeded(item.quantity, newUnit, product);
-    if (needed > product.stock) {
-      showStockError(product.name, product.stock, product.unit, needed, newUnit);
-      return; // Don't change unit
-    }
-
+    if (needed > product.stock) { showStockError(product.name, product.stock, product.unit, needed, newUnit); return; }
     setCart((prev) => prev.map((i) => {
       if (i.productId !== productId) return i;
       let price = i.sellingPrice || 0;
-      if (newUnit === i.bulkUnit) {
-        price = i.wholesalePrice || (i.sellingPrice || 0) * (i.bulkConversion || 1);
-      } else if ((newUnit === (product.retail_unit || "eceran")) && i.retailPrice) {
-        price = i.retailPrice;
-      }
+      if (newUnit === i.bulkUnit) { price = i.wholesalePrice || (i.sellingPrice || 0) * (i.bulkConversion || 1); }
+      else if ((newUnit === (product.retail_unit || "eceran")) && i.retailPrice) { price = i.retailPrice; }
       return { ...i, selectedUnit: newUnit, price, subtotal: i.quantity * price };
     }));
   };
 
-  const clearCart = () => { setCart([]); setDiscount(0); setAmountPaid(""); };
+  const clearCart = () => { setCart([]); setDiscountInput(""); setAmountPaid(""); };
 
   const handlePayment = async () => {
-    // Save transaction to Supabase
     const trxData = {
       transaction_number: trxId,
       subtotal,
-      discount,
+      discount: calculatedDiscount,
       total,
       payment_method: paymentMethod,
       amount_paid: Number(amountPaid) || 0,
@@ -284,34 +270,22 @@ export default function POSPage() {
       price: item.price,
       subtotal: item.quantity * item.price,
     }));
-
     await addTransaction(trxData, items);
 
-    // Update stock + record stock movement
     for (const item of cart) {
       const product = products.find((p: any) => p.id === item.productId);
       if (product) {
-        let stockReduction = item.quantity; // default: 1 qty = 1 unit stok
+        let stockReduction = item.quantity;
         const selectedUnit = item.selectedUnit || item.unit;
-
         if (selectedUnit === item.bulkUnit) {
-          // Bulk: 1 Slop = 10 Bungkus → reduce 10 per qty
           stockReduction = item.quantity * (product.bulk_conversion || 1);
         } else if ((selectedUnit === (product.retail_unit || "eceran")) && product.retail_conversion > 0) {
-          // Eceran: 12 Batang = 1 Bungkus → 1 Batang = 1/12 Bungkus
-          // Reduce stock by qty/retail_conversion (e.g., 3 batang = 3/12 = 0.25 bungkus)
-          // Since stock is integer, we accumulate and reduce when full unit reached
-          // Practical: reduce 1 unit when eceran qty >= retail_conversion
           stockReduction = Math.floor(item.quantity / product.retail_conversion);
-          // Remainder tracked in movements but doesn't reduce stock yet
         }
-
         if (stockReduction > 0) {
           const newStock = Math.max(0, (product.stock || 0) - stockReduction);
           await supabase.from("products").update({ stock: newStock }).eq("id", item.productId);
         }
-
-        // Always record movement for accurate tracking
         await addStockMovement({
           product_id: item.productId,
           product_name: item.name,
@@ -323,60 +297,42 @@ export default function POSPage() {
         });
       }
     }
-
+    setTodayTrxCount(prev => prev + 1);
+    setTodayOmzet(prev => prev + total);
     setShowReceipt(true);
     setShowCart(false);
   };
 
   const handleNewTransaction = () => {
     const completedTrx = trxId;
-    setCart([]);
-    setDiscount(0);
-    setAmountPaid("");
-    setIsDebt(false);
-    setShowReceipt(false);
-    setPaymentMethod("cash");
+    setCart([]); setDiscountInput(""); setAmountPaid(""); setIsDebt(false);
+    setShowReceipt(false); setPaymentMethod("cash");
     setTrxId(`TRX-${String(Math.floor(Math.random() * 9000) + 1000)}`);
     setSuccessToast(completedTrx);
     setTimeout(() => setSuccessToast(""), 3000);
   };
 
-  // Print state
   const [printToast, setPrintToast] = useState<{ msg: string; color: string } | null>(null);
   const [printData, setPrintData] = useState<CartItem[] | null>(null);
-  const [printMeta, setPrintMeta] = useState<{ total: number; subtotal: number; discount: number; method: string; paid: number; change: number; trxId: string; date: string } | null>(null);
+  const [printMeta, setPrintMeta] = useState<any>(null);
 
   const handlePrintReceipt = () => {
     if (typeof window === "undefined" || !window.print) {
-      setPrintToast({ msg: "Cetak tidak didukung di perangkat ini. Silakan screenshot struk.", color: "bg-[#D97706]" });
+      setPrintToast({ msg: "Cetak tidak didukung di perangkat ini.", color: "bg-[#D97706]" });
       setTimeout(() => setPrintToast(null), 3000);
       return;
     }
-
-    // Save print data before closing modal
     setPrintData([...cart]);
     setPrintMeta({
-      total, subtotal, discount,
-      method: isDebt ? "Bon/Hutang" : paymentMethod === "cash" ? "Tunai" : paymentMethod === "transfer" ? "Transfer" : "QRIS",
-      paid: Number(amountPaid),
-      change: change > 0 ? change : 0,
-      trxId,
+      total, subtotal, discount: calculatedDiscount,
+      method: isDebt ? "Bon/Hutang" : paymentMethod === "cash" ? "Tunai" : paymentMethod === "transfer" ? "Transfer" : paymentMethod === "edc" ? "EDC" : "QRIS",
+      paid: Number(amountPaid), change: change > 0 ? change : 0, trxId,
       date: `${now.toLocaleDateString("id-ID")} ${now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`,
     });
-
-    // Close modal first
     setShowReceipt(false);
-
-    // Wait for modal to close, then print
-    setTimeout(() => {
-      window.print();
-    }, 350);
-
-    // After print
+    setTimeout(() => { window.print(); }, 350);
     const afterPrint = () => {
-      setPrintData(null);
-      setPrintMeta(null);
-      handleNewTransaction();
+      setPrintData(null); setPrintMeta(null); handleNewTransaction();
       setPrintToast({ msg: "Transaksi selesai ✓", color: "bg-[#16A34A]" });
       setTimeout(() => setPrintToast(null), 2000);
       window.removeEventListener("afterprint", afterPrint);
@@ -387,62 +343,61 @@ export default function POSPage() {
   const canPay = cart.length > 0 && (isDebt || paymentMethod !== "cash" || Number(amountPaid) >= total);
   const now = new Date();
 
-  // Format number to Rupiah display
   const formatRupiah = (num: number) => num > 0 ? `Rp ${num.toLocaleString("id-ID")}` : "Rp 0";
   const displayAmountPaid = Number(amountPaid) > 0 ? `Rp ${Number(amountPaid).toLocaleString("id-ID")}` : "";
 
-  // Handle rupiah input - only allow digits
   const handleAmountInput = (raw: string) => {
     const digits = raw.replace(/\D/g, "");
     setAmountPaid(digits);
   };
 
-  // Generate dynamic denomination buttons based on total
   const getDenominations = useMemo(() => {
     if (total <= 0) return [];
     const denoms: number[] = [];
     const commonDenoms = [1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000];
-
-    // Find denominations above total
-    for (const d of commonDenoms) {
-      if (d > total && denoms.length < 5) denoms.push(d);
-    }
-
-    // If total > 200k, add multiples
+    for (const d of commonDenoms) { if (d > total && denoms.length < 5) denoms.push(d); }
     if (total > 200000) {
       const base50 = Math.ceil(total / 50000) * 50000;
       const base100 = Math.ceil(total / 100000) * 100000;
       const candidates = [base50, base50 + 50000, base100, base100 + 100000, base100 + 200000];
-      for (const c of candidates) {
-        if (c > total && !denoms.includes(c) && denoms.length < 5) denoms.push(c);
-      }
+      for (const c of candidates) { if (c > total && !denoms.includes(c) && denoms.length < 5) denoms.push(c); }
     }
-
-    // Fill remaining with nearest round numbers above total
     if (denoms.length < 5) {
       const nearest10k = Math.ceil(total / 10000) * 10000;
       const candidates = [nearest10k, nearest10k + 5000, nearest10k + 10000, nearest10k + 20000, nearest10k + 50000];
-      for (const c of candidates) {
-        if (c > total && !denoms.includes(c) && denoms.length < 5) denoms.push(c);
-      }
+      for (const c of candidates) { if (c > total && !denoms.includes(c) && denoms.length < 5) denoms.push(c); }
     }
-
     return denoms.sort((a, b) => a - b).slice(0, 5);
   }, [total]);
 
-  // Format short label for buttons
   const shortLabel = (n: number) => {
     if (n >= 1000000) return `${(n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 1)}jt`;
     if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}rb`;
     return String(n);
   };
 
+  // ==================== RENDER ====================
   return (
     <div className="flex flex-col -m-4 lg:-m-6" style={{ height: "calc(100vh - 4rem)" }}>
+      {/* Top Header Bar */}
+      <div className="flex items-center justify-between px-4 lg:px-6 py-3 bg-[#072C2C] text-white">
+        <h1 className="text-lg lg:text-xl font-bold tracking-tight">KASIR POS</h1>
+        <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-1.5">
+            <span className="text-white/60 text-xs">Trx:</span>
+            <span className="font-bold">{todayTrxCount}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-white/60 text-xs">Omzet:</span>
+            <span className="font-bold">{formatCurrency(todayOmzet)}</span>
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-1 min-h-0 min-w-0 relative overflow-hidden">
         {/* Left Panel - Products */}
         <div className="flex-1 flex flex-col min-h-0 min-w-0 bg-[#EDEADE]">
-          {/* Search Bar */}
+          {/* Search + Scan */}
           <div className="px-3 sm:px-4 lg:px-5 pt-3 pb-2">
             <div className="flex gap-2 lg:gap-3">
               <div className="relative flex-1 min-w-0">
@@ -456,10 +411,12 @@ export default function POSPage() {
                   autoFocus
                 />
               </div>
-              <button onClick={openScanner} className={`flex-shrink-0 flex items-center gap-1.5 px-3 lg:px-5 py-2.5 bg-[#FF5F03] text-white rounded-lg lg:rounded-xl font-medium text-xs lg:text-sm hover:bg-[#e55503] transition-colors shadow-sm cursor-pointer ${!hasCamera ? "hidden" : ""}`}>
-                <ScanBarcode className="w-4 lg:w-5 h-4 lg:h-5" />
-                <span className="hidden sm:inline">Scan Barcode</span>
-              </button>
+              {hasCamera && (
+                <button onClick={openScanner} className="flex-shrink-0 flex items-center gap-1.5 px-3 lg:px-5 py-2.5 bg-[#FF5F03] text-white rounded-lg lg:rounded-xl font-medium text-xs lg:text-sm hover:bg-[#e55503] transition-colors shadow-sm cursor-pointer">
+                  <ScanBarcode className="w-4 lg:w-5 h-4 lg:h-5" />
+                  <span className="hidden sm:inline">Scan</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -521,10 +478,9 @@ export default function POSPage() {
           </div>
         </div>
 
-        {/* Mobile Cart Overlay - Full screen for easy input */}
+        {/* Mobile Cart Overlay */}
         {showCart && (
           <div className="lg:hidden fixed inset-0 z-50 flex flex-col bg-white">
-            {/* Cart Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-[#072C2C]/10 bg-[#072C2C]">
               <div className="flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5 text-white" />
@@ -533,45 +489,38 @@ export default function POSPage() {
               </div>
               <div className="flex items-center gap-2">
                 {cart.length > 0 && (
-                  <button onClick={clearCart} className="text-xs text-white/70 font-medium flex items-center gap-1 cursor-pointer active:opacity-70">
+                  <button onClick={clearCart} className="text-xs text-white/70 font-medium flex items-center gap-1 cursor-pointer">
                     <RotateCcw className="w-3.5 h-3.5" />Hapus
                   </button>
                 )}
-                <button onClick={() => setShowCart(false)} className="p-2 rounded-lg hover:bg-white/10 cursor-pointer active:scale-90">
+                <button onClick={() => setShowCart(false)} className="p-2 rounded-lg hover:bg-white/10 cursor-pointer">
                   <X className="w-5 h-5 text-white" />
                 </button>
               </div>
             </div>
 
-            {/* Cart Items */}
             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 bg-[#EDEADE]/30">
               {cart.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-[#072C2C]/20">
                   <ShoppingCart className="w-16 h-16 mb-3" />
                   <p className="text-base font-medium text-[#072C2C]/40">Keranjang kosong</p>
-                  <p className="text-sm text-[#072C2C]/30 mt-1">Pilih produk untuk memulai</p>
-                  <button onClick={() => setShowCart(false)} className="mt-4 px-5 py-2.5 bg-[#FF5F03] text-white rounded-xl font-medium text-sm cursor-pointer">
-                    Pilih Produk
-                  </button>
+                  <p className="text-sm text-[#072C2C]/30 mt-1">Pilih satuan produk di kiri</p>
+                  <button onClick={() => setShowCart(false)} className="mt-4 px-5 py-2.5 bg-[#FF5F03] text-white rounded-xl font-medium text-sm cursor-pointer">Pilih Produk</button>
                 </div>
               ) : cart.map((item) => (
                 <div key={item.productId} className="flex items-center gap-3 p-3.5 bg-white rounded-xl border border-[#072C2C]/5 shadow-sm">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-[#072C2C]">{item.name}</p>
-                    <p className="text-xs text-[#072C2C]/50 mt-0.5">{formatCurrency(item.price)} / {item.unit}</p>
+                    <p className="text-xs text-[#072C2C]/50 mt-0.5">{formatCurrency(item.price)} / {item.selectedUnit || item.unit}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => updateQuantity(item.productId, -1)} className="w-9 h-9 rounded-xl bg-[#EDEADE] flex items-center justify-center cursor-pointer active:scale-90 active:bg-[#DC2626]/10">
-                      <Minus className="w-4 h-4 text-[#072C2C]" />
-                    </button>
+                    <button onClick={() => updateQuantity(item.productId, -1)} className="w-9 h-9 rounded-xl bg-[#EDEADE] flex items-center justify-center cursor-pointer"><Minus className="w-4 h-4 text-[#072C2C]" /></button>
                     <span className="w-8 text-center text-base font-bold text-[#072C2C]">{item.quantity}</span>
-                    <button onClick={() => updateQuantity(item.productId, 1)} className="w-9 h-9 rounded-xl bg-[#EDEADE] flex items-center justify-center cursor-pointer active:scale-90 active:bg-[#16A34A]/10">
-                      <Plus className="w-4 h-4 text-[#072C2C]" />
-                    </button>
+                    <button onClick={() => updateQuantity(item.productId, 1)} className="w-9 h-9 rounded-xl bg-[#EDEADE] flex items-center justify-center cursor-pointer"><Plus className="w-4 h-4 text-[#072C2C]" /></button>
                   </div>
                   <div className="text-right min-w-[80px]">
                     <p className="text-sm font-bold text-[#072C2C]">{formatCurrency(item.subtotal)}</p>
-                    <button onClick={() => removeFromCart(item.productId)} className="mt-1 text-xs text-[#DC2626]/70 font-medium cursor-pointer active:text-[#DC2626]">Hapus</button>
+                    <button onClick={() => removeFromCart(item.productId)} className="mt-1 text-xs text-[#DC2626]/70 font-medium cursor-pointer">Hapus</button>
                   </div>
                 </div>
               ))}
@@ -581,33 +530,45 @@ export default function POSPage() {
             {cart.length > 0 && (
               <div className="border-t border-[#072C2C]/10 px-4 py-4 space-y-3 bg-white" style={{ paddingBottom: "env(safe-area-inset-bottom, 16px)" }}>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-bold text-[#072C2C]">Total</span>
+                  <span className="text-sm text-[#072C2C]/60">Subtotal</span>
+                  <span className="text-sm font-medium text-[#072C2C]">{formatCurrency(subtotal)}</span>
+                </div>
+                {/* Discount */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center border border-[#072C2C]/15 rounded-lg overflow-hidden">
+                    <button onClick={() => setDiscountType("rp")} className={`px-2.5 py-1.5 text-xs font-medium cursor-pointer ${discountType === "rp" ? "bg-[#072C2C] text-white" : "bg-white text-[#072C2C]/60"}`}>Rp</button>
+                    <button onClick={() => setDiscountType("persen")} className={`px-2.5 py-1.5 text-xs font-medium cursor-pointer ${discountType === "persen" ? "bg-[#072C2C] text-white" : "bg-white text-[#072C2C]/60"}`}>%</button>
+                  </div>
+                  <input type="text" inputMode="numeric" value={discountInput} onChange={(e) => setDiscountInput(e.target.value.replace(/\D/g, ""))} placeholder="0" className="flex-1 px-3 py-1.5 text-sm border border-[#072C2C]/15 rounded-lg text-right focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-[#072C2C]/60">Diskon</span>
+                  <span className="text-sm font-medium text-[#DC2626]">- {formatCurrency(calculatedDiscount)}</span>
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t border-[#072C2C]/10">
+                  <span className="text-base font-bold text-[#072C2C]">TOTAL</span>
                   <span className="text-2xl font-bold text-[#FF5F03]">{formatCurrency(total)}</span>
                 </div>
 
                 {/* Payment Method */}
-                <div className="grid grid-cols-3 gap-2">
-                  {([["cash", Banknote, "Tunai"], ["transfer", CreditCard, "Transfer"], ["qris", QrCode, "QRIS"]] as const).map(([method, Icon, label]) => (
-                    <button key={method} onClick={() => setPaymentMethod(method)} className={`flex items-center justify-center gap-1.5 px-3 py-3 rounded-xl text-sm font-medium cursor-pointer active:scale-95 transition-transform ${paymentMethod === method ? "bg-[#072C2C] text-white" : "bg-[#EDEADE] border border-[#D9D6C8] text-[#072C2C]/70"}`}>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {([["cash", Banknote, "Tunai"], ["qris", QrCode, "QRIS"], ["transfer", CreditCard, "Transfer"], ["edc", Smartphone, "EDC"]] as const).map(([method, Icon, label]) => (
+                    <button key={method} onClick={() => setPaymentMethod(method)} className={`flex flex-col items-center justify-center gap-1 px-2 py-2.5 rounded-xl text-xs font-medium cursor-pointer transition-all ${paymentMethod === method ? "bg-[#072C2C] text-white" : "bg-[#EDEADE] border border-[#D9D6C8] text-[#072C2C]/70"}`}>
                       <Icon className="w-4 h-4" />{label}
                     </button>
                   ))}
                 </div>
 
                 {/* Cash Input */}
-                {!isDebt && paymentMethod === "cash" && (
+                {paymentMethod === "cash" && (
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <p className="text-xs text-[#072C2C]/60 mb-1 font-medium">Bayar</p>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          value={displayAmountPaid}
-                          onChange={(e) => handleAmountInput(e.target.value)}
-                          placeholder="Rp 0"
-                          className="w-full px-4 py-3 text-lg font-bold text-[#072C2C] border border-[#072C2C]/15 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 text-right"
-                        />
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#072C2C]/40">Rp</span>
+                          <input type="text" inputMode="numeric" value={displayAmountPaid} onChange={(e) => handleAmountInput(e.target.value)} placeholder="0" className="w-full pl-9 pr-3 py-3 text-lg font-bold text-[#072C2C] border border-[#072C2C]/15 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 text-right" />
+                        </div>
                       </div>
                       <div>
                         <p className="text-xs text-[#072C2C]/60 mb-1 font-medium">Kembalian</p>
@@ -616,13 +577,10 @@ export default function POSPage() {
                         </div>
                       </div>
                     </div>
-                    {/* Dynamic denomination buttons */}
                     <div className="grid grid-cols-3 gap-2">
-                      <button onClick={() => setAmountPaid(String(total))} className={`min-h-[48px] px-2 py-2.5 text-sm font-bold rounded-xl cursor-pointer active:scale-95 transition-transform ${Number(amountPaid) === total ? "bg-[#FF5F03] text-white" : "bg-[#FF5F03]/10 text-[#FF5F03] border border-[#FF5F03]/30"}`}>
-                        PAS
-                      </button>
+                      <button onClick={() => setAmountPaid(String(total))} className={`min-h-[44px] px-2 py-2 text-sm font-bold rounded-xl cursor-pointer transition-transform ${Number(amountPaid) === total ? "bg-[#FF5F03] text-white" : "bg-[#FF5F03]/10 text-[#FF5F03] border border-[#FF5F03]/30"}`}>PAS</button>
                       {getDenominations.map((amount) => (
-                        <button key={amount} onClick={() => setAmountPaid(String(amount))} className={`min-h-[48px] px-2 py-2.5 text-sm font-medium rounded-xl cursor-pointer active:scale-95 transition-transform ${Number(amountPaid) === amount ? "bg-[#FF5F03]/10 text-[#FF5F03] border-2 border-[#FF5F03]" : "bg-[#EDEADE] text-[#072C2C] border border-[#D9D6C8]"}`}>
+                        <button key={amount} onClick={() => setAmountPaid(String(amount))} className={`min-h-[44px] px-2 py-2 text-sm font-medium rounded-xl cursor-pointer transition-transform ${Number(amountPaid) === amount ? "bg-[#FF5F03]/10 text-[#FF5F03] border-2 border-[#FF5F03]" : "bg-[#EDEADE] text-[#072C2C] border border-[#D9D6C8]"}`}>
                           {shortLabel(amount)}
                         </button>
                       ))}
@@ -630,35 +588,39 @@ export default function POSPage() {
                   </div>
                 )}
 
-                <button onClick={handlePayment} disabled={!canPay} className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#FF5F03] text-white font-bold text-base rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-[0.98] transition-transform shadow-lg shadow-[#FF5F03]/20">
-                  <CreditCard className="w-5 h-5" />Bayar {formatCurrency(total)}
-                </button>
+                <div className="flex gap-2 pt-2">
+                  <button onClick={clearCart} className="flex items-center justify-center gap-1.5 px-4 py-3.5 bg-[#EDEADE] text-[#072C2C]/70 font-medium text-sm rounded-xl cursor-pointer border border-[#D9D6C8]">
+                    <RotateCcw className="w-4 h-4" />Kosongkan
+                  </button>
+                  <button onClick={handlePayment} disabled={!canPay} className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-[#FF5F03] text-white font-bold text-sm rounded-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-[#FF5F03]/20">
+                    PROSES PEMBAYARAN
+                  </button>
+                </div>
               </div>
             )}
           </div>
         )}
 
-        {/* Desktop Right Panel */}
-        <div className="hidden lg:flex flex-shrink-0 w-[340px] xl:w-[380px] bg-white border-l border-[#072C2C]/10 flex-col min-h-0">
+        {/* Desktop Right Panel - Cart */}
+        <div className="hidden lg:flex flex-shrink-0 w-[360px] xl:w-[400px] bg-white border-l border-[#072C2C]/10 flex-col min-h-0">
+          {/* Cart Header */}
           <div className="px-4 py-3 border-b border-[#072C2C]/10">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
+                <ShoppingCart className="w-4 h-4 text-[#072C2C]" />
                 <h2 className="font-bold text-[#072C2C] text-sm">Keranjang</h2>
-                <span className="bg-[#FF5F03]/10 text-[#FF5F03] text-xs font-bold px-2 py-0.5 rounded-md">{cart.length} item</span>
               </div>
-              {cart.length > 0 && (
-                <button onClick={clearCart} className="text-[10px] text-[#DC2626] hover:text-[#DC2626]/80 font-medium flex items-center gap-1 cursor-pointer">
-                  <RotateCcw className="w-3 h-3" />Kosongkan
-                </button>
-              )}
+              <span className="bg-[#FF5F03]/10 text-[#FF5F03] text-xs font-bold px-2 py-0.5 rounded-md">{cart.length} item</span>
             </div>
           </div>
+
+          {/* Cart Items */}
           <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1.5">
             {cart.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-[#072C2C]/20">
                 <ShoppingCart className="w-14 h-14 mb-2" />
-                <p className="text-xs font-medium text-[#072C2C]/40">Keranjang kosong</p>
-                <p className="text-[10px] text-[#072C2C]/30 mt-0.5">Pilih produk untuk memulai</p>
+                <p className="text-sm font-medium text-[#072C2C]/40">Keranjang kosong</p>
+                <p className="text-[11px] text-[#072C2C]/30 mt-0.5">Pilih satuan produk di kiri</p>
               </div>
             ) : cart.map((item) => (
               <div key={item.productId} className="flex items-center gap-2 p-2.5 bg-[#EDEADE]/50 rounded-lg border border-[#072C2C]/5">
@@ -685,31 +647,65 @@ export default function POSPage() {
               </div>
             ))}
           </div>
-          {/* Desktop Payment */}
+
+          {/* Desktop Payment Section */}
           <div className="border-t border-[#072C2C]/10 px-4 py-3 space-y-2.5 bg-[#EDEADE]/30">
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs"><span className="text-[#072C2C]/60">Subtotal</span><span className="text-[#072C2C] font-medium">{formatCurrency(subtotal)}</span></div>
-              <div className="flex justify-between text-xs"><span className="text-[#072C2C]/60">Diskon</span><span className="text-[#DC2626] font-medium">- {formatCurrency(discount)}</span></div>
+            {/* Subtotal */}
+            <div className="flex justify-between text-xs">
+              <span className="text-[#072C2C]/60">Subtotal</span>
+              <span className="text-[#072C2C] font-medium">{formatCurrency(subtotal)}</span>
             </div>
+
+            {/* Discount Input with Rp/% toggle */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center border border-[#072C2C]/15 rounded-lg overflow-hidden">
+                <button onClick={() => setDiscountType("rp")} className={`px-2 py-1 text-[10px] font-medium cursor-pointer transition-colors ${discountType === "rp" ? "bg-[#072C2C] text-white" : "bg-white text-[#072C2C]/60 hover:bg-[#EDEADE]"}`}>Rp</button>
+                <button onClick={() => setDiscountType("persen")} className={`px-2 py-1 text-[10px] font-medium cursor-pointer transition-colors ${discountType === "persen" ? "bg-[#072C2C] text-white" : "bg-white text-[#072C2C]/60 hover:bg-[#EDEADE]"}`}>%</button>
+              </div>
+              <input type="text" inputMode="numeric" value={discountInput} onChange={(e) => setDiscountInput(e.target.value.replace(/\D/g, ""))} placeholder="0" className="flex-1 px-2.5 py-1.5 text-xs border border-[#072C2C]/15 rounded-lg text-right focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
+            </div>
+
+            {/* Discount display */}
+            <div className="flex justify-between text-xs">
+              <span className="text-[#072C2C]/60">Diskon</span>
+              <span className="text-[#DC2626] font-medium">- {formatCurrency(calculatedDiscount)}</span>
+            </div>
+
+            {/* Total */}
             <div className="flex justify-between items-center py-2 border-t border-[#072C2C]/10">
-              <span className="text-sm font-bold text-[#072C2C]">Total</span>
+              <span className="text-sm font-bold text-[#072C2C]">TOTAL</span>
               <span className="text-lg font-bold text-[#FF5F03]">{formatCurrency(total)}</span>
             </div>
+
+            {/* Payment Method - 4 buttons */}
             <div>
-              <p className="text-[10px] font-semibold text-[#072C2C]/60 mb-1.5 uppercase tracking-wider">Metode bayar</p>
-              <div className="grid grid-cols-3 gap-1.5">
-                {([["cash", Banknote, "Tunai"], ["transfer", CreditCard, "Transfer"], ["qris", QrCode, "QRIS"]] as const).map(([method, Icon, label]) => (
-                  <button key={method} onClick={() => setPaymentMethod(method)} className={`flex items-center justify-center gap-1 px-2 py-2 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${paymentMethod === method ? "bg-[#072C2C] text-white" : "bg-white border border-[#072C2C]/10 text-[#072C2C]/70 hover:border-[#FF5F03]/30"}`}>
+              <p className="text-[10px] font-semibold text-[#072C2C]/60 mb-1.5 uppercase tracking-wider">Metode Pembayaran</p>
+              <div className="grid grid-cols-4 gap-1.5">
+                {([["cash", Banknote, "Tunai"], ["qris", QrCode, "QRIS"], ["transfer", CreditCard, "Transfer"], ["edc", Smartphone, "EDC"]] as const).map(([method, Icon, label]) => (
+                  <button key={method} onClick={() => setPaymentMethod(method)} className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-lg text-[10px] font-medium transition-all cursor-pointer ${paymentMethod === method ? "bg-[#072C2C] text-white" : "bg-white border border-[#072C2C]/10 text-[#072C2C]/70 hover:border-[#FF5F03]/30"}`}>
                     <Icon className="w-3.5 h-3.5" />{label}
                   </button>
                 ))}
               </div>
             </div>
-            {!isDebt && paymentMethod === "cash" && (
+
+            {/* Cash amount input */}
+            {paymentMethod === "cash" && (
               <div className="space-y-2">
                 <div className="grid grid-cols-2 gap-2">
-                  <div><p className="text-[10px] text-[#072C2C]/60 mb-0.5 font-medium">Bayar</p><input type="text" inputMode="numeric" value={displayAmountPaid} onChange={(e) => handleAmountInput(e.target.value)} placeholder="Rp 0" className="w-full px-2.5 py-2 text-xs font-bold text-[#072C2C] border border-[#072C2C]/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 text-right" /></div>
-                  <div><p className="text-[10px] text-[#072C2C]/60 mb-0.5 font-medium">Kembalian</p><div className="w-full px-2.5 py-2 text-xs font-bold text-[#16A34A] bg-[#16A34A]/10 border border-[#16A34A]/20 rounded-lg text-right">{formatRupiah(change > 0 ? change : 0)}</div></div>
+                  <div>
+                    <p className="text-[10px] text-[#072C2C]/60 mb-0.5 font-medium">Bayar</p>
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-[#072C2C]/40">Rp</span>
+                      <input type="text" inputMode="numeric" value={displayAmountPaid} onChange={(e) => handleAmountInput(e.target.value)} placeholder="0" className="w-full pl-7 pr-2.5 py-2 text-xs font-bold text-[#072C2C] border border-[#072C2C]/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 text-right" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-[#072C2C]/60 mb-0.5 font-medium">Kembalian</p>
+                    <div className="w-full px-2.5 py-2 text-xs font-bold text-[#16A34A] bg-[#16A34A]/10 border border-[#16A34A]/20 rounded-lg text-right">
+                      {formatRupiah(change > 0 ? change : 0)}
+                    </div>
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 gap-1.5">
                   <button onClick={() => setAmountPaid(String(total))} className={`py-1.5 text-[10px] font-bold rounded-lg cursor-pointer transition-all ${Number(amountPaid) === total ? "bg-[#FF5F03] text-white" : "bg-[#FF5F03]/10 text-[#FF5F03] border border-[#FF5F03]/30 hover:bg-[#FF5F03]/20"}`}>PAS</button>
@@ -721,13 +717,20 @@ export default function POSPage() {
                 </div>
               </div>
             )}
-            <button onClick={handlePayment} disabled={!canPay} className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#FF5F03] text-white font-bold text-sm rounded-xl hover:bg-[#e55503] transition-all shadow-lg shadow-[#FF5F03]/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer">
-              <CreditCard className="w-4 h-4" />Proses Pembayaran
-            </button>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-1">
+              <button onClick={clearCart} className="flex items-center justify-center gap-1 px-3 py-2.5 bg-white border border-[#072C2C]/10 text-[#072C2C]/60 font-medium text-[11px] rounded-lg hover:border-[#DC2626]/30 hover:text-[#DC2626] cursor-pointer transition-colors">
+                <RotateCcw className="w-3 h-3" />Kosongkan
+              </button>
+              <button onClick={handlePayment} disabled={!canPay} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#FF5F03] text-white font-bold text-xs rounded-lg hover:bg-[#e55503] transition-all shadow-lg shadow-[#FF5F03]/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer">
+                PROSES PEMBAYARAN
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Mobile floating cart bar - always visible when items in cart */}
+        {/* Mobile floating cart bar */}
         {cart.length > 0 && !showCart && (
           <div className="lg:hidden fixed bottom-[64px] left-0 right-0 z-40 px-3 pb-2" style={{ paddingBottom: "env(safe-area-inset-bottom, 8px)" }}>
             <button onClick={() => setShowCart(true)} className="w-full flex items-center justify-between px-4 py-3.5 bg-[#FF5F03] text-white rounded-2xl shadow-xl shadow-[#FF5F03]/30 cursor-pointer active:scale-[0.98] transition-transform">
@@ -750,7 +753,7 @@ export default function POSPage() {
 
       {/* Scan Notification */}
       {scanNotification && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 px-4 py-2.5 bg-[#16A34A] text-white rounded-xl shadow-xl text-sm font-medium animate-in fade-in">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 px-4 py-2.5 bg-[#16A34A] text-white rounded-xl shadow-xl text-sm font-medium">
           <Check className="w-4 h-4" />{scanNotification}
         </div>
       )}
@@ -760,7 +763,7 @@ export default function POSPage() {
         <div className="fixed z-[9999] top-4 right-4 sm:top-6 sm:right-6 left-4 sm:left-auto animate-in slide-in-from-top fade-in duration-200">
           <div className="bg-[#16A34A] text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3">
             <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
+              <Check className="w-4 h-4" />
             </div>
             <div>
               <p className="text-sm font-bold">Transaksi Berhasil!</p>
@@ -775,7 +778,7 @@ export default function POSPage() {
         <div className="fixed z-[9999] top-4 right-4 sm:top-6 sm:right-6 left-4 sm:left-auto animate-in slide-in-from-top fade-in duration-200">
           <div className="bg-[#DC2626] text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3">
             <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6"/><path d="M9 9l6 6"/></svg>
+              <AlertTriangle className="w-4 h-4" />
             </div>
             <div>
               <p className="text-sm font-bold">Stok Tidak Cukup!</p>
@@ -797,39 +800,28 @@ export default function POSPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
           <div className="fixed inset-0 bg-black/70" onClick={closeScanner} />
           <div className="relative bg-black w-full h-full sm:w-[480px] sm:h-auto sm:max-h-[80vh] sm:rounded-2xl overflow-hidden flex flex-col">
-            {/* Header */}
             <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent">
               <p className="text-white text-sm font-medium">Scan Barcode</p>
-              <button onClick={closeScanner} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center cursor-pointer active:scale-90">
+              <button onClick={closeScanner} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center cursor-pointer">
                 <X className="w-5 h-5 text-white" />
               </button>
             </div>
-
-            {/* Camera Preview */}
             <div className="flex-1 relative min-h-[300px] sm:min-h-[360px]">
               <video ref={scanVideoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
-              {/* Viewfinder overlay */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="w-[70%] max-w-[280px] aspect-[3/2] relative">
                   <div className="absolute top-0 left-0 w-6 h-6 border-t-3 border-l-3 border-white rounded-tl-lg" />
                   <div className="absolute top-0 right-0 w-6 h-6 border-t-3 border-r-3 border-white rounded-tr-lg" />
                   <div className="absolute bottom-0 left-0 w-6 h-6 border-b-3 border-l-3 border-white rounded-bl-lg" />
                   <div className="absolute bottom-0 right-0 w-6 h-6 border-b-3 border-r-3 border-white rounded-br-lg" />
-                  {/* Scan line animation */}
                   <div className="absolute top-1/2 left-2 right-2 h-0.5 bg-[#FF5F03] opacity-80 animate-pulse" />
                 </div>
               </div>
             </div>
-
-            {/* Bottom info */}
-            <div className="bg-black px-4 py-4 text-center space-y-2">
-              {scannerError ? (
-                <p className="text-[#DC2626] text-sm">{scannerError}</p>
-              ) : scannerMsg ? (
-                <p className="text-[#D97706] text-sm">{scannerMsg}</p>
-              ) : (
-                <p className="text-white/70 text-sm">Arahkan kamera ke barcode produk</p>
-              )}
+            <div className="bg-black px-4 py-4 text-center">
+              {scannerError ? <p className="text-[#DC2626] text-sm">{scannerError}</p>
+                : scannerMsg ? <p className="text-[#D97706] text-sm">{scannerMsg}</p>
+                : <p className="text-white/70 text-sm">Arahkan kamera ke barcode produk</p>}
             </div>
           </div>
         </div>
@@ -844,8 +836,6 @@ export default function POSPage() {
               <h2 className="text-base font-bold text-[#072C2C]">Struk Pembayaran</h2>
               <button onClick={handleNewTransaction} className="p-1.5 rounded-lg hover:bg-[#EDEADE] cursor-pointer"><X className="w-5 h-5 text-[#072C2C]/60" /></button>
             </div>
-
-            {/* Receipt Content */}
             <div className="p-5">
               <div ref={receiptRef}>
                 <div style={{ fontFamily: "'Courier New', monospace", fontSize: "11px", textAlign: "center", lineHeight: "1.6" }}>
@@ -874,27 +864,25 @@ export default function POSPage() {
                   <p style={{ margin: "6px 0", borderTop: "1px dashed #ccc" }}></p>
                   <div style={{ textAlign: "right", fontSize: "11px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between" }}><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
-                    {discount > 0 && <div style={{ display: "flex", justifyContent: "space-between" }}><span>Diskon</span><span>-{formatCurrency(discount)}</span></div>}
+                    {calculatedDiscount > 0 && <div style={{ display: "flex", justifyContent: "space-between" }}><span>Diskon</span><span>-{formatCurrency(calculatedDiscount)}</span></div>}
                     <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", fontSize: "13px", marginTop: "4px" }}><span>TOTAL</span><span>{formatCurrency(total)}</span></div>
                   </div>
                   <p style={{ margin: "6px 0", borderTop: "1px dashed #ccc" }}></p>
                   <div style={{ textAlign: "right", fontSize: "11px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between" }}><span>Metode</span><span>{isDebt ? "Bon/Hutang" : paymentMethod === "cash" ? "Tunai" : paymentMethod === "transfer" ? "Transfer" : "QRIS"}</span></div>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}><span>Metode</span><span>{isDebt ? "Bon/Hutang" : paymentMethod === "cash" ? "Tunai" : paymentMethod === "transfer" ? "Transfer" : paymentMethod === "edc" ? "EDC" : "QRIS"}</span></div>
                     {!isDebt && paymentMethod === "cash" && <>
                       <div style={{ display: "flex", justifyContent: "space-between" }}><span>Bayar</span><span>{formatCurrency(Number(amountPaid))}</span></div>
                       <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold" }}><span>Kembalian</span><span>{formatCurrency(change > 0 ? change : 0)}</span></div>
                     </>}
                   </div>
                   <p style={{ margin: "8px 0", borderTop: "1px dashed #ccc" }}></p>
-                  <p style={{ fontSize: "10px", color: "#888", textAlign: "center" }}>Terima kasih atas kunjungan Anda!</p>
-                  <p style={{ fontSize: "9px", color: "#aaa", textAlign: "center" }}>Barang yang sudah dibeli tidak dapat dikembalikan</p>
+                  <p style={{ fontSize: "10px", color: "#888" }}>Terima kasih atas kunjungan Anda!</p>
+                  <p style={{ fontSize: "9px", color: "#aaa" }}>Barang yang sudah dibeli tidak dapat dikembalikan</p>
                 </div>
               </div>
-
-              {/* Actions */}
               <div className="flex gap-2 mt-5">
                 <Button variant="outline" className="flex-1" onClick={handleNewTransaction}>Tutup</Button>
-                <button onClick={handlePrintReceipt} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#FF5F03] text-white font-medium text-sm rounded-lg hover:bg-[#e55503] transition-colors cursor-pointer">
+                <button onClick={handlePrintReceipt} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#FF5F03] text-white font-medium text-sm rounded-lg hover:bg-[#e55503] cursor-pointer">
                   <Printer className="w-4 h-4" />Cetak Struk
                 </button>
               </div>
