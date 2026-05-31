@@ -35,9 +35,10 @@ export default function POSPage() {
   const [isDebt, setIsDebt] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [showCart, setShowCart] = useState(false);
-  const [trxId] = useState(() => `TRX-${String(Math.floor(Math.random() * 9000) + 1000)}`);
+  const [trxId, setTrxId] = useState(() => `TRX-${String(Math.floor(Math.random() * 9000) + 1000)}`);
   const receiptRef = useRef<HTMLDivElement>(null);
   const [products, setProducts] = useState<any[]>([]);
+  const [successToast, setSuccessToast] = useState("");
 
   // Load products from Supabase - reload on every focus/navigation
   useEffect(() => {
@@ -280,7 +281,18 @@ export default function POSPage() {
     setShowCart(false);
   };
 
-  const handleNewTransaction = () => { setCart([]); setDiscount(0); setAmountPaid(""); setIsDebt(false); setShowReceipt(false); };
+  const handleNewTransaction = () => {
+    const completedTrx = trxId;
+    setCart([]);
+    setDiscount(0);
+    setAmountPaid("");
+    setIsDebt(false);
+    setShowReceipt(false);
+    setPaymentMethod("cash");
+    setTrxId(`TRX-${String(Math.floor(Math.random() * 9000) + 1000)}`);
+    setSuccessToast(completedTrx);
+    setTimeout(() => setSuccessToast(""), 3000);
+  };
 
   // Print state
   const [printToast, setPrintToast] = useState<{ msg: string; color: string } | null>(null);
@@ -689,6 +701,21 @@ export default function POSPage() {
         </div>
       )}
 
+      {/* Success Toast */}
+      {successToast && (
+        <div className="fixed z-[9999] top-4 right-4 sm:top-6 sm:right-6 left-4 sm:left-auto animate-in slide-in-from-top fade-in duration-200">
+          <div className="bg-[#16A34A] text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3">
+            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
+            </div>
+            <div>
+              <p className="text-sm font-bold">Transaksi Berhasil!</p>
+              <p className="text-xs text-white/80">Transaksi {successToast} telah dicatat</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Print Toast */}
       {printToast && (
         <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 px-4 py-2.5 ${printToast.color} text-white rounded-xl shadow-xl text-sm font-medium`}>
@@ -742,11 +769,11 @@ export default function POSPage() {
       {/* Receipt Modal */}
       {showReceipt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-[#072C2C]/60 backdrop-blur-sm" onClick={() => setShowReceipt(false)} />
+          <div className="fixed inset-0 bg-[#072C2C]/60 backdrop-blur-sm" onClick={handleNewTransaction} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto border border-[#072C2C]/10">
             <div className="sticky top-0 bg-white flex items-center justify-between px-5 py-3 border-b border-[#072C2C]/10 rounded-t-2xl z-10">
               <h2 className="text-base font-bold text-[#072C2C]">Struk Pembayaran</h2>
-              <button onClick={() => setShowReceipt(false)} className="p-1.5 rounded-lg hover:bg-[#EDEADE] cursor-pointer"><X className="w-5 h-5 text-[#072C2C]/60" /></button>
+              <button onClick={handleNewTransaction} className="p-1.5 rounded-lg hover:bg-[#EDEADE] cursor-pointer"><X className="w-5 h-5 text-[#072C2C]/60" /></button>
             </div>
 
             {/* Receipt Content */}
@@ -797,7 +824,7 @@ export default function POSPage() {
 
               {/* Actions */}
               <div className="flex gap-2 mt-5">
-                <Button variant="outline" className="flex-1" onClick={() => setShowReceipt(false)}>Tutup</Button>
+                <Button variant="outline" className="flex-1" onClick={handleNewTransaction}>Tutup</Button>
                 <button onClick={handlePrintReceipt} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#FF5F03] text-white font-medium text-sm rounded-lg hover:bg-[#e55503] transition-colors cursor-pointer">
                   <Printer className="w-4 h-4" />Cetak Struk
                 </button>
