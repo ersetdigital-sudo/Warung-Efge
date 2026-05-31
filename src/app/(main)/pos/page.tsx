@@ -35,8 +35,13 @@ export default function POSPage() {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [products, setProducts] = useState<any[]>([]);
 
-  // Load products from Supabase
-  useEffect(() => { getProducts().then(setProducts); }, []);
+  // Load products from Supabase - reload on every focus/navigation
+  useEffect(() => {
+    const load = () => { getProducts().then(setProducts); };
+    load();
+    window.addEventListener("focus", load);
+    return () => window.removeEventListener("focus", load);
+  }, []);
 
   // Barcode scanner state
   const [showScanner, setShowScanner] = useState(false);
