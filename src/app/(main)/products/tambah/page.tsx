@@ -18,6 +18,7 @@ export default function AddProductPage() {
   const [hasBulkUnit, setHasBulkUnit] = useState(false);
   const [bulkUnit, setBulkUnit] = useState("");
   const [bulkConversion, setBulkConversion] = useState("");
+  const [prices, setPrices] = useState({ costPrice: "", sellingPrice: "", wholesalePrice: "", retailPrice: "" });
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const readerRef = useRef<any>(null);
@@ -91,10 +92,10 @@ export default function AddProductPage() {
       sku: (formData.get("sku") as string) || `SKU-${Date.now().toString(36).toUpperCase()}`,
       barcode: barcode || null,
       category: (formData.get("category") as string) || "Lain-lain",
-      cost_price: Number(formData.get("costPrice")) || 0,
-      selling_price: Number(formData.get("sellingPrice")) || 0,
-      wholesale_price: Number(formData.get("wholesalePrice")) || 0,
-      retail_price: Number(formData.get("retailPrice")) || 0,
+      cost_price: Number(prices.costPrice) || 0,
+      selling_price: Number(prices.sellingPrice) || 0,
+      wholesale_price: Number(prices.wholesalePrice) || 0,
+      retail_price: Number(prices.retailPrice) || 0,
       stock: Number(formData.get("stock")) || 0,
       min_stock: Number(formData.get("minStock")) || 0,
       unit: (formData.get("unit") as string) || "Pcs",
@@ -180,10 +181,10 @@ export default function AddProductPage() {
           <div className="border-t border-[#D9D6C8] pt-5">
             <h3 className="text-sm font-bold text-[#072C2C] mb-3 uppercase tracking-wider">Harga</h3>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Modal</label><input type="number" name="costPrice" placeholder="0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Jual</label><input type="number" name="sellingPrice" placeholder="0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Grosir</label><input type="number" name="wholesalePrice" placeholder="0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Eceran</label><input type="number" name="retailPrice" placeholder="0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Modal</label><input type="text" inputMode="numeric" value={prices.costPrice ? `Rp ${Number(prices.costPrice).toLocaleString("id-ID")}` : ""} onChange={(e) => setPrices(p => ({ ...p, costPrice: e.target.value.replace(/\D/g, "") }))} placeholder="Rp 0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Jual</label><input type="text" inputMode="numeric" value={prices.sellingPrice ? `Rp ${Number(prices.sellingPrice).toLocaleString("id-ID")}` : ""} onChange={(e) => setPrices(p => ({ ...p, sellingPrice: e.target.value.replace(/\D/g, "") }))} placeholder="Rp 0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Grosir</label><input type="text" inputMode="numeric" value={prices.wholesalePrice ? `Rp ${Number(prices.wholesalePrice).toLocaleString("id-ID")}` : ""} onChange={(e) => setPrices(p => ({ ...p, wholesalePrice: e.target.value.replace(/\D/g, "") }))} placeholder="Rp 0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Eceran</label><input type="text" inputMode="numeric" value={prices.retailPrice ? `Rp ${Number(prices.retailPrice).toLocaleString("id-ID")}` : ""} onChange={(e) => setPrices(p => ({ ...p, retailPrice: e.target.value.replace(/\D/g, "") }))} placeholder="Rp 0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
             </div>
           </div>
 
