@@ -5,7 +5,7 @@ import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, QrCode, Banknote
 import Button from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/utils";
 import { categories } from "@/data/mock-data";
-import { getProducts, addTransaction } from "@/lib/db";
+import { getProducts, addTransaction, addStockMovement } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 
 interface CartItem {
@@ -238,7 +238,7 @@ export default function POSPage() {
 
     await addTransaction(trxData, items);
 
-    // Update stock in Supabase
+    // Update stock + record stock movement
     for (const item of cart) {
       const product = products.find((p: any) => p.id === item.productId);
       if (product) {
@@ -248,6 +248,17 @@ export default function POSPage() {
         }
         const newStock = Math.max(0, (product.stock || 0) - stockReduction);
         await supabase.from("products").update({ stock: newStock }).eq("id", item.productId);
+
+        // Record stock movement
+        await addStockMovement({
+          product_id: item.productId,
+          product_name: item.name,
+          type: "out",
+          quantity: stockReduction,
+          unit: product.unit || item.unit,
+          notes: `Penjualan ${trxId} (${item.quantity} ${item.selectedUnit || item.unit})`,
+          user_name: "Pak Efge",
+        });
       }
     }
 
