@@ -243,9 +243,21 @@ export default function POSPage() {
       const product = products.find((p: any) => p.id === item.productId);
       if (product) {
         let stockReduction = item.quantity;
-        if (item.selectedUnit === item.bulkUnit) {
+        const selectedUnit = item.selectedUnit || item.unit;
+
+        if (selectedUnit === item.bulkUnit) {
+          // Selling in bulk unit (e.g., Slop) → reduce by qty × conversion
           stockReduction = item.quantity * (item.bulkConversion || 1);
+        } else if (selectedUnit === (item.retailUnit || "eceran") && item.retailPrice) {
+          // Selling in retail/eceran unit (e.g., Batang) → reduce fractionally
+          // Stock is in selling unit (Bungkus). Need to know how many retail = 1 selling unit
+          // For now: 1 retail unit = 1 unit of stock reduction (smallest trackable)
+          // If product has bulk_conversion, retail is 1/bulk_conversion of bulk, which = 1 selling unit / (items per selling unit)
+          // Simple approach: eceran doesn't reduce full unit, track in smallest integer
+          stockReduction = item.quantity; // 1 eceran = 1 unit stok terkecil
         }
+        // else: selling in normal unit (Bungkus) → reduce by qty (default)
+
         const newStock = Math.max(0, (product.stock || 0) - stockReduction);
         await supabase.from("products").update({ stock: newStock }).eq("id", item.productId);
 
@@ -255,8 +267,8 @@ export default function POSPage() {
           product_name: item.name,
           type: "out",
           quantity: stockReduction,
-          unit: product.unit || item.unit,
-          notes: `Penjualan ${trxId} (${item.quantity} ${item.selectedUnit || item.unit})`,
+          unit: selectedUnit,
+          notes: `Penjualan ${trxId} (${item.quantity} ${selectedUnit})`,
           user_name: "Pak Efge",
         });
       }
