@@ -33,13 +33,13 @@ END $$;
 -- ============================================
 
 -- 1. Sampoerna Mild 16 (Rokok)
-INSERT INTO products (name, sku, barcode, category, cost_price, selling_price, wholesale_price, retail_price, stock, min_stock, unit, has_bulk_unit, bulk_unit, bulk_conversion, retail_unit, retail_price)
-VALUES ('Sampoerna Mild 16', 'DEMO-001', '8999909090001', 'Rokok', 24000, 27000, 270000, 2000, 96, 20, 'Bungkus', true, 'Slop', 10, 'Batang', 2000)
+INSERT INTO products (name, sku, barcode, category, cost_price, selling_price, wholesale_price, retail_price, stock, min_stock, unit, has_bulk_unit, bulk_unit, bulk_conversion, retail_unit)
+VALUES ('Sampoerna Mild 16', 'DEMO-001', '8999909090001', 'Rokok', 24000, 27000, 270000, 2000, 96, 20, 'Bungkus', true, 'Slop', 10, 'Batang')
 ON CONFLICT (sku) DO NOTHING;
 
 -- 2. Gudang Garam Merah (Rokok)
-INSERT INTO products (name, sku, barcode, category, cost_price, selling_price, wholesale_price, retail_price, stock, min_stock, unit, has_bulk_unit, bulk_unit, bulk_conversion, retail_unit, retail_price)
-VALUES ('Gudang Garam Merah', 'DEMO-002', '8999909090002', 'Rokok', 20000, 22500, 225000, 2000, 120, 20, 'Bungkus', true, 'Slop', 10, 'Batang', 2000)
+INSERT INTO products (name, sku, barcode, category, cost_price, selling_price, wholesale_price, retail_price, stock, min_stock, unit, has_bulk_unit, bulk_unit, bulk_conversion, retail_unit)
+VALUES ('Gudang Garam Merah', 'DEMO-002', '8999909090002', 'Rokok', 20000, 22500, 225000, 2000, 120, 20, 'Bungkus', true, 'Slop', 10, 'Batang')
 ON CONFLICT (sku) DO NOTHING;
 
 -- 3. Indomie Goreng (Mie & Pasta)
@@ -63,8 +63,8 @@ VALUES ('Minyak Goreng Bimoli 2L', 'DEMO-006', '8999909090006', 'Minyak & Menteg
 ON CONFLICT (sku) DO NOTHING;
 
 -- 7. Gula Pasir 1kg (Gula & Garam)
-INSERT INTO products (name, sku, barcode, category, cost_price, selling_price, wholesale_price, retail_price, stock, min_stock, unit, has_bulk_unit, bulk_unit, bulk_conversion, retail_unit, retail_price)
-VALUES ('Gula Pasir 1kg', 'DEMO-007', '8999909090007', 'Gula & Garam', 14000, 16000, 390000, 16000, 50, 15, 'Kg', true, 'Karung 25kg', 25, 'Kg', 16000)
+INSERT INTO products (name, sku, barcode, category, cost_price, selling_price, wholesale_price, retail_price, stock, min_stock, unit, has_bulk_unit, bulk_unit, bulk_conversion)
+VALUES ('Gula Pasir 1kg', 'DEMO-007', '8999909090007', 'Gula & Garam', 14000, 16000, 390000, 16000, 50, 15, 'Kg', true, 'Karung 25kg', 25)
 ON CONFLICT (sku) DO NOTHING;
 
 -- 8. Sunlight 400ml (Sabun & Detergen)
