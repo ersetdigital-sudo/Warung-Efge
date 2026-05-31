@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { TrendingUp, Receipt, AlertTriangle, Wallet, ArrowRight, Check, X, Download, Search, Bell, Calculator } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { getProducts, getTransactions, getCustomers, getSuppliers } from "@/lib/db";
@@ -35,20 +35,6 @@ function AnimatedNumber({ value, prefix = "", suffix = "", duration = 1200 }: { 
   return <span>{prefix}{formatted}{suffix}</span>;
 }
 
-const paymentMethodData = [
-  { name: "Tunai", value: 48, color: "#FF5F03" },
-  { name: "QRIS", value: 34, color: "#072C2C" },
-  { name: "Transfer", value: 18, color: "#D97706" },
-];
-
-const topProductsData = [
-  { emoji: "🍜", name: "Indomie Goreng", cat: "Mie & Pasta", sold: "246 pcs", rev: "Rp 861rb", status: "Aman", statusType: "g", trend: [40, 60, 45, 80, 70, 90, 85] },
-  { emoji: "🫙", name: "Aqua 600ml", cat: "Minuman", sold: "198 btl", rev: "Rp 792rb", status: "Aman", statusType: "g", trend: [50, 55, 60, 50, 70, 80, 75] },
-  { emoji: "🌾", name: "Beras Premium 5kg", cat: "Beras & Tepung", sold: "87 kg", rev: "Rp 652rb", status: "Menipis", statusType: "a", trend: [90, 70, 60, 75, 50, 55, 60] },
-  { emoji: "🫒", name: "Minyak Goreng 2L", cat: "Minyak & Mentega", sold: "72 btl", rev: "Rp 448rb", status: "Aman", statusType: "g", trend: [30, 45, 40, 55, 50, 60, 58] },
-  { emoji: "🍬", name: "Gula Pasir 1kg", cat: "Gula & Garam", sold: "61 kg", rev: "Rp 232rb", status: "Kritis", statusType: "r", trend: [80, 60, 50, 40, 45, 35, 30] },
-];
-
 function MiniSparkline({ data, color }: { data: number[]; color: string }) {
   const max = Math.max(...data);
   const min = Math.min(...data);
@@ -68,11 +54,12 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({ totalSales: 0, totalTransactions: 0, lowStockCount: 0, avgTransaction: 0 });
   const [lowStockProducts, setLowStockProducts] = useState<any[]>([]);
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  const [products, setProductsData] = useState<any[]>([]);
 
   useEffect(() => { loadDashboardData(); }, []);
 
   const loadDashboardData = async () => {
-    const [prods, trxs, custs, supps] = await Promise.all([getProducts(), getTransactions(), getCustomers(), getSuppliers()]);
+    const [prods, trxs] = await Promise.all([getProducts(), getTransactions()]);
 
     const totalSales = trxs.reduce((s: number, t: any) => s + (t.total || 0), 0);
     const totalTransactions = trxs.length;
@@ -81,23 +68,64 @@ export default function DashboardPage() {
 
     setStats({ totalSales, totalTransactions, lowStockCount: lowStock.length, avgTransaction });
     setLowStockProducts(lowStock.slice(0, 5));
-    setRecentTransactions(trxs.slice(0, 6));
+    setRecentTransactions(trxs);
+    setProductsData(prods);
   };
 
   const dotColors: Record<string, string> = { success: "bg-[#F0FDF4] text-[#16A34A]", warning: "bg-[#FFFBEB] text-[#D97706]", danger: "bg-[#FEF2F2] text-[#DC2626]", info: "bg-[#EFF6FF] text-[#1D4ED8]" };
   const statusColors: Record<string, string> = { g: "#16A34A", a: "#D97706", r: "#DC2626" };
   const pillClasses: Record<string, string> = { g: "bg-[#F0FDF4] text-[#16A34A] border-[#bbf7d0]", a: "bg-[#FFFBEB] text-[#D97706] border-[#fde68a]", r: "bg-[#FEF2F2] text-[#DC2626] border-[#fecaca]" };
 
-  // Generate chart data from transactions (simulated daily breakdown)
-  const chartData = [
-    { name: "Sen", salesK: Math.round(stats.totalSales * 0.12 / 1000) },
-    { name: "Sel", salesK: Math.round(stats.totalSales * 0.14 / 1000) },
-    { name: "Rab", salesK: Math.round(stats.totalSales * 0.13 / 1000) },
-    { name: "Kam", salesK: Math.round(stats.totalSales * 0.16 / 1000) },
-    { name: "Jum", salesK: Math.round(stats.totalSales * 0.15 / 1000) },
-    { name: "Sab", salesK: Math.round(stats.totalSales * 0.18 / 1000) },
-    { name: "Min", salesK: Math.round(stats.totalSales * 0.12 / 1000) },
-  ];
+  // Generate chart data from real transactions grouped by day
+  const chartData = useMemo(() => {
+    if (recentTransactions.length === 0) return [{ name: "Belum ada", salesK: 0 }];
+    const dayLabels = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+    const dailyMap: Record<string, number> = {};
+    for (const trx of recentTransactions) {
+      const date = new Date(trx.created_at);
+      const day = dayLabels[date.getDay()];
+      dailyMap[day] = (dailyMap[day] || 0) + (trx.total || 0);
+    }
+    // Show all 7 days, fill 0 for days without transactions
+    return dayLabels.slice(1).concat(dayLabels[0]).map(name => ({ name, salesK: Math.round((dailyMap[name] || 0) / 1000) }));
+  }, [recentTransactions]);
+
+  // Payment method breakdown from real transactions
+  const paymentMethodData = useMemo(() => {
+    if (recentTransactions.length === 0) return [
+      { name: "Tunai", value: 0, color: "#FF5F03" },
+      { name: "QRIS", value: 0, color: "#072C2C" },
+      { name: "Transfer", value: 0, color: "#D97706" },
+    ];
+    const total = recentTransactions.length;
+    const cash = recentTransactions.filter((t: any) => t.payment_method === "cash").length;
+    const qris = recentTransactions.filter((t: any) => t.payment_method === "qris").length;
+    const transfer = recentTransactions.filter((t: any) => t.payment_method === "transfer").length;
+    return [
+      { name: "Tunai", value: Math.round((cash / total) * 100), color: "#FF5F03" },
+      { name: "QRIS", value: Math.round((qris / total) * 100), color: "#072C2C" },
+      { name: "Transfer", value: Math.round((transfer / total) * 100), color: "#D97706" },
+    ];
+  }, [recentTransactions]);
+
+  // Top products from real transaction_items
+  const topProductsData = useMemo(() => {
+    const salesMap: Record<string, { name: string; cat: string; sold: number; rev: number }> = {};
+    for (const trx of recentTransactions) {
+      for (const item of (trx.transaction_items || [])) {
+        const key = item.product_name || "Unknown";
+        if (!salesMap[key]) salesMap[key] = { name: key, cat: "", sold: 0, rev: 0 };
+        salesMap[key].sold += item.quantity || 0;
+        salesMap[key].rev += item.subtotal || 0;
+      }
+    }
+    // Match category from products
+    const result = Object.values(salesMap).sort((a, b) => b.rev - a.rev).slice(0, 5);
+    return result.map(p => {
+      const prod = products.find((pr: any) => pr.name === p.name);
+      return { ...p, cat: prod?.category || "", unit: prod?.unit || "pcs", stock: prod?.stock || 0, min_stock: prod?.min_stock || 0 };
+    });
+  }, [recentTransactions, products]);
 
   // Activities from recent transactions + low stock warnings
   const activities: { id: number; type: string; icon: string; title: string; meta: string; amount: string }[] = [
@@ -280,27 +308,33 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {topProductsData.map((p) => (
+              {topProductsData.length === 0 ? (
+                <tr><td colSpan={5} className="px-2.5 py-6 text-center text-[11px] text-[#9CA3AF]">Belum ada data penjualan</td></tr>
+              ) : topProductsData.map((p: any, idx: number) => {
+                const status = p.stock <= 0 ? "Habis" : p.stock <= p.min_stock ? "Menipis" : "Aman";
+                const statusType = p.stock <= 0 ? "r" : p.stock <= p.min_stock ? "a" : "g";
+                return (
                 <tr key={p.name} className="border-b border-[#D9D6C8] last:border-b-0 hover:bg-[#FAFAF8] transition-colors">
                   <td className="px-2.5 py-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded bg-[#EDEADE] border border-[#D9D6C8] flex items-center justify-center text-[14px] flex-shrink-0">{p.emoji}</div>
+                      <div className="w-7 h-7 rounded bg-[#EDEADE] border border-[#D9D6C8] flex items-center justify-center text-[12px] font-bold text-[#072C2C]/50 flex-shrink-0">{idx + 1}</div>
                       <div>
                         <div className="text-[12px] font-medium text-[#111827]">{p.name}</div>
                         <div className="text-[10px] text-[#9CA3AF] font-light">{p.cat}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-2.5 py-2 font-mono text-[11px]">{p.sold}</td>
-                  <td className="px-2.5 py-2 font-mono text-[11px] font-bold text-[#16A34A] hidden sm:table-cell">{p.rev}</td>
+                  <td className="px-2.5 py-2 font-mono text-[11px]">{p.sold} {p.unit}</td>
+                  <td className="px-2.5 py-2 font-mono text-[11px] font-bold text-[#16A34A] hidden sm:table-cell">{formatCurrency(p.rev)}</td>
                   <td className="px-2.5 py-2">
-                    <span className={`text-[9px] font-bold font-mono px-[7px] py-[2px] rounded border ${pillClasses[p.statusType]} tracking-wide`}>{p.status}</span>
+                    <span className={`text-[9px] font-bold font-mono px-[7px] py-[2px] rounded border ${pillClasses[statusType]} tracking-wide`}>{status}</span>
                   </td>
                   <td className="px-2.5 py-2 hidden md:table-cell">
-                    <MiniSparkline data={p.trend} color={statusColors[p.statusType]} />
+                    <span className="text-[10px] text-[#9CA3AF]">—</span>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
           </div>
