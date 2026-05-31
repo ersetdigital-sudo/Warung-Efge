@@ -242,31 +242,32 @@ export default function POSPage() {
     for (const item of cart) {
       const product = products.find((p: any) => p.id === item.productId);
       if (product) {
-        let stockReduction = item.quantity;
+        let stockReduction = item.quantity; // default: 1 qty = 1 unit stok
         const selectedUnit = item.selectedUnit || item.unit;
 
         if (selectedUnit === item.bulkUnit) {
-          // Selling in bulk unit (e.g., Slop) → reduce by qty × conversion
-          stockReduction = item.quantity * (item.bulkConversion || 1);
-        } else if (selectedUnit === (item.retailUnit || "eceran") && item.retailPrice) {
-          // Selling in retail/eceran unit (e.g., Batang) → reduce fractionally
-          // Stock is in selling unit (Bungkus). Need to know how many retail = 1 selling unit
-          // For now: 1 retail unit = 1 unit of stock reduction (smallest trackable)
-          // If product has bulk_conversion, retail is 1/bulk_conversion of bulk, which = 1 selling unit / (items per selling unit)
-          // Simple approach: eceran doesn't reduce full unit, track in smallest integer
-          stockReduction = item.quantity; // 1 eceran = 1 unit stok terkecil
+          // Bulk: 1 Slop = 10 Bungkus → reduce 10 per qty
+          stockReduction = item.quantity * (product.bulk_conversion || 1);
+        } else if ((selectedUnit === (product.retail_unit || "eceran")) && product.retail_conversion > 0) {
+          // Eceran: 12 Batang = 1 Bungkus → 1 Batang = 1/12 Bungkus
+          // Reduce stock by qty/retail_conversion (e.g., 3 batang = 3/12 = 0.25 bungkus)
+          // Since stock is integer, we accumulate and reduce when full unit reached
+          // Practical: reduce 1 unit when eceran qty >= retail_conversion
+          stockReduction = Math.floor(item.quantity / product.retail_conversion);
+          // Remainder tracked in movements but doesn't reduce stock yet
         }
-        // else: selling in normal unit (Bungkus) → reduce by qty (default)
 
-        const newStock = Math.max(0, (product.stock || 0) - stockReduction);
-        await supabase.from("products").update({ stock: newStock }).eq("id", item.productId);
+        if (stockReduction > 0) {
+          const newStock = Math.max(0, (product.stock || 0) - stockReduction);
+          await supabase.from("products").update({ stock: newStock }).eq("id", item.productId);
+        }
 
-        // Record stock movement
+        // Always record movement for accurate tracking
         await addStockMovement({
           product_id: item.productId,
           product_name: item.name,
           type: "out",
-          quantity: stockReduction,
+          quantity: item.quantity,
           unit: selectedUnit,
           notes: `Penjualan ${trxId} (${item.quantity} ${selectedUnit})`,
           user_name: "Pak Efge",

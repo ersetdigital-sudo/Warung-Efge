@@ -18,6 +18,7 @@ export default function AddProductPage() {
   const [hasBulkUnit, setHasBulkUnit] = useState(false);
   const [bulkUnit, setBulkUnit] = useState("");
   const [bulkConversion, setBulkConversion] = useState("");
+  const [retailConversion, setRetailConversion] = useState("");
   const [prices, setPrices] = useState({ costPrice: "", sellingPrice: "", wholesalePrice: "", retailPrice: "" });
   const [unitValue, setUnitValue] = useState("Pcs");
   const [retailUnit, setRetailUnit] = useState("");
@@ -110,6 +111,7 @@ export default function AddProductPage() {
       newProduct.bulk_unit = bulkUnit;
       newProduct.bulk_conversion = Number(bulkConversion);
       if (retailUnit) newProduct.retail_unit = retailUnit;
+      if (retailConversion) newProduct.retail_conversion = Number(retailConversion);
     }
 
     const result = await addProduct(newProduct);
@@ -206,9 +208,21 @@ export default function AddProductPage() {
                     <input type="number" value={bulkConversion} onChange={(e) => { setBulkConversion(e.target.value); if (e.target.value && Number(e.target.value) > 1 && prices.sellingPrice) { setPrices(p => ({ ...p, wholesalePrice: String(Number(p.sellingPrice) * Number(e.target.value)) })); } }} placeholder="Contoh: 10" min="2" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Satuan Terkecil (opsional)</label>
+                    <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Satuan Terkecil</label>
                     <input type="text" value={retailUnit} onChange={(e) => setRetailUnit(e.target.value)} placeholder="Contoh: Batang" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
                   </div>
+                </div>
+                {retailUnit && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-3">
+                    <div>
+                      <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">1 {unitValue} = berapa {retailUnit}?</label>
+                      <input type="number" value={retailConversion} onChange={(e) => setRetailConversion(e.target.value)} placeholder="Contoh: 12" min="2" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
+                    </div>
+                  </div>
+                )}
+                {retailUnit && retailConversion && Number(retailConversion) > 1 && (
+                  <p className="text-xs text-[#16A34A] font-medium mt-2 bg-[#F0FDF4] px-3 py-1.5 rounded-lg inline-block">1 {unitValue} = {retailConversion} {retailUnit}</p>
+                )}
                 </div>
                 {bulkUnit && bulkConversion && Number(bulkConversion) > 1 && (
                   <p className="text-xs text-[#16A34A] font-medium mt-2 bg-[#F0FDF4] px-3 py-1.5 rounded-lg inline-block">1 {bulkUnit} = {bulkConversion} {unitValue}</p>
