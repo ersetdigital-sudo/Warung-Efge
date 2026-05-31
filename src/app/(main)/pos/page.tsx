@@ -206,7 +206,7 @@ export default function POSPage() {
       let price = item.sellingPrice || 0;
       if (newUnit === item.bulkUnit) {
         price = item.wholesalePrice || (item.sellingPrice || 0) * (item.bulkConversion || 1);
-      } else if (newUnit === item.retailUnit && item.retailPrice) {
+      } else if ((newUnit === item.retailUnit || newUnit === "eceran") && item.retailPrice) {
         price = item.retailPrice;
       }
       return { ...item, selectedUnit: newUnit, price, subtotal: item.quantity * price };
@@ -372,7 +372,7 @@ export default function POSPage() {
                     <p className="text-[11px] sm:text-xs lg:text-sm font-semibold text-[#072C2C] truncate">{product.name}</p>
                     <p className="text-xs sm:text-sm lg:text-lg font-bold text-[#FF5F03] mt-0.5 lg:mt-1">{formatCurrency(product.selling_price)}</p>
                     {product.has_bulk_unit && product.retail_price > 0 && (
-                      <p className="text-[8px] sm:text-[9px] text-[#072C2C]/50">Eceran: {formatCurrency(product.retail_price)}</p>
+                      <p className="text-[8px] sm:text-[9px] text-[#072C2C]/50">Eceran: {formatCurrency(product.retail_price)}/{product.retail_unit || "eceran"}</p>
                     )}
                     <div className="flex items-center gap-1 mt-1">
                       {isLowStock && <AlertTriangle className="w-3 h-3 text-[#D97706]" />}
@@ -542,7 +542,7 @@ export default function POSPage() {
                 </div>
                 {item.hasBulkUnit && item.bulkUnit && (
                   <select value={item.selectedUnit || item.unit} onChange={(e) => changeCartUnit(item.productId, e.target.value)} className="text-[10px] px-1.5 py-1 border border-[#D9D6C8] rounded text-[#072C2C] bg-white cursor-pointer">
-                    {item.retailPrice && item.retailPrice > 0 && item.retailUnit && <option value={item.retailUnit}>{item.retailUnit}</option>}
+                    {item.retailPrice && item.retailPrice > 0 && <option value={item.retailUnit || "eceran"}>{item.retailUnit || "Eceran"}</option>}
                     <option value={item.unit}>{item.unit}</option>
                     <option value={item.bulkUnit}>{item.bulkUnit}</option>
                   </select>
