@@ -28,7 +28,11 @@ export async function updateProduct(id: string, updates: Record<string, unknown>
 }
 
 export async function deleteProduct(id: string) {
-  // Hard delete — remove from database completely
+  // Delete related records first
+  await supabase.from("product_units").delete().eq("product_id", id);
+  await supabase.from("stock_movements").delete().eq("product_id", id);
+  await supabase.from("transaction_items").delete().eq("product_id", id);
+  // Then delete product
   const { error } = await supabase.from("products").delete().eq("id", id);
   if (error) console.error("deleteProduct error:", error);
   return !error;
