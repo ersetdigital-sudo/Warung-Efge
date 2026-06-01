@@ -17,6 +17,7 @@ export default function ReportsPage() {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [newExpName, setNewExpName] = useState("");
   const [newExpAmount, setNewExpAmount] = useState("");
+  const [newExpDate, setNewExpDate] = useState(new Date().toISOString().split("T")[0]);
   const [showAddExp, setShowAddExp] = useState(false);
 
   const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
@@ -357,8 +358,9 @@ export default function ReportsPage() {
         const labaBersih = totalSales - totalExpenses;
         const handleAddExp = async () => {
           if (!newExpName || !newExpAmount) return;
-          await addExpense({ name: newExpName, amount: Number(newExpAmount), month: currentMonth });
-          setNewExpName(""); setNewExpAmount(""); setShowAddExp(false);
+          const expMonth = newExpDate ? newExpDate.substring(0, 7) : currentMonth;
+          await addExpense({ name: newExpName, amount: Number(newExpAmount), month: expMonth });
+          setNewExpName(""); setNewExpAmount(""); setNewExpDate(new Date().toISOString().split("T")[0]); setShowAddExp(false);
           getExpenses(currentMonth).then(setExpenses);
         };
         const handleDeleteExp = async (id: string) => {
@@ -448,9 +450,10 @@ export default function ReportsPage() {
                   {/* Add new */}
                   {showAddExp ? (
                     <div className="px-4 py-3 bg-[#FFFBEB] space-y-2">
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-3 gap-2">
                         <input value={newExpName} onChange={e => setNewExpName(e.target.value)} placeholder="Nama biaya" className="px-3 py-2 text-xs border border-[#D9D6C8] rounded-lg focus:outline-none focus:border-[#FF5F03]" />
                         <input value={newExpAmount} onChange={e => setNewExpAmount(e.target.value)} type="number" placeholder="Nominal" className="px-3 py-2 text-xs font-mono border border-[#D9D6C8] rounded-lg focus:outline-none focus:border-[#FF5F03]" />
+                        <input value={newExpDate} onChange={e => setNewExpDate(e.target.value)} type="date" className="px-3 py-2 text-xs border border-[#D9D6C8] rounded-lg focus:outline-none focus:border-[#FF5F03]" />
                       </div>
                       <div className="flex gap-2">
                         <button onClick={handleAddExp} className="px-3 py-1.5 bg-[#072C2C] text-white text-[10px] font-bold rounded cursor-pointer">Tambah</button>
