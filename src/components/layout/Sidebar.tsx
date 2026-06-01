@@ -63,7 +63,7 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
   // Filter menu items based on role
   const visibleMenuItems = menuItems.filter(item => {
     if (role === "cashier") {
-      return ["/pos", "/products", "/dashboard"].includes(item.href);
+      return ["/pos", "/products"].includes(item.href);
     }
     return true; // owner & admin see everything
   });
@@ -83,7 +83,7 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
           { href: "/products", icon: Package, label: "Produk" },
           { href: "/reports", icon: BarChart3, label: "Laporan" },
         ].filter(item => {
-          if (role === "cashier") return ["/dashboard", "/pos", "/products"].includes(item.href);
+          if (role === "cashier") return ["/pos", "/products"].includes(item.href);
           return true;
         }).map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
