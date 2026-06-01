@@ -32,12 +32,16 @@ export default function TransactionsPage() {
   };
   useEffect(() => { loadTransactions(); }, [role, userName]);
 
+  const [toast, setToast] = useState("");
+
   const handleDelete = async (trx: any) => {
     if (!confirm(`Hapus transaksi ${trx.transaction_number}? Data tidak bisa dikembalikan.`)) return;
     await supabase.from("transaction_items").delete().eq("transaction_id", trx.id);
     await supabase.from("transactions").delete().eq("id", trx.id);
     await loadTransactions();
     setSelectedTrx(null);
+    setToast(`Transaksi ${trx.transaction_number} berhasil dihapus`);
+    setTimeout(() => setToast(""), 3000);
   };
 
   // KPI
@@ -72,6 +76,8 @@ export default function TransactionsPage() {
 
   return (
     <div className="space-y-4">
+      {toast && <div className="fixed z-[9999] top-4 right-4 px-4 py-2.5 rounded-xl shadow-xl text-sm font-medium text-white bg-[#DC2626] animate-in slide-in-from-top">{toast}</div>}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
