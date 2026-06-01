@@ -64,7 +64,8 @@ export default function DataTable({ columns, data, searchPlaceholder = "Cari..."
         <span className="text-sm text-[#072C2C]/60 font-medium">{filteredData.length} data</span>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-[#072C2C]/10">
+      {/* Desktop Table */}
+      <div className="hidden md:block overflow-x-auto rounded-xl border border-[#072C2C]/10">
         <table className="w-full text-sm">
           <thead className="bg-[#072C2C] border-b border-[#072C2C]">
             <tr>
@@ -98,6 +99,35 @@ export default function DataTable({ columns, data, searchPlaceholder = "Cari..."
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-2">
+        {paginatedData.length === 0 ? (
+          <div className="text-center py-8 text-[#072C2C]/50 text-sm">Tidak ada data ditemukan</div>
+        ) : (
+          paginatedData.map((item, idx) => (
+            <div key={idx} className="bg-white border border-[#072C2C]/10 rounded-xl p-4 space-y-2.5">
+              {columns.map((col, ci) => {
+                const val = col.render ? col.render(item) : String(item[col.key] ?? "");
+                // Skip "Aksi" label, show it at bottom
+                if (col.label === "Aksi" || col.key === "actions") return null;
+                return (
+                  <div key={col.key} className={`flex items-start justify-between gap-2 ${ci === 0 ? "" : "border-t border-[#072C2C]/5 pt-2"}`}>
+                    <span className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider flex-shrink-0 w-24">{col.label}</span>
+                    <div className="text-sm text-[#111827] text-right flex-1">{val}</div>
+                  </div>
+                );
+              })}
+              {/* Actions row */}
+              {columns.find(c => c.label === "Aksi" || c.key === "actions") && (
+                <div className="pt-2 border-t border-[#072C2C]/5 flex justify-end">
+                  {columns.find(c => c.label === "Aksi" || c.key === "actions")!.render?.(item)}
+                </div>
+              )}
+            </div>
+          ))
+        )}
       </div>
 
       {totalPages > 1 && (

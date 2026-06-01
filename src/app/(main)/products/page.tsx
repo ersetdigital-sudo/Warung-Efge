@@ -153,7 +153,7 @@ export default function ProductsPage() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-[12px]">
             <thead>
               <tr className="border-b border-[#D9D6C8]">
@@ -258,6 +258,40 @@ export default function ProductsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile Cards - Katalog */}
+        <div className="md:hidden px-3 py-2 space-y-2">
+          {filtered.length === 0 && <div className="text-center py-6 text-[#9CA3AF] text-sm">Tidak ada produk</div>}
+          {filtered.map((p) => {
+            const units = (p.product_units || []).sort((a: any, b: any) => a.level - b.level);
+            const stockVal = p.stock || 0;
+            const stockStatus = stockVal <= 0 ? "habis" : stockVal <= (p.min_stock || 0) ? "menipis" : "aman";
+            return (
+              <div key={p.id} className={`bg-white border rounded-xl p-3.5 space-y-2 ${stockStatus === "habis" ? "border-[#fecaca]" : stockStatus === "menipis" ? "border-[#fde68a]" : "border-[#D9D6C8]"}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-[#111827] text-sm">{p.name}</p>
+                    <p className="text-[10px] text-[#9CA3AF] font-mono">{p.sku || "—"} · {p.category}</p>
+                  </div>
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${stockStatus === "habis" ? "bg-[#DC2626] text-white" : stockStatus === "menipis" ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#ECFDF5] text-[#16A34A]"}`}>
+                    {stockStatus === "habis" ? "HABIS" : stockStatus === "menipis" ? "MENIPIS" : "AMAN"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-1 flex-wrap">{units.map((u: any, i: number) => <span key={u.id} className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${["bg-[#072C2C]/10 text-[#072C2C]", "bg-[#FF5F03]/10 text-[#FF5F03]", "bg-[#D97706]/10 text-[#D97706]"][i] || "bg-[#072C2C]/10 text-[#072C2C]"}`}>{u.name}</span>)}</div>
+                  <span className="font-mono font-bold text-sm text-[#072C2C]">{stockVal} {p.unit}</span>
+                </div>
+                {canEdit && (
+                  <div className="flex gap-2 pt-1 border-t border-[#D9D6C8]">
+                    <button onClick={() => router.push(`/products/edit/${p.id}`)} className="flex-1 py-1.5 text-[11px] font-medium text-[#1D4ED8] bg-[#EFF6FF] rounded-lg cursor-pointer">Edit</button>
+                    <button onClick={() => setDeleteTarget(p)} className="flex-1 py-1.5 text-[11px] font-medium text-[#DC2626] bg-[#FEF2F2] rounded-lg cursor-pointer">Hapus</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
         <div className="px-3 py-2 border-t border-[#D9D6C8] text-[11px] text-[#9CA3AF]">Menampilkan {filtered.length} dari {products.length} produk</div>
       </Card>
 
@@ -310,7 +344,7 @@ export default function ProductsPage() {
             <div className="px-3.5 py-2.5 border-b border-[#D9D6C8] flex items-center justify-between">
               <div className="font-[Oswald] text-[12px] font-semibold text-[#072C2C] uppercase tracking-wider">Ringkasan Stok</div>
             </div>
-            <div className="overflow-x-auto">
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-[12px]">
                 <thead>
                   <tr className="border-b border-[#D9D6C8]">
@@ -337,6 +371,18 @@ export default function ProductsPage() {
                 </tbody>
               </table>
             </div>
+            {/* Mobile stok cards */}
+            <div className="md:hidden px-3 py-2 space-y-2">
+              {products.map(p => {
+                const status = getStockStatus(p.stock, p.min_stock);
+                return (
+                  <div key={p.id} className="flex items-center justify-between p-3 bg-[#FAFAF8] rounded-lg border border-[#D9D6C8]">
+                    <div><p className="font-medium text-sm text-[#111827]">{p.name}</p><p className="text-[10px] text-[#9CA3AF]">{p.category}</p></div>
+                    <div className="text-right"><p className="font-mono font-bold text-sm">{p.stock} {p.unit}</p><Badge variant={status === "safe" ? "success" : status === "warning" ? "warning" : "danger"}>{status === "safe" ? "Aman" : status === "warning" ? "Menipis" : "Habis"}</Badge></div>
+                  </div>
+                );
+              })}
+            </div>
           </Card>
 
           {/* Riwayat Mutasi */}
@@ -345,7 +391,7 @@ export default function ProductsPage() {
               <History className="w-4 h-4 text-[#072C2C]/50" />
               <div className="font-[Oswald] text-[12px] font-semibold text-[#072C2C] uppercase tracking-wider">Riwayat Mutasi Stok</div>
             </div>
-            <div className="overflow-x-auto">
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-[12px]">
                 <thead>
                   <tr className="border-b border-[#D9D6C8]">
@@ -369,6 +415,22 @@ export default function ProductsPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+            {/* Mobile mutasi cards */}
+            <div className="md:hidden px-3 py-2 space-y-2">
+              {movements.length === 0 && <div className="text-center py-6 text-[#9CA3AF] text-sm">Belum ada mutasi stok</div>}
+              {movements.slice(0, 50).map((m: any) => (
+                <div key={m.id} className="flex items-start justify-between p-3 bg-[#FAFAF8] rounded-lg border border-[#D9D6C8]">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-[#111827]">{m.product_name}</p>
+                    <p className="text-[10px] text-[#9CA3AF]">{formatDate(m.created_at)} · {m.notes || "—"}</p>
+                  </div>
+                  <div className="text-right ml-2 flex-shrink-0">
+                    <p className={`font-mono font-bold text-sm ${m.type === "in" ? "text-[#16A34A]" : m.type === "out" ? "text-[#DC2626]" : "text-[#072C2C]"}`}>{m.type === "in" ? "+" : "-"}{m.quantity} {m.unit}</p>
+                    <Badge variant={m.type === "in" ? "success" : m.type === "out" ? "danger" : "warning"}>{m.type === "in" ? "Masuk" : m.type === "out" ? "Keluar" : "Koreksi"}</Badge>
+                  </div>
+                </div>
+              ))}
             </div>
             {movements.length > 50 && <div className="px-3 py-2 border-t border-[#D9D6C8] text-[11px] text-[#9CA3AF]">Menampilkan 50 dari {movements.length} mutasi</div>}
           </Card>

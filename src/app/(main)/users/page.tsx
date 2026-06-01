@@ -90,14 +90,15 @@ export default function UsersPage() {
 
       {/* Users table */}
       <Card>
-        <div className="overflow-x-auto">
+        {/* Desktop table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[#D9D6C8]">
                 <th className="text-left px-4 py-2.5 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Nama</th>
                 <th className="text-left px-4 py-2.5 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Role</th>
                 <th className="text-left px-4 py-2.5 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Status</th>
-                <th className="text-left px-4 py-2.5 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase hidden sm:table-cell">Terdaftar</th>
+                <th className="text-left px-4 py-2.5 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Terdaftar</th>
                 <th className="text-left px-4 py-2.5 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Aksi</th>
               </tr>
             </thead>
@@ -112,21 +113,36 @@ export default function UsersPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3"><span className={`text-[10px] font-bold px-2 py-1 rounded border ${roleColors[u.role] || roleColors.cashier}`}>{roleLabels[u.role] || u.role}</span></td>
-                  <td className="px-4 py-3">
-                    <button onClick={() => handleToggleActive(u)} className="cursor-pointer">
-                      <Badge variant={u.is_active ? "success" : "default"}>{u.is_active ? "Aktif" : "Nonaktif"}</Badge>
-                    </button>
-                  </td>
-                  <td className="px-4 py-3 text-[#9CA3AF] text-xs hidden sm:table-cell">{u.created_at ? formatDate(u.created_at) : "—"}</td>
-                  <td className="px-4 py-3">
-                    {u.role !== "owner" && (
-                      <button onClick={() => handleDelete(u)} className="p-1.5 rounded-md hover:bg-[#FEF2F2] text-[#9CA3AF] hover:text-[#DC2626] cursor-pointer"><Trash2 className="w-4 h-4" /></button>
-                    )}
-                  </td>
+                  <td className="px-4 py-3"><button onClick={() => handleToggleActive(u)} className="cursor-pointer"><Badge variant={u.is_active ? "success" : "default"}>{u.is_active ? "Aktif" : "Nonaktif"}</Badge></button></td>
+                  <td className="px-4 py-3 text-[#9CA3AF] text-xs">{u.created_at ? formatDate(u.created_at) : "—"}</td>
+                  <td className="px-4 py-3">{u.role !== "owner" && <button onClick={() => handleDelete(u)} className="p-1.5 rounded-md hover:bg-[#FEF2F2] text-[#9CA3AF] hover:text-[#DC2626] cursor-pointer"><Trash2 className="w-4 h-4" /></button>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile cards */}
+        <div className="md:hidden px-3 py-2 space-y-2">
+          {users.length === 0 && <div className="text-center py-6 text-[#9CA3AF] text-sm">Belum ada pengguna</div>}
+          {users.map((u) => (
+            <div key={u.id} className="bg-white border border-[#D9D6C8] rounded-xl p-3.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-9 h-9 bg-[#072C2C] rounded-full flex items-center justify-center flex-shrink-0"><span className="text-white text-sm font-bold">{(u.name || "?")[0].toUpperCase()}</span></div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-[#072C2C] text-sm">{u.name}</p>
+                    <p className="text-[10px] text-[#9CA3AF] truncate">{u.email}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${roleColors[u.role] || roleColors.cashier}`}>{roleLabels[u.role] || u.role}</span>
+                  <button onClick={() => handleToggleActive(u)} className="cursor-pointer"><Badge variant={u.is_active ? "success" : "default"}>{u.is_active ? "Aktif" : "Nonaktif"}</Badge></button>
+                  {u.role !== "owner" && <button onClick={() => handleDelete(u)} className="p-1.5 rounded-md text-[#9CA3AF] hover:text-[#DC2626] cursor-pointer"><Trash2 className="w-4 h-4" /></button>}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </Card>
 
