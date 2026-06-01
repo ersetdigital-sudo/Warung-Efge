@@ -82,7 +82,10 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
           { href: "/pos", icon: ShoppingCart, label: "Kasir" },
           { href: "/products", icon: Package, label: "Produk" },
           { href: "/reports", icon: BarChart3, label: "Laporan" },
-        ].map((item) => {
+        ].filter(item => {
+          if (role === "cashier") return ["/dashboard", "/pos", "/products"].includes(item.href);
+          return true;
+        }).map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
           return (
             <Link key={item.href} href={item.href} className={cn("flex flex-col items-center justify-center gap-0.5 min-w-[56px] min-h-[44px] rounded-lg transition-all active:scale-90 active:opacity-70", isActive ? "text-[#FF5F03]" : "text-[#9CA3AF]")}>
