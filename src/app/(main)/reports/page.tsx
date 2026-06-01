@@ -355,7 +355,15 @@ export default function ReportsPage() {
       {/* ═══ TAB KEUANGAN ═══ */}
       {tab === "keuangan" && (() => {
         const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0);
-        const labaBersih = totalSales - totalExpenses;
+        // HPP = total harga beli dari semua item terjual
+        const totalHPP = transactions.reduce((s, t) => {
+          return s + (t.transaction_items || []).reduce((si: number, item: any) => {
+            const prod = products.find(p => p.id === item.product_id);
+            return si + ((prod?.cost_price || 0) * (item.quantity || 0));
+          }, 0);
+        }, 0);
+        const totalPengeluaran = totalExpenses + totalHPP;
+        const labaBersih = totalSales - totalPengeluaran;
         const handleAddExp = async () => {
           if (!newExpName || !newExpAmount) return;
           const expMonth = newExpDate ? newExpDate.substring(0, 7) : currentMonth;
@@ -376,7 +384,7 @@ export default function ReportsPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
               <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Pendapatan</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{formatCurrency(totalSales)}</p></div>
-              <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#DC2626]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Pengeluaran</p><p className="font-[Oswald] text-[20px] font-semibold text-[#DC2626] mt-1">{formatCurrency(totalExpenses)}</p></div>
+              <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#DC2626]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Pengeluaran</p><p className="font-[Oswald] text-[20px] font-semibold text-[#DC2626] mt-1">{formatCurrency(totalPengeluaran)}</p><p className="text-[9px] text-[#9CA3AF]">HPP + Operasional</p></div>
               <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#FF5F03]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Laba Bersih</p><p className={`font-[Oswald] text-[20px] font-semibold mt-1 ${labaBersih >= 0 ? "text-[#16A34A]" : "text-[#DC2626]"}`}>{formatCurrency(labaBersih)}</p></div>
               <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Margin</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{totalSales > 0 ? Math.round((labaBersih / totalSales) * 100) : 0}%</p></div>
             </div>
@@ -392,7 +400,7 @@ export default function ReportsPage() {
                       const days = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
                       const dayMap: Record<string, number> = {};
                       transactions.forEach(t => { const d = new Date(t.created_at); dayMap[days[d.getDay() === 0 ? 6 : d.getDay() - 1]] = (dayMap[days[d.getDay() === 0 ? 6 : d.getDay() - 1]] || 0) + (t.total || 0); });
-                      const dailyExp = totalExpenses > 0 ? Math.round(totalExpenses / 30) : 0;
+                      const dailyExp = totalPengeluaran > 0 ? Math.round(totalPengeluaran / 30) : 0;
                       return days.map(d => ({ name: d, pendapatan: Math.round((dayMap[d] || 0) / 1000), pengeluaran: Math.round(dailyExp / 1000) }));
                     })()}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,44,44,0.05)" vertical={false} />
@@ -410,15 +418,15 @@ export default function ReportsPage() {
                 <div className="px-4 py-3 border-b border-[#D9D6C8]"><p className="font-[Oswald] text-xs font-semibold text-[#072C2C] uppercase tracking-wider">Komposisi Biaya</p><p className="text-[9px] text-[#9CA3AF]">Breakdown pengeluaran</p></div>
                 <div className="p-4 h-[140px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart><Pie data={expenses.map((e, i) => ({ name: e.name, value: e.amount, color: ["#072C2C", "#FF5F03", "#D97706", "#16A34A", "#9CA3AF"][i % 5] }))} cx="50%" cy="50%" innerRadius={40} outerRadius={55} paddingAngle={3} dataKey="value" strokeWidth={3} stroke="#fff">{expenses.map((_, i) => <Cell key={i} fill={["#072C2C", "#FF5F03", "#D97706", "#16A34A", "#9CA3AF"][i % 5]} />)}</Pie></PieChart>
+                    <PieChart><Pie data={[{ name: "HPP Barang", value: totalHPP }, ...expenses.map(e => ({ name: e.name, value: e.amount }))]} cx="50%" cy="50%" innerRadius={40} outerRadius={55} paddingAngle={3} dataKey="value" strokeWidth={3} stroke="#fff">{[totalHPP, ...expenses.map(e => e.amount)].map((_, i) => <Cell key={i} fill={["#072C2C", "#FF5F03", "#D97706", "#16A34A", "#8B5CF6", "#9CA3AF"][i % 6]} />)}</Pie></PieChart>
                   </ResponsiveContainer>
                 </div>
                 <div className="px-4 pb-3 space-y-2">
-                  {expenses.map((e, i) => {
-                    const pct = totalExpenses > 0 ? Math.round((e.amount / totalExpenses) * 100) : 0;
-                    const color = ["#072C2C", "#FF5F03", "#D97706", "#16A34A", "#9CA3AF"][i % 5];
+                  {[{ name: "HPP Barang Dagangan", amount: totalHPP }, ...expenses].map((e, i) => {
+                    const pct = totalPengeluaran > 0 ? Math.round((e.amount / totalPengeluaran) * 100) : 0;
+                    const color = ["#072C2C", "#FF5F03", "#D97706", "#16A34A", "#8B5CF6", "#9CA3AF"][i % 6];
                     return (
-                      <div key={e.id} className="flex items-center gap-2 text-[11px]">
+                      <div key={e.name + i} className="flex items-center gap-2 text-[11px]">
                         <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: color }} />
                         <span className="text-[#4B5563] flex-1 truncate">{e.name}</span>
                         <div className="flex-[2] h-1 rounded-full bg-[#EDEADE] overflow-hidden"><div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} /></div>
@@ -436,7 +444,10 @@ export default function ReportsPage() {
                 <div className="px-4 py-3 border-b border-[#D9D6C8]"><p className="font-[Oswald] text-xs font-semibold text-[#072C2C] uppercase tracking-wider">Laporan Laba Rugi</p><p className="text-[9px] text-[#9CA3AF]">Bulan {currentMonth}</p></div>
                 <div className="divide-y divide-[#D9D6C8]">
                   <div className="flex justify-between px-4 py-2 bg-[#EDEADE] text-[10px] font-bold text-[#9CA3AF] uppercase">Pendapatan</div>
-                  <div className="flex justify-between px-4 py-2.5 text-xs"><span>Penjualan</span><span className="font-mono font-bold text-[#16A34A]">+ {formatCurrency(totalSales)}</span></div>
+                  <div className="flex justify-between px-4 py-2.5 text-xs"><span>Penjualan Bersih</span><span className="font-mono font-bold text-[#16A34A]">+ {formatCurrency(totalSales)}</span></div>
+                  <div className="flex justify-between px-4 py-2 bg-[#EDEADE] text-[10px] font-bold text-[#9CA3AF] uppercase">Harga Pokok Penjualan</div>
+                  <div className="flex justify-between px-4 py-2.5 text-xs"><span>HPP Barang Dagangan</span><span className="font-mono font-bold text-[#DC2626]">− {formatCurrency(totalHPP)}</span></div>
+                  <div className="flex justify-between px-4 py-2.5 text-xs bg-[#EDEADE] font-bold"><span>Laba Kotor</span><span className="font-mono font-bold text-[#072C2C]">{formatCurrency(totalSales - totalHPP)}</span></div>
                   <div className="flex justify-between px-4 py-2 bg-[#EDEADE] text-[10px] font-bold text-[#9CA3AF] uppercase">Biaya Operasional</div>
                   {expenses.map(exp => (
                     <div key={exp.id} className="flex items-center justify-between px-4 py-2 text-xs group">
