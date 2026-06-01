@@ -207,7 +207,7 @@ export default function AddProductPage() {
               <div className="space-y-3">
                 {units.map((u, idx) => {
                   const m = getMargin(u.buyPrice, u.sellPrice);
-                  const labels = ["Satuan Terbesar", "Satuan Tengah", "Satuan Terkecil"];
+                  const labels = ["Satuan Besar (cth: Slop, Karton, Dus)", "Satuan Sedang (cth: Bungkus, Botol)", "Satuan Eceran (cth: Batang, Pcs, Gram)"];
                   const placeholders = [["Slop", "Karton", "Dus"], ["Bungkus", "Botol", "Pcs"], ["Batang", "Pcs", "Gram"]];
                   const colors = ["border-l-[#072C2C]", "border-l-[#FF5F03]", "border-l-[#D97706]"];
                   const dotColors = ["bg-[#072C2C]", "bg-[#FF5F03]", "bg-[#D97706]"];
@@ -217,7 +217,7 @@ export default function AddProductPage() {
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <div className={`w-2.5 h-2.5 rounded-full ${dotColors[idx]}`} />
-                          <span className="text-xs font-bold text-[#072C2C]">Level {u.level} — {labels[idx]}</span>
+                          <span className="text-xs font-bold text-[#072C2C]">{labels[idx]}</span>
                         </div>
                         <button onClick={() => toggleUnit(u.level)} className="flex items-center gap-2 cursor-pointer">
                           <span className="text-[10px] text-[#072C2C]/40">{u.active ? "Aktif" : "Nonaktif"}</span>
@@ -236,7 +236,7 @@ export default function AddProductPage() {
                             </div>
                             {u.level < 3 ? (
                               <div>
-                                <label className="block text-[10px] text-[#072C2C]/50 mb-1">Isi (ke level {u.level + 1})</label>
+                                <label className="block text-[10px] text-[#072C2C]/50 mb-1">Isi per 1 (ke satuan di bawah)</label>
                                 <input value={u.conversion} onChange={(e) => updateUnit(u.level, "conversion", e.target.value)} placeholder={["10", "12"][idx]} type="number" className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
                               </div>
                             ) : (
