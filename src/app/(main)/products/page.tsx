@@ -187,13 +187,15 @@ export default function ProductsPage() {
                             </span>
                           </div>
                           {units.length > 1 && stockVal > 0 && (() => {
-                            const sorted = [...units].sort((a: any, b: any) => (b.level || 0) - (a.level || 0));
-                            const biggest = sorted[0];
-                            if (biggest && biggest.conversion && biggest.conversion > 0) {
-                              const bigQty = Math.floor(stockVal / biggest.conversion);
-                              const remainder = stockVal % biggest.conversion;
-                              if (bigQty > 0) return <span className="text-[9px] text-[#9CA3AF] font-mono">{bigQty} {biggest.name}{remainder > 0 ? ` + ${remainder} ${p.unit}` : ""}</span>;
-                            }
+                            // Find unit with biggest conversion (that's the largest package)
+                            const withConv = units.filter((u: any) => u.conversion && u.conversion > 1);
+                            if (withConv.length === 0) return null;
+                            // Get the one with highest conversion value
+                            const biggest = withConv.sort((a: any, b: any) => (b.conversion || 0) - (a.conversion || 0))[0];
+                            const conv = biggest.conversion;
+                            const bigQty = Math.floor(stockVal / conv);
+                            const remainder = stockVal % conv;
+                            if (bigQty > 0) return <span className="text-[9px] text-[#9CA3AF] font-mono">= {bigQty} {biggest.name}{remainder > 0 ? ` + ${remainder} ${p.unit}` : ""}</span>;
                             return null;
                           })()}
                         </div>
