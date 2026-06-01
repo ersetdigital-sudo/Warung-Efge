@@ -325,17 +325,24 @@ export default function ReportsPage() {
 
             {/* Charts row */}
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-3">
-              {/* Pendapatan vs Pengeluaran chart */}
+              {/* Pendapatan vs Pengeluaran - Area Chart */}
               <Card>
                 <div className="px-4 py-3 border-b border-[#D9D6C8]"><p className="font-[Oswald] text-xs font-semibold text-[#072C2C] uppercase tracking-wider">Pendapatan vs Pengeluaran</p><p className="text-[9px] text-[#9CA3AF]">Perbandingan harian</p></div>
                 <div className="p-4 h-[200px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={dailyData}>
+                    <BarChart data={(() => {
+                      const days = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+                      const dayMap: Record<string, number> = {};
+                      transactions.forEach(t => { const d = new Date(t.created_at); dayMap[days[d.getDay() === 0 ? 6 : d.getDay() - 1]] = (dayMap[days[d.getDay() === 0 ? 6 : d.getDay() - 1]] || 0) + (t.total || 0); });
+                      const dailyExp = totalExpenses > 0 ? Math.round(totalExpenses / 30) : 0;
+                      return days.map(d => ({ name: d, pendapatan: Math.round((dayMap[d] || 0) / 1000), pengeluaran: Math.round(dailyExp / 1000) }));
+                    })()}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,44,44,0.05)" vertical={false} />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "#9CA3AF" }} />
                       <YAxis axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "#9CA3AF" }} tickFormatter={v => `${v}rb`} />
-                      <Tooltip formatter={(v) => [`Rp ${v}rb`, ""]} contentStyle={{ backgroundColor: "#072C2C", border: "none", borderRadius: "5px", fontSize: "11px" }} labelStyle={{ color: "rgba(255,255,255,.5)" }} itemStyle={{ color: "#fff", fontWeight: 700 }} />
-                      <Bar dataKey="total" fill="#16A34A" radius={[3, 3, 0, 0]} name="Pendapatan" />
+                      <Tooltip formatter={(v: any, name: string) => [`Rp ${v}rb`, name === "pendapatan" ? "Pendapatan" : "Pengeluaran"]} contentStyle={{ backgroundColor: "#072C2C", border: "none", borderRadius: "5px", fontSize: "11px" }} labelStyle={{ color: "rgba(255,255,255,.5)" }} itemStyle={{ color: "#fff", fontWeight: 700 }} />
+                      <Bar dataKey="pendapatan" fill="#16A34A" radius={[3, 3, 0, 0]} name="pendapatan" />
+                      <Bar dataKey="pengeluaran" fill="#DC2626" radius={[3, 3, 0, 0]} name="pengeluaran" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
