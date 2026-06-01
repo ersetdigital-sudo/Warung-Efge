@@ -110,12 +110,12 @@ export default function AddProductPage() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)]">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-lg border-b border-[#072C2C]/5 px-4 lg:px-8 py-3">
+      {/* Header - not sticky */}
+      <div className="bg-white border-b border-[#072C2C]/5 px-4 lg:px-8 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <button onClick={() => router.push("/products")} className="flex items-center gap-1.5 text-sm text-[#072C2C]/60 hover:text-[#072C2C] cursor-pointer transition-colors"><ArrowLeft className="w-4 h-4" />Kembali</button>
           <h1 className="text-sm lg:text-base font-bold text-[#072C2C]">Tambah Produk</h1>
-          <Button onClick={handleSubmit}>Simpan</Button>
+          <div className="w-[70px]" />
         </div>
       </div>
 
@@ -266,6 +266,12 @@ export default function AddProductPage() {
               </div>
             </div>
           )}
+
+          {/* Save button at bottom */}
+          <div className="flex items-center justify-end gap-3 pt-4 pb-8">
+            <button onClick={() => router.push("/products")} className="px-5 py-3 text-sm font-medium text-[#072C2C]/60 hover:text-[#072C2C] cursor-pointer transition-colors">Batal</button>
+            <Button onClick={handleSubmit}>Simpan Produk</Button>
+          </div>
 
         </div>
       </div>
