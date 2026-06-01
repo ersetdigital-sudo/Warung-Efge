@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, QrCode, Banknote, Printer, ScanBarcode, AlertTriangle, RotateCcw, X, Check, Smartphone } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, QrCode, Banknote, ScanBarcode, AlertTriangle, RotateCcw, X, Check, Smartphone } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { categories } from "@/data/mock-data";
 import { getProductsWithUnits, addTransaction, addStockMovement } from "@/lib/db";
@@ -239,36 +239,6 @@ export default function POSPage() {
   const handleNewTransaction = () => { const c = trxId; setCart([]); setDiscountInput(""); setAmountPaid(""); setIsDebt(false); setShowReceipt(false); setPaymentMethod("cash"); setTrxId(`TRX-${String(Math.floor(Math.random() * 9000) + 1000)}`); setSuccessToast(c); setTimeout(() => setSuccessToast(""), 3000); };
 
   const [printToast, setPrintToast] = useState<{ msg: string; color: string } | null>(null);
-  const [printData, setPrintData] = useState<CartItem[] | null>(null);
-  const [printMeta, setPrintMeta] = useState<any>(null);
-  const [showPrintPreview, setShowPrintPreview] = useState(false);
-
-  const handlePrintReceipt = () => {
-    // Save print data from current cart BEFORE clearing anything
-    const printItems = [...cart];
-    const meta = { total, subtotal, discount: calculatedDiscount, method: isDebt ? "Bon/Hutang" : paymentMethod === "cash" ? "Tunai" : paymentMethod === "transfer" ? "Transfer" : paymentMethod === "edc" ? "EDC" : "QRIS", paid: Number(amountPaid), change: change > 0 ? change : 0, trxId, date: `${now.toLocaleDateString("id-ID")} ${now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}` };
-    setPrintData(printItems);
-    setPrintMeta(meta);
-    setShowReceipt(false);
-
-    // Check if mobile (no hover = touch device)
-    const isMobile = window.matchMedia("(max-width: 768px)").matches || "ontouchstart" in window;
-    if (isMobile) {
-      // Mobile: show receipt preview modal (user can screenshot)
-      setShowPrintPreview(true);
-    } else {
-      // Desktop: use window.print()
-      setTimeout(() => {
-        const printArea = document.getElementById("print-area");
-        if (printArea && printArea.children.length > 0) { window.print(); }
-        else { setTimeout(() => { window.print(); }, 200); }
-      }, 500);
-      const afterPrint = () => { setPrintData(null); setPrintMeta(null); handleNewTransaction(); window.removeEventListener("afterprint", afterPrint); };
-      window.addEventListener("afterprint", afterPrint);
-    }
-  };
-
-  const closePrintPreview = () => { setShowPrintPreview(false); setPrintData(null); setPrintMeta(null); handleNewTransaction(); };
 
   const handleSavePDF = (action: "download" | "open") => {
     try {
@@ -595,44 +565,6 @@ export default function POSPage() {
       {stockError && <div className="fixed z-[9999] top-4 right-4 left-4 sm:left-auto"><div className="bg-[#DC2626] text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3"><AlertTriangle className="w-5 h-5" /><div><p className="text-sm font-bold">Stok Tidak Cukup!</p><p className="text-xs text-white/80">{stockError}</p></div></div></div>}
       {printToast && <div className={`fixed top-16 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 ${printToast.color} text-white rounded-xl shadow-xl text-sm`}>{printToast.msg}</div>}
 
-      {/* Mobile Print Preview */}
-      {showPrintPreview && printData && printMeta && (
-        <div className="fixed inset-0 z-[70] flex flex-col bg-white">
-          <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-[#072C2C]/10">
-            <h2 className="text-sm font-bold text-[#072C2C]">Struk Pembayaran</h2>
-            <button onClick={closePrintPreview} className="px-3 py-1.5 bg-[#FF5F03] text-white text-xs font-bold rounded-lg cursor-pointer">Selesai</button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4 bg-[#f5f5f5]">
-            <div className="bg-white max-w-[300px] mx-auto p-4 rounded-lg shadow-lg" style={{ fontFamily: "'Courier New', monospace", fontSize: "12px", lineHeight: "1.6" }}>
-              <p style={{ fontSize: "16px", fontWeight: "bold", textAlign: "center" }}>WARUNG EFGE</p>
-              <p style={{ fontSize: "10px", textAlign: "center", color: "#666" }}>Kasir: {userName || "Kasir"}</p>
-              <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "8px 0" }} />
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#666" }}><span>{printMeta.trxId}</span><span>{printMeta.date}</span></div>
-              <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "6px 0" }} />
-              {printData.map((item) => (
-                <div key={`${item.productId}-${item.unit}`} style={{ marginBottom: "6px" }}>
-                  <div style={{ fontWeight: "bold" }}>{item.name}</div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}>
-                    <span>{item.quantity} {item.unit} x Rp{item.price.toLocaleString("id-ID")}</span>
-                    <span style={{ fontWeight: "bold" }}>Rp{item.subtotal.toLocaleString("id-ID")}</span>
-                  </div>
-                </div>
-              ))}
-              <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "6px 0" }} />
-              <div style={{ display: "flex", justifyContent: "space-between" }}><span>Subtotal</span><span>Rp{printMeta.subtotal.toLocaleString("id-ID")}</span></div>
-              {printMeta.discount > 0 && <div style={{ display: "flex", justifyContent: "space-between" }}><span>Diskon</span><span>-Rp{printMeta.discount.toLocaleString("id-ID")}</span></div>}
-              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", fontSize: "14px", marginTop: "4px" }}><span>TOTAL</span><span>Rp{printMeta.total.toLocaleString("id-ID")}</span></div>
-              <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "6px 0" }} />
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}><span>Bayar ({printMeta.method})</span><span>Rp{printMeta.paid.toLocaleString("id-ID")}</span></div>
-              {printMeta.method === "Tunai" && printMeta.change > 0 && <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", fontWeight: "bold" }}><span>Kembalian</span><span>Rp{printMeta.change.toLocaleString("id-ID")}</span></div>}
-              <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "8px 0" }} />
-              <p style={{ fontSize: "10px", textAlign: "center", color: "#888" }}>Terima kasih atas kunjungan Anda!</p>
-            </div>
-            <p className="text-center text-[10px] text-[#072C2C]/40 mt-4">Screenshot struk ini untuk dikirim ke pelanggan</p>
-          </div>
-        </div>
-      )}
-
       {/* Scanner Modal */}
       {showScanner && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -712,38 +644,6 @@ export default function POSPage() {
         </div>
       )}
 
-      {/* Print Area - always in DOM, filled when printing */}
-      <div id="print-area" style={{ position: "fixed", top: "-9999px", left: "-9999px", width: "58mm" }}>
-        {printData && printMeta && (
-          <div style={{ fontFamily: "'Courier New', monospace", fontSize: "11px", padding: "2mm", lineHeight: "1.5", width: "100%" }}>
-            <p style={{ fontSize: "14px", fontWeight: "bold", textAlign: "center", margin: "0 0 2px" }}>WARUNG EFGE</p>
-            <p style={{ fontSize: "9px", textAlign: "center", margin: "0 0 4px" }}>Jl. Contoh No.1 · 0812-xxxx-xxxx</p>
-            <hr />
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", margin: "2px 0" }}><span>{printMeta.trxId}</span><span>{printMeta.date}</span></div>
-            <div style={{ fontSize: "9px", margin: "0 0 2px" }}>Kasir: Pak Efge</div>
-            <hr />
-            {printData.map((item) => (
-              <div key={`${item.productId}-${item.unit}`} style={{ margin: "3px 0" }}>
-                <div style={{ fontSize: "11px" }}>{item.name}</div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px" }}>
-                  <span>{item.quantity}{item.unit} x {item.price.toLocaleString("id-ID")}</span>
-                  <span style={{ fontWeight: "bold" }}>{item.subtotal.toLocaleString("id-ID")}</span>
-                </div>
-              </div>
-            ))}
-            <hr />
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px" }}><span>Subtotal</span><span>{printMeta.subtotal.toLocaleString("id-ID")}</span></div>
-            {printMeta.discount > 0 && <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px" }}><span>Diskon</span><span>-{printMeta.discount.toLocaleString("id-ID")}</span></div>}
-            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", fontSize: "13px", margin: "4px 0" }}><span>TOTAL</span><span>Rp{printMeta.total.toLocaleString("id-ID")}</span></div>
-            <hr />
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px" }}><span>Bayar ({printMeta.method})</span><span>{printMeta.paid.toLocaleString("id-ID")}</span></div>
-            {printMeta.method === "Tunai" && printMeta.change > 0 && <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", fontWeight: "bold" }}><span>Kembalian</span><span>{printMeta.change.toLocaleString("id-ID")}</span></div>}
-            <hr />
-            <p style={{ fontSize: "9px", textAlign: "center", margin: "4px 0 0" }}>Terima kasih atas kunjungan Anda!</p>
-            <p style={{ fontSize: "8px", textAlign: "center", margin: "2px 0 0" }}>Barang yang dibeli tidak dapat dikembalikan</p>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
