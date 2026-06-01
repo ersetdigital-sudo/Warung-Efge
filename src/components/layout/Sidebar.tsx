@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Receipt,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -32,6 +33,7 @@ const menuItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/pos", icon: ShoppingCart, label: "Kasir (POS)" },
   { href: "/products", icon: Package, label: "Produk & Stok" },
+  { href: "/transactions", icon: Receipt, label: "Transaksi" },
   { href: "/purchases", icon: ClipboardList, label: "Pembelian" },
   { href: "/suppliers", icon: Truck, label: "Supplier" },
   { href: "/customers", icon: Users, label: "Pelanggan" },
@@ -63,7 +65,7 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
   // Filter menu items based on role
   const visibleMenuItems = menuItems.filter(item => {
     if (role === "cashier") {
-      return ["/pos", "/products"].includes(item.href);
+      return ["/pos", "/products", "/transactions"].includes(item.href);
     }
     return true; // owner & admin see everything
   });
@@ -81,9 +83,9 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
           { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
           { href: "/pos", icon: ShoppingCart, label: "Kasir" },
           { href: "/products", icon: Package, label: "Produk" },
-          { href: "/reports", icon: BarChart3, label: "Laporan" },
+          { href: "/transactions", icon: Receipt, label: "Transaksi" },
         ].filter(item => {
-          if (role === "cashier") return ["/pos", "/products"].includes(item.href);
+          if (role === "cashier") return ["/pos", "/products", "/transactions"].includes(item.href);
           return true;
         }).map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
