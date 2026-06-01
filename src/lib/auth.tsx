@@ -31,12 +31,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string, email?: string) => {
     const { data } = await supabase.from("users").select("role, name, is_active").eq("id", userId).single();
     if (data) {
       if (!data.is_active) { await supabase.auth.signOut(); setUser(null); setSession(null); return; }
       setRole(data.role);
       setUserName(data.name);
+    } else if (email) {
+      // User exists in Auth but not in users table — auto-insert as owner (first user) or cashier
+      const { count } = await supabase.from("users").select("*", { count: "exact", head: true });
+      const defaultRole = (count === 0) ? "owner" : "cashier";
+      const defaultName = email.split("@")[0];
+      await supabase.from("users").insert({ id: userId, name: defaultName, email, role: defaultRole, is_active: true });
+      setRole(defaultRole);
+      setUserName(defaultName);
     }
   };
 
@@ -44,14 +52,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) fetchUserProfile(session.user.id);
+      if (session?.user) fetchUserProfile(session.user.id, session.user.email);
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) fetchUserProfile(session.user.id);
+      if (session?.user) fetchUserProfile(session.user.id, session.user.email);
       setLoading(false);
     });
 
