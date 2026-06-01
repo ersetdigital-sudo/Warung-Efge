@@ -10,11 +10,14 @@ import Badge from "@/components/ui/Badge";
 import { formatCurrency, formatDate, getStockStatus } from "@/lib/utils";
 import { getProductsWithUnits, deleteProduct, getStockMovements, addStockMovement } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 
 type PageTab = "katalog" | "stok";
 
 export default function ProductsPage() {
   const router = useRouter();
+  const { role } = useAuth();
+  const canEdit = role !== "cashier";
   const [activeTab, setActiveTab] = useState<PageTab>("katalog");
   const [products, setProducts] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -99,7 +102,7 @@ export default function ProductsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div><h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Produk & Stok</h1><p className="text-[10px] text-[#9CA3AF] font-light">Kelola katalog produk dan stok barang</p></div>
-        {activeTab === "katalog" && <Link href="/products/tambah"><Button><Plus className="w-4 h-4" />Tambah Produk</Button></Link>}
+        {activeTab === "katalog" && canEdit && <Link href="/products/tambah"><Button><Plus className="w-4 h-4" />Tambah Produk</Button></Link>}
       </div>
 
       {/* Tabs */}
@@ -184,10 +187,12 @@ export default function ProductsPage() {
                         </div>
                       </td>
                       <td className="px-2.5 py-2">
+                        {canEdit && (
                         <div className="flex gap-1">
                           <button onClick={() => router.push(`/products/edit/${p.id}`)} className="w-6 h-6 rounded border border-[#D9D6C8] flex items-center justify-center cursor-pointer hover:bg-[#EFF6FF] hover:border-[#bfdbfe] hover:text-[#1D4ED8] text-[#9CA3AF]"><Edit className="w-3 h-3" /></button>
                           <button onClick={() => setDeleteTarget(p)} className="w-6 h-6 rounded border border-[#D9D6C8] flex items-center justify-center cursor-pointer hover:bg-[#FEF2F2] hover:border-[#fecaca] hover:text-[#DC2626] text-[#9CA3AF]"><Trash2 className="w-3 h-3" /></button>
                         </div>
+                        )}
                       </td>
                     </tr>
                     {/* Expand Row */}

@@ -52,13 +52,21 @@ function NavTooltip({ label, show }: { label: string; show: boolean }) {
 export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { signOut } = useAuth();
+  const { signOut, role } = useAuth();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   const handleLogout = async () => {
     await signOut();
     router.push("/login");
   };
+
+  // Filter menu items based on role
+  const visibleMenuItems = menuItems.filter(item => {
+    if (role === "cashier") {
+      return ["/pos", "/products", "/dashboard"].includes(item.href);
+    }
+    return true; // owner & admin see everything
+  });
 
   return (
     <>
@@ -117,7 +125,7 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
 
         {/* Nav items */}
         <nav className={cn("flex-1 overflow-y-auto space-y-1 transition-all duration-[220ms]", collapsed ? "p-2" : "p-3")}>
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
             return (
               <div key={item.href} className="relative" onMouseEnter={() => collapsed && setHoveredItem(item.href)} onMouseLeave={() => setHoveredItem(null)}>
