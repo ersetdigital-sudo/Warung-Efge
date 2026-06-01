@@ -323,6 +323,48 @@ export default function ReportsPage() {
               <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Margin</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{totalSales > 0 ? Math.round((labaBersih / totalSales) * 100) : 0}%</p></div>
             </div>
 
+            {/* Charts row */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-3">
+              {/* Pendapatan vs Pengeluaran chart */}
+              <Card>
+                <div className="px-4 py-3 border-b border-[#D9D6C8]"><p className="font-[Oswald] text-xs font-semibold text-[#072C2C] uppercase tracking-wider">Pendapatan vs Pengeluaran</p><p className="text-[9px] text-[#9CA3AF]">Perbandingan harian</p></div>
+                <div className="p-4 h-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={dailyData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,44,44,0.05)" vertical={false} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "#9CA3AF" }} />
+                      <YAxis axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "#9CA3AF" }} tickFormatter={v => `${v}rb`} />
+                      <Tooltip formatter={(v) => [`Rp ${v}rb`, ""]} contentStyle={{ backgroundColor: "#072C2C", border: "none", borderRadius: "5px", fontSize: "11px" }} labelStyle={{ color: "rgba(255,255,255,.5)" }} itemStyle={{ color: "#fff", fontWeight: 700 }} />
+                      <Bar dataKey="total" fill="#16A34A" radius={[3, 3, 0, 0]} name="Pendapatan" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+              {/* Komposisi Biaya donut */}
+              <Card>
+                <div className="px-4 py-3 border-b border-[#D9D6C8]"><p className="font-[Oswald] text-xs font-semibold text-[#072C2C] uppercase tracking-wider">Komposisi Biaya</p><p className="text-[9px] text-[#9CA3AF]">Breakdown pengeluaran</p></div>
+                <div className="p-4 h-[140px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart><Pie data={expenses.map((e, i) => ({ name: e.name, value: e.amount, color: ["#072C2C", "#FF5F03", "#D97706", "#16A34A", "#9CA3AF"][i % 5] }))} cx="50%" cy="50%" innerRadius={40} outerRadius={55} paddingAngle={3} dataKey="value" strokeWidth={3} stroke="#fff">{expenses.map((_, i) => <Cell key={i} fill={["#072C2C", "#FF5F03", "#D97706", "#16A34A", "#9CA3AF"][i % 5]} />)}</Pie></PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="px-4 pb-3 space-y-2">
+                  {expenses.map((e, i) => {
+                    const pct = totalExpenses > 0 ? Math.round((e.amount / totalExpenses) * 100) : 0;
+                    const color = ["#072C2C", "#FF5F03", "#D97706", "#16A34A", "#9CA3AF"][i % 5];
+                    return (
+                      <div key={e.id} className="flex items-center gap-2 text-[11px]">
+                        <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: color }} />
+                        <span className="text-[#4B5563] flex-1 truncate">{e.name}</span>
+                        <div className="flex-[2] h-1 rounded-full bg-[#EDEADE] overflow-hidden"><div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} /></div>
+                        <span className="font-mono font-bold text-[11px] min-w-[24px] text-right">{pct}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               {/* Laporan Laba Rugi */}
               <Card>
