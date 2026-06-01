@@ -2,10 +2,12 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Camera, X, Check } from "lucide-react";
+import { ArrowLeft, Camera, X, Check, ScanBarcode } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { categories } from "@/data/mock-data";
-import { getProductById, updateProduct } from "@/lib/db";
+import { getProductById, updateProduct, getProductUnits, saveProductUnits } from "@/lib/db";
+
+interface UnitLevel { level: number; active: boolean; name: string; conversion: string; stock: string; buyPrice: string; sellPrice: string; }
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -13,158 +15,193 @@ export default function EditProductPage() {
   const productId = params.id as string;
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-
-  const [hasExpiry, setHasExpiry] = useState(false);
-  const [expiryDate, setExpiryDate] = useState("");
+  const [name, setName] = useState("");
+  const [sku, setSku] = useState("");
   const [barcode, setBarcode] = useState("");
-  const [showCamera, setShowCamera] = useState(false);
-  const [cameraError, setCameraError] = useState("");
-  const [barcodeDetected, setBarcodeDetected] = useState(false);
-  const [prices, setPrices] = useState({ costPrice: "", sellingPrice: "", wholesalePrice: "", retailPrice: "" });
-  const [hasBulkUnit, setHasBulkUnit] = useState(false);
-  const [bulkUnit, setBulkUnit] = useState("");
-  const [bulkConversion, setBulkConversion] = useState("");
-  const [unitValue, setUnitValue] = useState("Pcs");
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const readerRef = useRef<any>(null);
+  const [category, setCategory] = useState("");
+  const [stock, setStock] = useState("");
+  const [minStock, setMinStock] = useState("");
+  const [unitValue, setUnitValue] = useState("");
+
+  // Multi-level
+  const [multiLevel, setMultiLevel] = useState(false);
+  const [units, setUnits] = useState<UnitLevel[]>([
+    { level: 1, active: false, name: "", conversion: "", stock: "", buyPrice: "", sellPrice: "" },
+    { level: 2, active: false, name: "", conversion: "", stock: "", buyPrice: "", sellPrice: "" },
+    { level: 3, active: false, name: "", conversion: "", stock: "", buyPrice: "", sellPrice: "" },
+  ]);
+
+  // Simple mode prices
+  const [buyPrice, setBuyPrice] = useState("");
+  const [sellPrice, setSellPrice] = useState("");
+
+  // Scanner
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannerError, setScannerError] = useState("");
+  const scanVideoRef = useRef<HTMLVideoElement>(null);
+  const scanReaderRef = useRef<any>(null);
+  const scanStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
-    getProductById(productId).then((p) => {
+    const load = async () => {
+      const p = await getProductById(productId);
+      if (!p) { setLoading(false); return; }
       setProduct(p);
-      if (p) {
-        setBarcode(p.barcode || "");
-        setHasExpiry(!!p.expiry_date);
-        setExpiryDate(p.expiry_date || "");
-        setUnitValue(p.unit || "Pcs");
-        setHasBulkUnit(!!p.has_bulk_unit);
-        setBulkUnit(p.bulk_unit || "");
-        setBulkConversion(String(p.bulk_conversion || ""));
-        setPrices({
-          costPrice: String(p.cost_price || ""),
-          sellingPrice: String(p.selling_price || ""),
-          wholesalePrice: String(p.wholesale_price || ""),
-          retailPrice: String(p.retail_price || ""),
-        });
+      setName(p.name || "");
+      setSku(p.sku || "");
+      setBarcode(p.barcode || "");
+      setCategory(p.category || "");
+      setStock(String(p.stock || 0));
+      setMinStock(String(p.min_stock || 0));
+      setUnitValue(p.unit || "Pcs");
+      setBuyPrice(String(p.cost_price || ""));
+      setSellPrice(String(p.selling_price || ""));
+
+      // Load product units
+      const pu = await getProductUnits(productId);
+      if (pu && pu.length > 0) {
+        setMultiLevel(true);
+        const newUnits: UnitLevel[] = [
+          { level: 1, active: false, name: "", conversion: "", stock: "", buyPrice: "", sellPrice: "" },
+          { level: 2, active: false, name: "", conversion: "", stock: "", buyPrice: "", sellPrice: "" },
+          { level: 3, active: false, name: "", conversion: "", stock: "", buyPrice: "", sellPrice: "" },
+        ];
+        for (const u of pu) {
+          const idx = newUnits.findIndex(x => x.level === u.level);
+          if (idx >= 0) {
+            newUnits[idx] = { level: u.level, active: true, name: u.name || "", conversion: String(u.conversion || ""), stock: String(u.stock || ""), buyPrice: String(u.buy_price || ""), sellPrice: String(u.sell_price || "") };
+          }
+        }
+        setUnits(newUnits);
       }
       setLoading(false);
-    });
+    };
+    load();
   }, [productId]);
 
-  useEffect(() => { return () => { stopCamera(); }; }, []);
-
-  const stopCamera = () => {
-    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
-    if (readerRef.current) { readerRef.current.reset(); readerRef.current = null; }
-  };
-
-  const startCamera = async () => {
-    setCameraError(""); setBarcodeDetected(false);
+  // Scanner
+  const stopScanner = () => { try { scanStreamRef.current?.getTracks().forEach(t => { try { t.stop(); } catch {} }); scanStreamRef.current = null; if (scanReaderRef.current) { try { scanReaderRef.current.reset(); } catch {} scanReaderRef.current = null; } } catch {} };
+  const openScanner = async () => {
+    setScannerError(""); setShowScanner(true);
     try {
       const { BrowserMultiFormatReader } = await import("@zxing/browser");
-      const reader = new BrowserMultiFormatReader();
-      readerRef.current = reader; setShowCamera(true);
-      setTimeout(async () => {
-        if (!videoRef.current) return;
-        try {
-          await reader.decodeFromVideoDevice(undefined, videoRef.current, (result) => {
-            if (result) { setBarcode(result.getText()); setBarcodeDetected(true); stopCamera(); setShowCamera(false); setTimeout(() => setBarcodeDetected(false), 3000); }
-          });
-          streamRef.current = videoRef.current.srcObject as MediaStream;
-        } catch { setCameraError("Kamera tidak dapat diakses. Silakan ketik barcode manual."); setShowCamera(false); }
-      }, 100);
-    } catch { setCameraError("Kamera tidak dapat diakses. Silakan ketik barcode manual."); setShowCamera(false); }
+      const { DecodeHintType, BarcodeFormat } = await import("@zxing/library");
+      const hints = new Map();
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.CODE_128, BarcodeFormat.UPC_A]);
+      const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 100 });
+      scanReaderRef.current = reader;
+      if (!scanVideoRef.current) return;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1280 } } });
+        scanVideoRef.current.srcObject = stream; scanStreamRef.current = stream;
+        await scanVideoRef.current.play();
+        reader.decodeFromVideoElement(scanVideoRef.current, (result) => { if (result) { setBarcode(result.getText()); stopScanner(); setShowScanner(false); } });
+      } catch { setScannerError("Kamera tidak dapat diakses."); }
+    } catch { setScannerError("Kamera tidak dapat diakses."); }
   };
+  const closeScanner = () => { stopScanner(); setScannerError(""); setShowScanner(false); };
+  useEffect(() => { return () => { stopScanner(); }; }, []);
+
+  const updateUnit = (level: number, field: string, value: string) => { setUnits(prev => prev.map(u => u.level === level ? { ...u, [field]: value } : u)); };
+  const toggleUnit = (level: number) => { setUnits(prev => prev.map(u => u.level === level ? { ...u, active: !u.active } : u)); };
+
 
   const handleSubmit = async () => {
-    if (!product) return;
-    const form = document.querySelector("form") as HTMLFormElement;
-    if (!form) return;
-    const formData = new FormData(form);
-
-    const updates: Record<string, unknown> = {
-      name: formData.get("name") || product.name,
-      sku: formData.get("sku") || product.sku,
-      barcode: barcode || null,
-      category: formData.get("category") || product.category,
-      cost_price: Number(prices.costPrice) || product.cost_price,
-      selling_price: Number(prices.sellingPrice) || product.selling_price,
-      wholesale_price: Number(prices.wholesalePrice) || 0,
-      retail_price: Number(prices.retailPrice) || 0,
-      stock: Number(formData.get("stock")) ?? product.stock,
-      min_stock: Number(formData.get("minStock")) ?? product.min_stock,
-      unit: formData.get("unit") || product.unit,
-      expiry_date: hasExpiry && expiryDate ? expiryDate : null,
-      has_bulk_unit: hasBulkUnit,
-      bulk_unit: hasBulkUnit ? bulkUnit : null,
-      bulk_conversion: hasBulkUnit ? Number(bulkConversion) : null,
-    };
-
+    if (!name.trim()) { alert("Nama produk wajib diisi!"); return; }
+    const updates: Record<string, unknown> = { name: name.trim(), sku: sku.trim() || product.sku, barcode: barcode.trim() || null, category: category || product.category, stock: Number(stock) || 0, min_stock: Number(minStock) || 0, unit: unitValue || product.unit, cost_price: Number(buyPrice) || 0, selling_price: Number(sellPrice) || 0 };
     const success = await updateProduct(productId, updates);
-    if (success) router.push("/products");
-    else alert("Gagal menyimpan. Coba lagi.");
+    if (!success) { alert("Gagal menyimpan."); return; }
+    if (multiLevel) {
+      const activeUnits = units.filter(u => u.active && u.name.trim());
+      await saveProductUnits(productId, activeUnits.map(u => ({ level: u.level, name: u.name.trim(), conversion: u.conversion ? Number(u.conversion) : null, stock: Number(u.stock) || 0, buy_price: Number(u.buyPrice) || 0, sell_price: Number(u.sellPrice) || 0 })));
+    } else {
+      await saveProductUnits(productId, [{ level: 1, name: unitValue, conversion: null, stock: Number(stock) || 0, buy_price: Number(buyPrice) || 0, sell_price: Number(sellPrice) || 0 }]);
+    }
+    router.push("/products");
   };
 
   if (loading) return <div className="p-8 text-center text-[#072C2C]/50">Memuat...</div>;
   if (!product) return <div className="p-8 text-center text-[#072C2C]/50">Produk tidak ditemukan</div>;
+  const margin = Number(buyPrice) && Number(sellPrice) ? Math.round((Number(sellPrice) - Number(buyPrice)) / Number(sellPrice) * 100) : null;
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col">
-      <div className="sticky top-0 z-10 bg-white border-b border-[#D9D6C8] px-4 lg:px-6 py-3 flex items-center gap-4">
-        <button onClick={() => router.push("/products")} className="flex items-center gap-1.5 text-sm text-[#072C2C]/70 hover:text-[#072C2C] cursor-pointer">
-          <ArrowLeft className="w-4 h-4" /><span className="hidden sm:inline">Kembali</span>
-        </button>
-        <h1 className="flex-1 text-center text-base lg:text-lg font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Edit Produk</h1>
-        <div className="w-[80px]" />
+    <div className="min-h-[calc(100vh-4rem)]">
+      <div className="bg-white border-b border-[#072C2C]/5 px-4 lg:px-8 py-3">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <button onClick={() => router.push("/products")} className="flex items-center gap-1.5 text-sm text-[#072C2C]/60 hover:text-[#072C2C] cursor-pointer"><ArrowLeft className="w-4 h-4" />Kembali</button>
+          <h1 className="text-sm lg:text-base font-bold text-[#072C2C]">Edit Produk</h1>
+          <Button onClick={handleSubmit}>Simpan</Button>
+        </div>
       </div>
-      <div className="flex-1 px-4 lg:px-8 py-5 lg:py-8 max-w-4xl mx-auto w-full">
-        <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-          <div>
-            <h3 className="text-sm font-bold text-[#072C2C] mb-3 uppercase tracking-wider">Informasi Produk</h3>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Nama Produk</label><input type="text" name="name" defaultValue={product.name} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Kategori</label><select name="category" defaultValue={product.category} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]"><option value="">Pilih Kategori</option>{categories.map((cat) => <option key={cat.id} value={cat.name}>{cat.name}</option>)}</select></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">SKU</label><input type="text" name="sku" defaultValue={product.sku} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Barcode</label>
-                <div className="flex gap-2">
-                  <input type="text" value={barcode} onChange={(e) => setBarcode(e.target.value)} className="flex-1 px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
-                  <button type="button" onClick={startCamera} className="flex-shrink-0 w-10 h-10 flex items-center justify-center border border-[#D9D6C8] rounded-lg hover:bg-[#EDEADE] cursor-pointer"><Camera className="w-5 h-5 text-[#072C2C]/60" /></button>
+      <div className="px-4 lg:px-8 py-6 lg:py-10 max-w-5xl mx-auto w-full space-y-6">
+        {/* Info */}
+        <div className="bg-white border border-[#072C2C]/8 rounded-2xl p-5 lg:p-6 shadow-sm">
+          <h3 className="text-sm font-bold text-[#072C2C] mb-4">Informasi Produk</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="lg:col-span-2"><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Nama Produk</label><input value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
+            <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Barcode</label><div className="flex gap-2"><input value={barcode} onChange={(e) => setBarcode(e.target.value)} className="flex-1 px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /><button type="button" onClick={openScanner} className="px-4 py-3 bg-[#072C2C] text-white rounded-xl cursor-pointer"><ScanBarcode className="w-4 h-4" /></button></div></div>
+            <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Kategori</label><select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm cursor-pointer"><option value="">Pilih</option>{categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}</select></div>
+            <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">SKU</label><input value={sku} onChange={(e) => setSku(e.target.value)} className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
+          </div>
+        </div>
+        {/* Harga Simple */}
+        {!multiLevel && (
+          <div className="bg-white border border-[#072C2C]/8 rounded-2xl p-5 lg:p-6 shadow-sm">
+            <h3 className="text-sm font-bold text-[#072C2C] mb-4">Harga & Stok</h3>
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Satuan</label><input value={unitValue} onChange={(e) => setUnitValue(e.target.value)} className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Stok</label><input value={stock} onChange={(e) => setStock(e.target.value)} type="number" className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Min Stok</label><input value={minStock} onChange={(e) => setMinStock(e.target.value)} type="number" className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Harga Beli</label><input value={buyPrice} onChange={(e) => setBuyPrice(e.target.value)} type="number" className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
+              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Harga Jual</label><input value={sellPrice} onChange={(e) => setSellPrice(e.target.value)} type="number" className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
+            </div>
+            {margin !== null && <p className={`mt-3 text-sm font-semibold ${margin >= 20 ? "text-[#16A34A]" : margin >= 10 ? "text-[#D97706]" : "text-[#DC2626]"}`}>Margin {margin}%</p>}
+          </div>
+        )}
+        {/* Multi toggle */}
+        <div className="bg-white border border-[#072C2C]/8 rounded-2xl p-5 lg:p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div><p className="text-sm font-bold text-[#072C2C]">Multi Satuan</p><p className="text-xs text-[#072C2C]/50 mt-0.5">Aktifkan jika produk dijual dalam beberapa satuan</p></div>
+            <button onClick={() => setMultiLevel(!multiLevel)} className="cursor-pointer"><div className={`w-12 h-7 rounded-full relative transition-colors ${multiLevel ? "bg-[#FF5F03]" : "bg-[#072C2C]/15"}`}><div className={`absolute top-[3px] w-[22px] h-[22px] rounded-full bg-white shadow-md transition-all ${multiLevel ? "left-[23px]" : "left-[3px]"}`} /></div></button>
+          </div>
+        </div>
+        {/* Multi units */}
+        {multiLevel && (
+          <div className="bg-white border border-[#072C2C]/8 rounded-2xl p-5 lg:p-6 shadow-sm space-y-3">
+            <h3 className="text-sm font-bold text-[#072C2C]">Tingkatan Satuan</h3>
+            {units.map((u, idx) => {
+              const labels = ["Satuan Besar", "Satuan Sedang", "Satuan Eceran"];
+              const colors = ["border-l-[#072C2C]", "border-l-[#FF5F03]", "border-l-[#D97706]"];
+              return (
+                <div key={u.level} className={`border border-[#072C2C]/8 rounded-xl p-4 border-l-[3px] ${colors[idx]} ${!u.active ? "opacity-40" : ""}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-bold text-[#072C2C]">{labels[idx]}</span>
+                    <button onClick={() => toggleUnit(u.level)} className="flex items-center gap-2 cursor-pointer"><span className="text-[10px] text-[#072C2C]/40">{u.active ? "Aktif" : "Off"}</span><div className={`w-9 h-5 rounded-full relative ${u.active ? "bg-[#16A34A]" : "bg-[#072C2C]/15"}`}><div className={`absolute top-[2px] w-4 h-4 rounded-full bg-white shadow transition-all ${u.active ? "left-[18px]" : "left-[2px]"}`} /></div></button>
+                  </div>
+                  {u.active && (
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                      <div><label className="block text-[10px] text-[#072C2C]/50 mb-1">Nama</label><input value={u.name} onChange={(e) => updateUnit(u.level, "name", e.target.value)} className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
+                      {u.level < 3 ? <div><label className="block text-[10px] text-[#072C2C]/50 mb-1">Isi per 1</label><input value={u.conversion} onChange={(e) => updateUnit(u.level, "conversion", e.target.value)} type="number" className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div> : <div><label className="block text-[10px] text-[#072C2C]/50 mb-1">Stok</label><input value={u.stock} onChange={(e) => updateUnit(u.level, "stock", e.target.value)} type="number" className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>}
+                      <div><label className="block text-[10px] text-[#072C2C]/50 mb-1">Harga Jual</label><input value={u.sellPrice} onChange={(e) => updateUnit(u.level, "sellPrice", e.target.value)} type="number" className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
+                      <div><label className="block text-[10px] text-[#072C2C]/50 mb-1">Harga Beli</label><input value={u.buyPrice} onChange={(e) => updateUnit(u.level, "buyPrice", e.target.value)} type="number" className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
+                    </div>
+                  )}
                 </div>
-                {barcodeDetected && <p className="text-xs text-[#16A34A] font-medium mt-1 flex items-center gap-1"><Check className="w-3 h-3" />Barcode terdeteksi ✓</p>}
-                {cameraError && <p className="text-xs text-[#DC2626] mt-1">{cameraError}</p>}
-                {showCamera && (<div className="mt-2 relative rounded-lg overflow-hidden border border-[#D9D6C8] bg-black"><video ref={videoRef} className="w-full h-[200px] object-cover" autoPlay playsInline muted /><div className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="w-[60%] h-[40%] border-2 border-white/60 rounded-lg" /></div><button type="button" onClick={() => { stopCamera(); setShowCamera(false); }} className="absolute top-2 right-2 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center cursor-pointer"><X className="w-4 h-4 text-white" /></button></div>)}
-              </div>
-            </div>
+              );
+            })}
           </div>
-          <div className="border-t border-[#D9D6C8] pt-5">
-            <h3 className="text-sm font-bold text-[#072C2C] mb-3 uppercase tracking-wider">Harga</h3>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Harga Modal (per {unitValue})</label><input type="text" inputMode="numeric" value={prices.costPrice ? `Rp ${Number(prices.costPrice).toLocaleString("id-ID")}` : ""} onChange={(e) => setPrices(p => ({ ...p, costPrice: e.target.value.replace(/\D/g, "") }))} placeholder="Rp 0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Harga Jual (per {unitValue})</label><input type="text" inputMode="numeric" value={prices.sellingPrice ? `Rp ${Number(prices.sellingPrice).toLocaleString("id-ID")}` : ""} onChange={(e) => setPrices(p => ({ ...p, sellingPrice: e.target.value.replace(/\D/g, "") }))} placeholder="Rp 0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              {hasBulkUnit && <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Harga Grosir (per {bulkUnit || "Satuan Beli"})</label><input type="text" inputMode="numeric" value={prices.wholesalePrice ? `Rp ${Number(prices.wholesalePrice).toLocaleString("id-ID")}` : ""} onChange={(e) => setPrices(p => ({ ...p, wholesalePrice: e.target.value.replace(/\D/g, "") }))} placeholder="Rp 0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>}
-              {hasBulkUnit && <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Harga Eceran (per satuan terkecil)</label><input type="text" inputMode="numeric" value={prices.retailPrice ? `Rp ${Number(prices.retailPrice).toLocaleString("id-ID")}` : ""} onChange={(e) => setPrices(p => ({ ...p, retailPrice: e.target.value.replace(/\D/g, "") }))} placeholder="Rp 0" className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>}
-            </div>
-          </div>
-          <div className="border-t border-[#D9D6C8] pt-5">
-            <h3 className="text-sm font-bold text-[#072C2C] mb-3 uppercase tracking-wider">Stok & Satuan</h3>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Stok</label><input type="number" name="stock" defaultValue={product.stock} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Min Stok</label><input type="number" name="minStock" defaultValue={product.min_stock} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Satuan</label><select defaultValue={product.unit} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]"><option value="">Pilih</option><option>Pcs</option><option>Kg</option><option>Liter</option><option>Botol</option><option>Bungkus</option><option>Kotak</option><option>Karung</option><option>Dus</option><option>Pak</option></select></div>
-            </div>
-            <div className="mt-4">
-              <label className="flex items-center gap-2.5 cursor-pointer"><input type="checkbox" checked={hasExpiry} onChange={(e) => setHasExpiry(e.target.checked)} className="w-4 h-4 rounded accent-[#FF5F03]" /><span className="text-sm font-medium text-[#072C2C]">Produk ini memiliki tanggal expired</span></label>
-              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${hasExpiry ? "max-h-24 opacity-100 mt-3" : "max-h-0 opacity-0 mt-0"}`}>
-                <div className="max-w-xs"><label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Tanggal Expired</label><input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} min={new Date().toISOString().split("T")[0]} className="w-full px-3.5 py-2.5 border border-[#D9D6C8] rounded-lg text-sm text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" /></div>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-[#D9D6C8] pt-5 flex items-center justify-end gap-3 sticky bottom-0 bg-[#EDEADE] py-4 -mx-4 px-4 lg:static lg:bg-transparent lg:py-0 lg:mx-0 lg:px-0">
-            <Button variant="secondary" type="button" onClick={() => router.push("/products")}>Batal</Button>
-            <Button type="submit">Simpan Perubahan</Button>
-          </div>
-        </form>
+        )}
       </div>
+      {showScanner && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/70" onClick={closeScanner} />
+          <div className="relative bg-black w-full h-full sm:w-[480px] sm:h-auto sm:max-h-[80vh] sm:rounded-2xl overflow-hidden flex flex-col">
+            <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent"><p className="text-white text-sm">Scan Barcode</p><button onClick={closeScanner} className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center cursor-pointer"><X className="w-5 h-5 text-white" /></button></div>
+            <div className="flex-1 relative min-h-[300px]"><video ref={scanVideoRef} className="w-full h-full object-cover" autoPlay playsInline muted /></div>
+            <div className="bg-black px-4 py-4 text-center">{scannerError ? <p className="text-[#DC2626] text-sm">{scannerError}</p> : <p className="text-white/70 text-sm">Arahkan kamera ke barcode</p>}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
