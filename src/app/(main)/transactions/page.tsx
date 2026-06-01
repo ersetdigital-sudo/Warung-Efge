@@ -117,8 +117,8 @@ export default function TransactionsPage() {
           </select>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-[12px]">
             <thead>
               <tr className="border-b border-[#D9D6C8]">
@@ -137,14 +137,17 @@ export default function TransactionsPage() {
               {paged.length === 0 && <tr><td colSpan={9} className="text-center py-12 text-[#9CA3AF]"><Receipt className="w-8 h-8 mx-auto mb-2 opacity-20" /><p className="text-sm">Belum ada transaksi</p></td></tr>}
               {paged.map((t) => {
                 const Icon = pmIcon(t.payment_method);
-                const itemCount = (t.transaction_items || []).reduce((s: number, i: any) => s + (i.quantity || 1), 0);
+                const items = t.transaction_items || [];
+                const firstItem = items[0]?.product_name || "–";
+                const otherCount = items.length - 1;
+                const itemLabel = otherCount > 0 ? `${firstItem} + ${otherCount} Lainnya` : firstItem;
                 return (
                   <tr key={t.id} className="border-b border-[#D9D6C8] hover:bg-[#FAFAF8]">
                     <td className="px-3 py-2.5"><span className="font-mono font-bold text-[11px] text-[#072C2C]">{t.transaction_number}</span></td>
                     <td className="px-3 py-2.5"><div className="text-[11px]">{t.created_at ? formatDate(t.created_at) : "–"}</div><div className="text-[9px] text-[#9CA3AF]">{t.created_at ? new Date(t.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : ""}</div></td>
                     <td className="px-3 py-2.5 text-[11px]">{t.cashier || "–"}</td>
                     <td className="px-3 py-2.5"><span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded border bg-[#EFF6FF] text-[#1D4ED8] border-[#bfdbfe]"><Icon className="w-3 h-3" />{pmLabel(t.payment_method)}</span></td>
-                    <td className="px-3 py-2.5 text-right"><span className="font-mono font-bold text-[11px]">{itemCount}</span><span className="text-[9px] text-[#9CA3AF] ml-0.5">item</span></td>
+                    <td className="px-3 py-2.5"><div className="text-[11px] text-[#072C2C] font-medium truncate max-w-[140px]">{itemLabel}</div></td>
                     <td className="px-3 py-2.5 text-right font-mono font-bold text-[11px] text-[#072C2C]">{formatCurrency(t.total)}</td>
                     <td className="px-3 py-2.5 text-right font-mono text-[11px] hidden sm:table-cell">{formatCurrency(t.amount_paid || 0)}</td>
                     <td className="px-3 py-2.5 text-right font-mono text-[11px] text-[#16A34A] hidden sm:table-cell">{formatCurrency(t.change_amount || 0)}</td>
@@ -160,6 +163,40 @@ export default function TransactionsPage() {
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="md:hidden px-3 py-2 space-y-2">
+          {paged.length === 0 && <div className="text-center py-8 text-[#9CA3AF] text-sm">Belum ada transaksi</div>}
+          {paged.map((t) => {
+            const items = t.transaction_items || [];
+            const firstItem = items[0]?.product_name || "–";
+            const otherCount = items.length - 1;
+            const itemLabel = otherCount > 0 ? `${firstItem} + ${otherCount} Lainnya` : firstItem;
+            return (
+              <div key={t.id} className="bg-white border border-[#D9D6C8] rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono font-bold text-xs text-[#072C2C]">{t.transaction_number}</span>
+                  <span className="text-[10px] text-[#9CA3AF]">{t.created_at ? `${formatDate(t.created_at)} ${new Date(t.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}` : ""}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-[#072C2C] font-medium truncate flex-1">{itemLabel}</p>
+                  <p className="font-mono font-bold text-sm text-[#072C2C] ml-2">{formatCurrency(t.total)}</p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="info">{pmLabel(t.payment_method)}</Badge>
+                    <span className="text-[10px] text-[#9CA3AF]">{t.cashier}</span>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => setSelectedTrx(t)} className="w-7 h-7 rounded border border-[#D9D6C8] flex items-center justify-center cursor-pointer text-[#9CA3AF]"><Eye className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => handleCetak(t)} className="w-7 h-7 rounded border border-[#D9D6C8] flex items-center justify-center cursor-pointer text-[#9CA3AF]"><Download className="w-3.5 h-3.5" /></button>
+                    {isAdmin && <button onClick={() => handleDelete(t)} className="w-7 h-7 rounded border border-[#D9D6C8] flex items-center justify-center cursor-pointer text-[#9CA3AF]"><Trash2 className="w-3.5 h-3.5" /></button>}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Pager */}
