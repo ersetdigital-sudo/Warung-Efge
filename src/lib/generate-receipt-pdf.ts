@@ -126,7 +126,16 @@ export function generateReceiptPDF(data: ReceiptData, action: "download" | "open
   const filename = `Struk-${data.trxId}-${dateStr}.pdf`;
 
   if (action === "download") {
-    doc.save(filename);
+    // Mobile-friendly download using blob + anchor
+    const blob = doc.output("blob");
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   } else {
     // Open in new tab
     const blob = doc.output("blob");

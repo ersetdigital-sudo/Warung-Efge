@@ -233,34 +233,51 @@ export default function POSPage() {
     for (const item of cart) { stockUpdates[item.productId] = (stockUpdates[item.productId] || 0) + item.quantity * item.stockPerUnit; }
     for (const [productId, reduction] of Object.entries(stockUpdates)) { const product = products.find((p: any) => p.id === productId); if (product && reduction > 0) { await supabase.from("products").update({ stock: Math.max(0, (product.stock || 0) - Math.floor(reduction)) }).eq("id", productId); } }
     for (const item of cart) { await addStockMovement({ product_id: item.productId, product_name: item.name, type: "out", quantity: item.quantity, unit: item.unit, notes: `Penjualan ${trxId} (${item.quantity} ${item.unit})`, user_name: "Pak Efge" }); }
-    setTodayTrxCount(prev => prev + 1); setTodayOmzet(prev => prev + total); setShowReceipt(true); setShowCart(false);
+    setTodayTrxCount(prev => prev + 1); setTodayOmzet(prev => prev + total);
+    // Save receipt data before showing success modal (in case cart gets cleared)
+    setLastReceiptData({
+      items: cart.map(item => ({ name: item.name, quantity: item.quantity, unit: item.unit, price: item.price, subtotal: item.subtotal })),
+      subtotal, discount: calculatedDiscount, total,
+      method: paymentMethod === "cash" ? "Tunai" : paymentMethod === "transfer" ? "Transfer" : paymentMethod === "edc" ? "EDC" : "QRIS",
+      paid: Number(amountPaid) || 0, change: change > 0 ? change : 0, trxId,
+    });
+    setShowReceipt(true); setShowCart(false);
   };
 
   const handleNewTransaction = () => { const c = trxId; setCart([]); setDiscountInput(""); setAmountPaid(""); setIsDebt(false); setShowReceipt(false); setPaymentMethod("cash"); setTrxId(`TRX-${String(Math.floor(Math.random() * 9000) + 1000)}`); setSuccessToast(c); setTimeout(() => setSuccessToast(""), 3000); };
 
   const [printToast, setPrintToast] = useState<{ msg: string; color: string } | null>(null);
+  const [lastReceiptData, setLastReceiptData] = useState<any>(null);
 
   const handleSavePDF = (action: "download" | "open") => {
     try {
-      const dateStr = `${now.toLocaleDateString("id-ID")} ${now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`;
+      const dateStr = `${new Date().toLocaleDateString("id-ID")} ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`;
+      const data = lastReceiptData || {
+        items: cart.map(item => ({ name: item.name, quantity: item.quantity, unit: item.unit, price: item.price, subtotal: item.subtotal })),
+        subtotal, discount: calculatedDiscount, total,
+        method: paymentMethod === "cash" ? "Tunai" : paymentMethod === "transfer" ? "Transfer" : paymentMethod === "edc" ? "EDC" : "QRIS",
+        paid: Number(amountPaid) || 0, change: change > 0 ? change : 0, trxId,
+      };
       generateReceiptPDF({
         storeName: "WARUNG EFGE",
         cashier: userName || "Kasir",
-        trxId,
+        trxId: data.trxId || trxId,
         date: dateStr,
-        items: cart.map(item => ({ name: item.name, quantity: item.quantity, unit: item.unit, price: item.price, subtotal: item.subtotal })),
-        subtotal,
-        discount: calculatedDiscount,
-        total,
-        method: paymentMethod === "cash" ? "Tunai" : paymentMethod === "transfer" ? "Transfer" : paymentMethod === "edc" ? "EDC" : "QRIS",
-        paid: Number(amountPaid) || 0,
-        change: change > 0 ? change : 0,
+        items: data.items,
+        subtotal: data.subtotal,
+        discount: data.discount,
+        total: data.total,
+        method: data.method,
+        paid: data.paid,
+        change: data.change,
       }, action);
       setShowReceipt(false);
+      setLastReceiptData(null);
       handleNewTransaction();
       setPrintToast({ msg: "Struk berhasil disimpan ✓", color: "bg-[#16A34A]" });
       setTimeout(() => setPrintToast(null), 3000);
-    } catch {
+    } catch (e) {
+      console.error("PDF error:", e);
       setPrintToast({ msg: "Gagal membuat struk. Coba lagi.", color: "bg-[#DC2626]" });
       setTimeout(() => setPrintToast(null), 3000);
     }
