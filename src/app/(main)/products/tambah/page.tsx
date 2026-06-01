@@ -108,71 +108,73 @@ export default function AddProductPage() {
   const margin = getMargin(buyPrice, sellPrice);
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-[#D9D6C8] px-4 lg:px-6 py-3 flex items-center gap-4">
-        <button onClick={() => router.push("/products")} className="flex items-center gap-1.5 text-sm text-[#072C2C]/70 hover:text-[#072C2C] cursor-pointer"><ArrowLeft className="w-4 h-4" /><span className="hidden sm:inline">Kembali</span></button>
-        <h1 className="flex-1 text-center text-base lg:text-lg font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Tambah Produk</h1>
-        <div className="w-[80px]" />
+    <div className="min-h-[calc(100vh-4rem)]">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-lg border-b border-[#072C2C]/5 px-4 lg:px-8 py-3">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <button onClick={() => router.push("/products")} className="flex items-center gap-1.5 text-sm text-[#072C2C]/60 hover:text-[#072C2C] cursor-pointer transition-colors"><ArrowLeft className="w-4 h-4" />Kembali</button>
+          <h1 className="text-sm lg:text-base font-bold text-[#072C2C]">Tambah Produk</h1>
+          <Button onClick={handleSubmit}>Simpan</Button>
+        </div>
       </div>
 
-      <div className="flex-1 px-4 lg:px-8 py-5 lg:py-8 max-w-3xl mx-auto w-full">
-        <div className="space-y-5">
+      <div className="px-4 lg:px-8 py-6 lg:py-10 max-w-5xl mx-auto">
+        <div className="space-y-6">
 
-          {/* Info Dasar */}
-          <div className="bg-white border border-[#D9D6C8] rounded-lg p-4 space-y-4">
-            <h3 className="text-xs font-bold text-[#072C2C] uppercase tracking-wider">Informasi Produk</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="sm:col-span-2">
-                <label className="block text-[11px] font-medium text-[#4B5563] mb-1">Nama Produk <span className="text-[#DC2626]">*</span></label>
-                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="cth: Indomie Goreng, Aqua 600ml" className="w-full px-3 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
+          {/* Info Produk */}
+          <div className="bg-white border border-[#072C2C]/8 rounded-2xl p-5 lg:p-6 shadow-sm">
+            <h3 className="text-sm font-bold text-[#072C2C] mb-4">Informasi Produk</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="lg:col-span-2">
+                <label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Nama Produk <span className="text-[#DC2626]">*</span></label>
+                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="cth: Indomie Goreng, Aqua 600ml" className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20 focus:border-[#FF5F03] transition-all" />
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-[#4B5563] mb-1">Barcode</label>
+                <label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Barcode</label>
                 <div className="flex gap-2">
-                  <input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Scan atau ketik" className="flex-1 px-3 py-2.5 border border-[#D9D6C8] rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
-                  <button type="button" onClick={openScanner} className="flex items-center gap-1 px-3 py-2.5 bg-[#FF5F03] text-white rounded-lg text-xs font-medium cursor-pointer hover:bg-[#e55503]"><ScanBarcode className="w-4 h-4" /></button>
+                  <input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Scan atau ketik" className="flex-1 px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
+                  <button type="button" onClick={openScanner} className="flex items-center gap-1.5 px-4 py-3 bg-[#072C2C] text-white rounded-xl text-xs font-medium cursor-pointer hover:bg-[#0a3d3d] transition-colors"><ScanBarcode className="w-4 h-4" /></button>
                 </div>
-                {barcode && <p className="text-[10px] text-[#16A34A] mt-1 font-mono">✓ {barcode}</p>}
+                {barcode && <p className="text-[10px] text-[#16A34A] mt-1.5 font-mono font-medium">✓ {barcode}</p>}
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-[#4B5563] mb-1">Kategori</label>
-                <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-3 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 cursor-pointer">
+                <label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Kategori</label>
+                <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20 cursor-pointer">
                   <option value="">Pilih Kategori</option>
                   {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] font-medium text-[#4B5563] mb-1">SKU <span className="text-[#9CA3AF]">(opsional)</span></label>
-                <input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Otomatis jika kosong" className="w-full px-3 py-2.5 border border-[#D9D6C8] rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
+                <label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">SKU <span className="text-[#072C2C]/30">(opsional)</span></label>
+                <input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Otomatis jika kosong" className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
               </div>
             </div>
           </div>
 
           {/* Harga & Stok - Simple Mode */}
           {!multiLevel && (
-            <div className="bg-white border border-[#D9D6C8] rounded-lg p-4 space-y-4">
-              <h3 className="text-xs font-bold text-[#072C2C] uppercase tracking-wider">Harga & Stok</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="bg-white border border-[#072C2C]/8 rounded-2xl p-5 lg:p-6 shadow-sm">
+              <h3 className="text-sm font-bold text-[#072C2C] mb-4">Harga & Stok</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-[11px] font-medium text-[#4B5563] mb-1">Satuan <span className="text-[#DC2626]">*</span></label>
-                  <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="cth: Pcs, Bungkus, Botol, Kg" className="w-full px-3 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
+                  <label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Satuan <span className="text-[#DC2626]">*</span></label>
+                  <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="cth: Pcs, Bungkus" className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20 focus:border-[#FF5F03]" />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-[#4B5563] mb-1">Stok Awal</label>
-                  <input value={stock} onChange={(e) => setStock(e.target.value)} placeholder="0" type="number" inputMode="numeric" className="w-full px-3 py-2.5 border border-[#D9D6C8] rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
+                  <label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Stok Awal</label>
+                  <input value={stock} onChange={(e) => setStock(e.target.value)} placeholder="0" type="number" inputMode="numeric" className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-[#4B5563] mb-1">Harga Beli</label>
-                  <input value={buyPrice} onChange={(e) => setBuyPrice(e.target.value)} placeholder="0" type="number" inputMode="numeric" className="w-full px-3 py-2.5 border border-[#D9D6C8] rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
+                  <label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Harga Beli</label>
+                  <input value={buyPrice} onChange={(e) => setBuyPrice(e.target.value)} placeholder="0" type="number" inputMode="numeric" className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-[#4B5563] mb-1">Harga Jual</label>
-                  <input value={sellPrice} onChange={(e) => setSellPrice(e.target.value)} placeholder="0" type="number" inputMode="numeric" className="w-full px-3 py-2.5 border border-[#D9D6C8] rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
+                  <label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Harga Jual</label>
+                  <input value={sellPrice} onChange={(e) => setSellPrice(e.target.value)} placeholder="0" type="number" inputMode="numeric" className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
                 </div>
               </div>
               {margin !== null && (
-                <div className={`text-[11px] font-bold px-3 py-2 rounded-lg ${margin >= 20 ? "bg-[#F0FDF4] text-[#16A34A]" : margin >= 10 ? "bg-[#FFFBEB] text-[#D97706]" : "bg-[#FEF2F2] text-[#DC2626]"}`}>
+                <div className={`mt-4 text-sm font-semibold px-4 py-3 rounded-xl ${margin >= 20 ? "bg-[#F0FDF4] text-[#16A34A]" : margin >= 10 ? "bg-[#FFFBEB] text-[#D97706]" : "bg-[#FEF2F2] text-[#DC2626]"}`}>
                   Margin {margin}% · Untung Rp {(Number(sellPrice) - Number(buyPrice)).toLocaleString("id-ID")} / {unit || "unit"}
                 </div>
               )}
@@ -180,15 +182,15 @@ export default function AddProductPage() {
           )}
 
           {/* Toggle Multi Level */}
-          <div className="bg-white border border-[#D9D6C8] rounded-lg p-4">
+          <div className="bg-white border border-[#072C2C]/8 rounded-2xl p-5 lg:p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-[#072C2C]">Multi Satuan (Opsional)</p>
-                <p className="text-[11px] text-[#9CA3AF] mt-0.5">Aktifkan jika produk dijual dalam beberapa satuan (cth: Slop → Bungkus → Batang)</p>
+                <p className="text-sm font-bold text-[#072C2C]">Multi Satuan</p>
+                <p className="text-xs text-[#072C2C]/50 mt-0.5">Aktifkan jika produk dijual dalam beberapa satuan (cth: Slop → Bungkus → Batang)</p>
               </div>
               <button onClick={() => setMultiLevel(!multiLevel)} className="cursor-pointer">
-                <div className={`w-11 h-6 rounded-full relative transition-colors ${multiLevel ? "bg-[#FF5F03]" : "bg-[#D9D6C8]"}`}>
-                  <div className={`absolute top-[3px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${multiLevel ? "left-[22px]" : "left-[3px]"}`} />
+                <div className={`w-12 h-7 rounded-full relative transition-colors ${multiLevel ? "bg-[#FF5F03]" : "bg-[#072C2C]/15"}`}>
+                  <div className={`absolute top-[3px] w-[22px] h-[22px] rounded-full bg-white shadow-md transition-all ${multiLevel ? "left-[23px]" : "left-[3px]"}`} />
                 </div>
               </button>
             </div>
@@ -196,10 +198,10 @@ export default function AddProductPage() {
 
           {/* Multi Level Units */}
           {multiLevel && (
-            <div className="bg-white border border-[#D9D6C8] rounded-lg p-4 space-y-4">
+            <div className="bg-white border border-[#072C2C]/8 rounded-2xl p-5 lg:p-6 shadow-sm space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-[#072C2C] uppercase tracking-wider">Tingkatan Satuan</h3>
-                <p className="text-[10px] text-[#9CA3AF]">Isi dari terbesar ke terkecil</p>
+                <h3 className="text-sm font-bold text-[#072C2C]">Tingkatan Satuan</h3>
+                <p className="text-[10px] text-[#072C2C]/40">Isi dari terbesar ke terkecil</p>
               </div>
               <div className="space-y-3">
                 {units.map((u, idx) => {
@@ -207,50 +209,44 @@ export default function AddProductPage() {
                   const labels = ["Satuan Terbesar (cth: Slop, Karton)", "Satuan Tengah (cth: Bungkus, Botol)", "Satuan Terkecil (cth: Batang, Pcs)"];
                   const colors = ["border-l-[#072C2C]", "border-l-[#FF5F03]", "border-l-[#D97706]"];
                   return (
-                    <div key={u.level} className={`border border-[#D9D6C8] rounded-lg p-3 border-l-[3px] ${colors[idx]} ${!u.name && idx > 0 ? "opacity-60" : ""}`}>
-                      <p className="text-[10px] font-bold text-[#9CA3AF] uppercase mb-2">Level {u.level} — {labels[idx]}</p>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div key={u.level} className={`border border-[#072C2C]/8 rounded-xl p-4 border-l-[3px] ${colors[idx]} ${!u.name && idx > 0 ? "opacity-50" : ""}`}>
+                      <p className="text-[10px] font-bold text-[#072C2C]/50 uppercase mb-3">Level {u.level} — {labels[idx]}</p>
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                         <div>
-                          <label className="block text-[10px] text-[#9CA3AF] mb-0.5">Nama Satuan</label>
-                          <input value={u.name} onChange={(e) => updateUnit(u.level, "name", e.target.value)} placeholder={["Slop", "Bungkus", "Batang"][idx]} className="w-full px-2.5 py-2 border border-[#D9D6C8] rounded text-sm focus:outline-none focus:border-[#FF5F03]" />
+                          <label className="block text-[10px] text-[#072C2C]/50 mb-1">Nama Satuan</label>
+                          <input value={u.name} onChange={(e) => updateUnit(u.level, "name", e.target.value)} placeholder={["Slop", "Bungkus", "Batang"][idx]} className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
                         </div>
-                        {u.level < 3 && (
+                        {u.level < 3 ? (
                           <div>
-                            <label className="block text-[10px] text-[#9CA3AF] mb-0.5">Isi per 1</label>
-                            <input value={u.conversion} onChange={(e) => updateUnit(u.level, "conversion", e.target.value)} placeholder={["10", "12"][idx]} type="number" className="w-full px-2.5 py-2 border border-[#D9D6C8] rounded text-sm font-mono focus:outline-none focus:border-[#FF5F03]" />
+                            <label className="block text-[10px] text-[#072C2C]/50 mb-1">Isi per 1</label>
+                            <input value={u.conversion} onChange={(e) => updateUnit(u.level, "conversion", e.target.value)} placeholder={["10", "12"][idx]} type="number" className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
+                          </div>
+                        ) : (
+                          <div>
+                            <label className="block text-[10px] text-[#072C2C]/50 mb-1">Stok Awal</label>
+                            <input value={u.stock} onChange={(e) => updateUnit(u.level, "stock", e.target.value)} placeholder="0" type="number" className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
                           </div>
                         )}
                         <div>
-                          <label className="block text-[10px] text-[#9CA3AF] mb-0.5">Harga Jual</label>
-                          <input value={u.sellPrice} onChange={(e) => updateUnit(u.level, "sellPrice", e.target.value)} placeholder="0" type="number" className="w-full px-2.5 py-2 border border-[#D9D6C8] rounded text-sm font-mono focus:outline-none focus:border-[#FF5F03]" />
+                          <label className="block text-[10px] text-[#072C2C]/50 mb-1">Harga Jual</label>
+                          <input value={u.sellPrice} onChange={(e) => updateUnit(u.level, "sellPrice", e.target.value)} placeholder="0" type="number" className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
                         </div>
                         <div>
-                          <label className="block text-[10px] text-[#9CA3AF] mb-0.5">Harga Beli</label>
-                          <input value={u.buyPrice} onChange={(e) => updateUnit(u.level, "buyPrice", e.target.value)} placeholder="0" type="number" className="w-full px-2.5 py-2 border border-[#D9D6C8] rounded text-sm font-mono focus:outline-none focus:border-[#FF5F03]" />
+                          <label className="block text-[10px] text-[#072C2C]/50 mb-1">Harga Beli</label>
+                          <input value={u.buyPrice} onChange={(e) => updateUnit(u.level, "buyPrice", e.target.value)} placeholder="0" type="number" className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
                         </div>
                       </div>
-                      {idx === 2 && (
-                        <div className="mt-2">
-                          <label className="block text-[10px] text-[#9CA3AF] mb-0.5">Stok Awal ({u.name || "unit terkecil"})</label>
-                          <input value={u.stock} onChange={(e) => updateUnit(u.level, "stock", e.target.value)} placeholder="0" type="number" className="w-full sm:w-32 px-2.5 py-2 border border-[#D9D6C8] rounded text-sm font-mono focus:outline-none focus:border-[#FF5F03]" />
-                        </div>
-                      )}
-                      {m !== null && <p className={`text-[10px] font-bold mt-2 ${m >= 20 ? "text-[#16A34A]" : m >= 10 ? "text-[#D97706]" : "text-[#DC2626]"}`}>Margin {m}%</p>}
+                      {m !== null && <p className={`text-xs font-bold mt-3 ${m >= 20 ? "text-[#16A34A]" : m >= 10 ? "text-[#D97706]" : "text-[#DC2626]"}`}>Margin {m}%</p>}
                     </div>
                   );
                 })}
               </div>
-              <div className="bg-[#EDEADE] rounded-lg p-3 text-[10px] text-[#4B5563]">
+              <div className="bg-[#072C2C]/5 rounded-xl p-4 text-xs text-[#072C2C]/60">
                 💡 <strong>Tips:</strong> Kosongkan level yang tidak dipakai. Misal produk cuma punya 2 satuan (Dus → Pcs), isi Level 1 dan Level 3 saja.
               </div>
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-2 pb-8">
-            <Button variant="secondary" type="button" onClick={() => router.push("/products")}>Batal</Button>
-            <Button onClick={handleSubmit}>Simpan Produk</Button>
-          </div>
         </div>
       </div>
 
