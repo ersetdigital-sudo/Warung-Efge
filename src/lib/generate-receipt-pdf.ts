@@ -56,7 +56,7 @@ export function generateReceiptPDF(data: ReceiptData, action: "download" | "open
 <div class="receipt">
   <div class="center">
     <div style="font-size:16px;font-weight:bold">${data.storeName}</div>
-    <div style="font-size:10px;color:#666">Sistem POS & Inventory</div>
+    <div style="font-size:10px;color:#666">Sembako & Kebutuhan Harian</div>
     <div style="font-size:10px;color:#666">Kasir: ${data.cashier}</div>
   </div>
   <hr class="divider">
