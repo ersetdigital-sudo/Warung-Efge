@@ -625,11 +625,8 @@ export default function POSPage() {
 
             {/* Action buttons - clear and prominent */}
             <div className="px-5 pb-5 space-y-2">
-              <button onClick={() => handleSavePDF("download")} className="w-full flex items-center justify-center gap-2 py-3 bg-[#072C2C] text-white font-bold text-sm rounded-xl cursor-pointer hover:bg-[#0a3d3d] transition-colors">
-                💾 Simpan PDF
-              </button>
-              <button onClick={() => handleSavePDF("open")} className="w-full flex items-center justify-center gap-2 py-3 bg-white border-2 border-[#072C2C] text-[#072C2C] font-bold text-sm rounded-xl cursor-pointer hover:bg-[#EDEADE] transition-colors">
-                🖨️ Cetak Langsung
+              <button onClick={() => handleSavePDF("open")} className="w-full flex items-center justify-center gap-2 py-3 bg-[#072C2C] text-white font-bold text-sm rounded-xl cursor-pointer hover:bg-[#0a3d3d] transition-colors">
+                🧾 Lihat & Cetak Struk
               </button>
               <button onClick={handleNewTransaction} className="w-full flex items-center justify-center gap-2 py-3 bg-[#FF5F03] text-white font-bold text-sm rounded-xl cursor-pointer hover:bg-[#e55503] transition-colors">
                 <Plus className="w-4 h-4" />Transaksi Baru

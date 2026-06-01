@@ -1,5 +1,3 @@
-import { jsPDF } from "jspdf";
-
 export interface ReceiptData {
   storeName: string;
   cashier: string;
@@ -17,109 +15,81 @@ export interface ReceiptData {
 const fmtRp = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 
 export function generateReceiptPDF(data: ReceiptData, action: "download" | "open" = "download") {
-  const W = 58; // page width mm
-  const M = 3; // margin
-  const doc = new jsPDF({ unit: "mm", format: [W, 200], orientation: "portrait" });
+  const items = data.items.map(item => `
+    <div style="margin-bottom:6px">
+      <div style="font-weight:bold;font-size:12px">${item.name}</div>
+      <div style="display:flex;justify-content:space-between;font-size:11px">
+        <span>${item.quantity} ${item.unit} x ${fmtRp(item.price)}</span>
+        <span style="font-weight:bold">${fmtRp(item.subtotal)}</span>
+      </div>
+    </div>
+  `).join("");
 
-  let y = 6;
-
-  const setFont = (bold = false, size = 8) => {
-    doc.setFontSize(size);
-    doc.setFont("helvetica", bold ? "bold" : "normal");
-  };
-
-  const textCenter = (text: string, size = 8, bold = false) => {
-    setFont(bold, size);
-    doc.text(text, W / 2, y, { align: "center" });
-    y += size * 0.45;
-  };
-
-  const textLeft = (text: string, size = 8, bold = false) => {
-    setFont(bold, size);
-    doc.text(text, M, y);
-    y += size * 0.45;
-  };
-
-  const textLeftRight = (left: string, right: string, size = 8, bold = false) => {
-    setFont(bold, size);
-    doc.text(left, M, y);
-    doc.text(right, W - M, y, { align: "right" });
-    y += size * 0.45;
-  };
-
-  const drawLine = (double = false) => {
-    setFont(false, 7);
-    const ch = double ? "=" : "-";
-    doc.text(ch.repeat(38), M, y);
-    y += 3;
-  };
-
-  // === HEADER ===
-  textCenter(data.storeName, 11, true);
-  y += 0.5;
-  textCenter("Sistem POS & Inventory", 7);
-  textCenter(`Kasir: ${data.cashier}`, 7);
-  y += 1;
-  drawLine(true);
-
-  // === INFO TRANSAKSI ===
-  textLeft(`No: ${data.trxId}`, 7);
-  textLeft(data.date, 7);
-  drawLine();
-
-  // === ITEMS ===
-  for (const item of data.items) {
-    setFont(false, 8);
-    const lines = doc.splitTextToSize(item.name, W - M * 2);
-    for (const l of lines) {
-      doc.text(l, M, y);
-      y += 3.2;
-    }
-    textLeftRight(
-      `${item.quantity} ${item.unit} x ${fmtRp(item.price)}`,
-      fmtRp(item.subtotal),
-      7
-    );
-    y += 1;
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Struk ${data.trxId}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Courier New', monospace; background:#f5f5f5; padding:20px; }
+  .receipt { background:#fff; max-width:300px; margin:0 auto; padding:20px; border-radius:8px; box-shadow:0 2px 20px rgba(0,0,0,.1); }
+  .center { text-align:center; }
+  .bold { font-weight:bold; }
+  .divider { border:none; border-top:1px dashed #ccc; margin:10px 0; }
+  .row { display:flex; justify-content:space-between; font-size:12px; margin:3px 0; }
+  .row.total { font-size:15px; font-weight:bold; margin:8px 0; padding:6px 0; border-top:1px solid #333; border-bottom:1px solid #333; }
+  .footer { text-align:center; font-size:10px; color:#888; margin-top:12px; }
+  .actions { text-align:center; margin-top:20px; padding-top:16px; border-top:1px solid #eee; }
+  .actions button { padding:10px 20px; margin:4px; border-radius:6px; border:none; font-size:13px; font-weight:bold; cursor:pointer; }
+  .btn-print { background:#072C2C; color:#fff; }
+  .btn-save { background:#FF5F03; color:#fff; }
+  @media print {
+    body { background:#fff; padding:0; }
+    .receipt { box-shadow:none; border-radius:0; max-width:58mm; padding:2mm; }
+    .actions { display:none; }
   }
-  drawLine();
+</style>
+</head>
+<body>
+<div class="receipt">
+  <div class="center">
+    <div style="font-size:16px;font-weight:bold">${data.storeName}</div>
+    <div style="font-size:10px;color:#666">Sistem POS & Inventory</div>
+    <div style="font-size:10px;color:#666">Kasir: ${data.cashier}</div>
+  </div>
+  <hr class="divider">
+  <div class="row" style="font-size:10px;color:#666">
+    <span>${data.trxId}</span>
+    <span>${data.date}</span>
+  </div>
+  <hr class="divider">
+  ${items}
+  <hr class="divider">
+  <div class="row"><span>Subtotal</span><span>${fmtRp(data.subtotal)}</span></div>
+  ${data.discount > 0 ? `<div class="row"><span>Diskon</span><span style="color:#DC2626">-${fmtRp(data.discount)}</span></div>` : ""}
+  <div class="row total"><span>TOTAL</span><span>${fmtRp(data.total)}</span></div>
+  <div class="row"><span>Metode</span><span>${data.method}</span></div>
+  <div class="row"><span>Bayar</span><span>${fmtRp(data.paid)}</span></div>
+  ${data.change > 0 ? `<div class="row bold"><span>Kembalian</span><span style="color:#16A34A">${fmtRp(data.change)}</span></div>` : ""}
+  <hr class="divider">
+  <div class="footer">
+    <p>Terima kasih atas kunjungan Anda!</p>
+    <p>Barang yang dibeli tidak dapat dikembalikan</p>
+  </div>
+</div>
+<div class="actions">
+  <button class="btn-print" onclick="window.print()">🖨️ Cetak</button>
+  <button class="btn-save" onclick="window.close()">✓ Selesai</button>
+</div>
+</body>
+</html>`;
 
-  // === RINGKASAN ===
-  textLeftRight("Subtotal", fmtRp(data.subtotal), 8);
-  if (data.discount > 0) {
-    textLeftRight("Diskon", `-${fmtRp(data.discount)}`, 8);
-  }
-  drawLine(true);
-  textLeftRight("TOTAL", fmtRp(data.total), 10, true);
-  drawLine(true);
-
-  // === PEMBAYARAN ===
-  textLeft(`Metode: ${data.method}`, 7);
-  y += 0.5;
-  textLeftRight("Bayar", fmtRp(data.paid), 8);
-  textLeftRight("Kembali", fmtRp(data.change), 8);
-  drawLine(true);
-
-  // === FOOTER ===
-  y += 1;
-  textCenter("Terima kasih atas kunjungan Anda!", 7);
-  textCenter("Barang yang dibeli tidak dapat", 7);
-  textCenter("dikembalikan", 7);
-  y += 10;
-
-  // Trim page height to content
-  const finalHeight = Math.max(y + 5, 50);
-  (doc.internal.pageSize as any).height = finalHeight;
-
-  // Output
-  const dateClean = data.date.replace(/[\s\/,:]/g, "-");
-  const filename = `Struk-${data.trxId}-${dateClean}.pdf`;
-
-  if (action === "download") {
-    doc.save(filename);
-  } else {
-    const pdfBlob = doc.output("blob");
-    const url = URL.createObjectURL(pdfBlob);
-    window.open(url, "_blank");
+  // Open in new tab/window
+  const newWindow = window.open("", "_blank");
+  if (newWindow) {
+    newWindow.document.write(html);
+    newWindow.document.close();
   }
 }
