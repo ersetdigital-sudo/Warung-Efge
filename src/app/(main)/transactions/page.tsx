@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Search, Eye, Download, Receipt, Banknote, QrCode, CreditCard, Smartphone, X } from "lucide-react";
+import { Search, Eye, Download, Receipt, Banknote, QrCode, CreditCard, Smartphone, X, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { getTransactions } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import { generateReceiptPDF } from "@/lib/generate-receipt-pdf";
 import { useAuth } from "@/lib/auth";
 
 export default function TransactionsPage() {
-  const { userName } = useAuth();
+  const { userName, role } = useAuth();
+  const isAdmin = role === "owner" || role === "admin";
   const [transactions, setTransactions] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [filterMethod, setFilterMethod] = useState("");
@@ -19,7 +21,24 @@ export default function TransactionsPage() {
   const [page, setPage] = useState(1);
   const perPage = 15;
 
-  useEffect(() => { getTransactions().then(setTransactions); }, []);
+  const loadTransactions = async () => {
+    const all = await getTransactions();
+    // Kasir only sees their own transactions
+    if (role === "cashier" && userName) {
+      setTransactions(all.filter((t: any) => t.cashier === userName));
+    } else {
+      setTransactions(all);
+    }
+  };
+  useEffect(() => { loadTransactions(); }, [role, userName]);
+
+  const handleDelete = async (trx: any) => {
+    if (!confirm(`Hapus transaksi ${trx.transaction_number}? Data tidak bisa dikembalikan.`)) return;
+    await supabase.from("transaction_items").delete().eq("transaction_id", trx.id);
+    await supabase.from("transactions").delete().eq("id", trx.id);
+    await loadTransactions();
+    setSelectedTrx(null);
+  };
 
   // KPI
   const totalOmzet = transactions.reduce((s, t) => s + (t.total || 0), 0);
@@ -127,6 +146,7 @@ export default function TransactionsPage() {
                       <div className="flex gap-1">
                         <button onClick={() => setSelectedTrx(t)} className="w-6 h-6 rounded border border-[#D9D6C8] flex items-center justify-center cursor-pointer hover:bg-[#ECFDF5] hover:border-[#bbf7d0] hover:text-[#16A34A] text-[#9CA3AF]"><Eye className="w-3 h-3" /></button>
                         <button onClick={() => handleCetak(t)} className="w-6 h-6 rounded border border-[#D9D6C8] flex items-center justify-center cursor-pointer hover:bg-[#FFF2EB] hover:border-[#fed7aa] hover:text-[#FF5F03] text-[#9CA3AF]"><Download className="w-3 h-3" /></button>
+                        {isAdmin && <button onClick={() => handleDelete(t)} className="w-6 h-6 rounded border border-[#D9D6C8] flex items-center justify-center cursor-pointer hover:bg-[#FEF2F2] hover:border-[#fecaca] hover:text-[#DC2626] text-[#9CA3AF]"><Trash2 className="w-3 h-3" /></button>}
                       </div>
                     </td>
                   </tr>
@@ -203,6 +223,7 @@ export default function TransactionsPage() {
               {/* Actions */}
               <div className="flex gap-2">
                 <button onClick={() => handleCetak(selectedTrx)} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#FF5F03] text-white font-bold text-xs rounded-lg cursor-pointer hover:bg-[#e55503]"><Download className="w-3.5 h-3.5" />Cetak Struk</button>
+                {isAdmin && <button onClick={() => handleDelete(selectedTrx)} className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#DC2626] text-white font-bold text-xs rounded-lg cursor-pointer hover:bg-[#b91c1c]"><Trash2 className="w-3.5 h-3.5" />Hapus</button>}
                 <button onClick={() => setSelectedTrx(null)} className="flex-1 py-2.5 border border-[#D9D6C8] text-[#072C2C]/60 font-medium text-xs rounded-lg cursor-pointer hover:bg-[#EDEADE]">Tutup</button>
               </div>
             </div>
