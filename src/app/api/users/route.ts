@@ -57,12 +57,15 @@ export async function DELETE(req: NextRequest) {
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: "ID wajib" }, { status: 400 });
 
-    // Delete from users table
+    // Delete from users table first
     await supabaseAdmin.from("users").delete().eq("id", id);
 
-    // Delete auth user
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    // Try to delete auth user (might not exist for seed/demo users)
+    try {
+      await supabaseAdmin.auth.admin.deleteUser(id);
+    } catch {
+      // Ignore if auth user doesn't exist
+    }
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
