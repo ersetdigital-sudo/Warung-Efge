@@ -115,7 +115,8 @@ export default function EditProductPage() {
       const activeUnits = units.filter(u => u.active && u.name.trim());
       await saveProductUnits(productId, activeUnits.map(u => ({ level: u.level, name: u.name.trim(), conversion: u.conversion ? Number(u.conversion) : null, stock: Number(u.stock) || 0, buy_price: Number(u.buyPrice) || 0, sell_price: Number(u.sellPrice) || 0 })));
     } else {
-      await saveProductUnits(productId, [{ level: 1, name: unitValue, conversion: null, stock: Number(stock) || 0, buy_price: Number(buyPrice) || 0, sell_price: Number(sellPrice) || 0 }]);
+      // Multi satuan off → hapus semua product_units
+      await saveProductUnits(productId, []);
     }
     router.push("/products");
   };
