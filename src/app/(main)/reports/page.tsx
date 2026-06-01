@@ -201,35 +201,91 @@ export default function ReportsPage() {
       {/* ═══ TAB KASIR ═══ */}
       {tab === "kasir" && (
         <div className="space-y-4">
+          {/* KPI */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#FF5F03]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Kasir</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{kasirData.length}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#FF5F03]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Kasir Aktif</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{kasirData.length} kasir</p></div>
             <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Transaksi Terbanyak</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{kasirData[0]?.name || "–"}</p><p className="text-[9px] text-[#9CA3AF]">{kasirData[0]?.trx || 0} transaksi</p></div>
             <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Pendapatan Tertinggi</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{formatCurrency(kasirData[0]?.total || 0)}</p><p className="text-[9px] text-[#9CA3AF]">{kasirData[0]?.name || "–"}</p></div>
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#D97706]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Omzet Kasir</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{formatCurrency(kasirData.reduce((s, k) => s + k.total, 0))}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#D97706]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Omzet</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{formatCurrency(kasirData.reduce((s, k) => s + k.total, 0))}</p></div>
           </div>
+
+          {/* Chart + Ringkasan Shift */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-3">
+            {/* Bar chart per kasir */}
+            <Card>
+              <div className="px-4 py-3 border-b border-[#D9D6C8]"><p className="font-[Oswald] text-xs font-semibold text-[#072C2C] uppercase tracking-wider">Perbandingan Kinerja Kasir</p><p className="text-[9px] text-[#9CA3AF]">Total penjualan per kasir</p></div>
+              <div className="p-4 h-[200px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={kasirData} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,44,44,0.05)" horizontal={false} />
+                    <XAxis type="number" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "#9CA3AF" }} tickFormatter={v => `${Math.round(v/1000)}rb`} />
+                    <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "#4B5563" }} width={80} />
+                    <Tooltip formatter={(v: any) => [formatCurrency(v), "Total"]} contentStyle={{ backgroundColor: "#072C2C", border: "none", borderRadius: "5px", fontSize: "11px" }} labelStyle={{ color: "rgba(255,255,255,.5)" }} itemStyle={{ color: "#fff", fontWeight: 700 }} />
+                    <Bar dataKey="total" radius={[0, 4, 4, 0]}>
+                      {kasirData.map((_, i) => <Cell key={i} fill={["#FF5F03", "#072C2C", "#16A34A", "#D97706", "#8B5CF6"][i % 5]} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+
+            {/* Ringkasan per kasir */}
+            <Card>
+              <div className="px-4 py-3 border-b border-[#D9D6C8]"><p className="font-[Oswald] text-xs font-semibold text-[#072C2C] uppercase tracking-wider">Ringkasan Kasir</p></div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[11px]">
+                  <thead><tr className="border-b border-[#D9D6C8]">
+                    <th className="text-left px-3 py-1.5 bg-[#EDEADE] text-[9px] font-semibold text-[#9CA3AF] uppercase">Kasir</th>
+                    <th className="text-right px-2 py-1.5 bg-[#EDEADE] text-[9px] font-semibold text-[#9CA3AF] uppercase">Trx</th>
+                    <th className="text-right px-2 py-1.5 bg-[#EDEADE] text-[9px] font-semibold text-[#9CA3AF] uppercase">Total</th>
+                  </tr></thead>
+                  <tbody>
+                    {kasirData.map((k, i) => (
+                      <tr key={k.name} className="border-b border-[#D9D6C8]">
+                        <td className="px-3 py-2"><div className="flex items-center gap-2"><div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[8px] font-bold" style={{ background: ["#FF5F03", "#072C2C", "#16A34A", "#D97706"][i % 4] }}>{k.name.split(" ").map(w => w[0]).join("")}</div><span className="font-medium text-[11px]">{k.name}</span></div></td>
+                        <td className="px-2 py-2 text-right font-mono font-bold">{k.trx}</td>
+                        <td className="px-2 py-2 text-right font-mono font-bold text-[#16A34A] text-[10px]">{formatCurrency(k.total)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </div>
+
+          {/* Log Transaksi Per Kasir */}
           <Card>
-            <div className="px-4 py-3 border-b border-[#D9D6C8]"><p className="font-[Oswald] text-xs font-semibold text-[#072C2C] uppercase tracking-wider">Kinerja Per Kasir</p></div>
+            <div className="px-4 py-3 border-b border-[#D9D6C8]"><p className="font-[Oswald] text-xs font-semibold text-[#072C2C] uppercase tracking-wider">Log Transaksi Per Kasir</p><p className="text-[9px] text-[#9CA3AF]">Semua aktivitas</p></div>
             <div className="overflow-x-auto">
               <table className="w-full text-[12px]">
                 <thead><tr className="border-b border-[#D9D6C8]">
+                  <th className="text-left px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">#</th>
                   <th className="text-left px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Kasir</th>
-                  <th className="text-right px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Transaksi</th>
-                  <th className="text-right px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Total Penjualan</th>
-                  <th className="text-right px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Rata-rata</th>
+                  <th className="text-left px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Tanggal & Waktu</th>
+                  <th className="text-left px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Metode</th>
+                  <th className="text-right px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Total</th>
+                  <th className="text-left px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Status</th>
                 </tr></thead>
                 <tbody>
-                  {kasirData.length === 0 && <tr><td colSpan={4} className="text-center py-8 text-[#9CA3AF]">Belum ada data</td></tr>}
-                  {kasirData.map(k => (
-                    <tr key={k.name} className="border-b border-[#D9D6C8] hover:bg-[#FAFAF8]">
-                      <td className="px-3 py-2"><div className="flex items-center gap-2"><div className="w-7 h-7 bg-[#072C2C] rounded-full flex items-center justify-center text-white text-[9px] font-bold">{k.name[0]}</div><span className="font-medium">{k.name}</span></div></td>
-                      <td className="px-3 py-2 text-right font-mono font-bold">{k.trx}</td>
-                      <td className="px-3 py-2 text-right font-mono font-bold text-[#16A34A]">{formatCurrency(k.total)}</td>
-                      <td className="px-3 py-2 text-right font-mono text-[#9CA3AF]">{formatCurrency(k.trx > 0 ? Math.round(k.total / k.trx) : 0)}</td>
-                    </tr>
-                  ))}
+                  {transactions.length === 0 && <tr><td colSpan={6} className="text-center py-8 text-[#9CA3AF]">Belum ada data</td></tr>}
+                  {transactions.slice(0, 12).map((t, i) => {
+                    const pmLabel = t.payment_method === "cash" ? "Tunai" : t.payment_method === "qris" ? "QRIS" : t.payment_method === "transfer" ? "Transfer" : "EDC";
+                    const pmColor = t.payment_method === "cash" ? "success" : t.payment_method === "qris" ? "info" : "warning";
+                    return (
+                      <tr key={t.id} className="border-b border-[#D9D6C8] hover:bg-[#FAFAF8]">
+                        <td className="px-3 py-2 font-mono text-[#9CA3AF] text-[10px]">{t.transaction_number}</td>
+                        <td className="px-3 py-2"><div className="flex items-center gap-2"><div className="w-6 h-6 bg-[#FF5F03] rounded-full flex items-center justify-center text-white text-[8px] font-bold">{(t.cashier || "?")[0]}</div><span className="text-[11px]">{t.cashier || "–"}</span></div></td>
+                        <td className="px-3 py-2 text-[11px] text-[#4B5563]">{t.created_at ? `${formatDate(t.created_at)} ${new Date(t.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}` : "–"}</td>
+                        <td className="px-3 py-2"><Badge variant={pmColor}>{pmLabel}</Badge></td>
+                        <td className="px-3 py-2 text-right font-mono font-bold">{formatCurrency(t.total)}</td>
+                        <td className="px-3 py-2"><Badge variant="success">Selesai</Badge></td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
+            <div className="px-4 py-2 border-t border-[#D9D6C8] text-[11px] text-[#9CA3AF]">Menampilkan {Math.min(12, transactions.length)} dari {transactions.length} log</div>
           </Card>
         </div>
       )}
