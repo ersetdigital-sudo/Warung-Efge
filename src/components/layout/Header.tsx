@@ -1,12 +1,16 @@
 "use client";
 
 import { Menu, Bell, User, Search } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 interface HeaderProps {
   onMenuClick: () => void;
 }
 
 export default function Header({ onMenuClick }: HeaderProps) {
+  const { userName, role } = useAuth();
+  const roleLabel = role === "owner" ? "Owner" : role === "admin" ? "Admin" : "Kasir";
+
   return (
     <header className="sticky top-0 z-30 h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 shadow-sm">
       <div className="flex items-center gap-4">
@@ -30,11 +34,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
         </button>
         <div className="flex items-center gap-2 pl-3 border-l border-gray-200">
           <div className="w-9 h-9 bg-[#072C2C] rounded-full flex items-center justify-center">
-            <User className="w-4 h-4 text-white" />
+            <span className="text-white text-sm font-bold">{(userName || "?")[0].toUpperCase()}</span>
           </div>
           <div className="hidden sm:block">
-            <p className="text-sm font-semibold text-[#072C2C]">Pak Efge</p>
-            <p className="text-xs text-[#072C2C]/60">Owner</p>
+            <p className="text-sm font-semibold text-[#072C2C]">{userName || "User"}</p>
+            <p className="text-xs text-[#072C2C]/60">{roleLabel}</p>
           </div>
         </div>
       </div>
