@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
 import { categories } from "@/data/mock-data";
 import { addProduct, saveProductUnits } from "@/lib/db";
 
-interface UnitLevel { level: number; name: string; conversion: string; stock: string; buyPrice: string; sellPrice: string; }
+interface UnitLevel { level: number; active: boolean; name: string; conversion: string; stock: string; buyPrice: string; sellPrice: string; }
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -25,9 +25,9 @@ export default function AddProductPage() {
   // Multi-level mode (optional)
   const [multiLevel, setMultiLevel] = useState(false);
   const [units, setUnits] = useState<UnitLevel[]>([
-    { level: 1, name: "", conversion: "", stock: "", buyPrice: "", sellPrice: "" },
-    { level: 2, name: "", conversion: "", stock: "", buyPrice: "", sellPrice: "" },
-    { level: 3, name: "", conversion: "", stock: "", buyPrice: "", sellPrice: "" },
+    { level: 1, active: true, name: "", conversion: "", stock: "", buyPrice: "", sellPrice: "" },
+    { level: 2, active: true, name: "", conversion: "", stock: "", buyPrice: "", sellPrice: "" },
+    { level: 3, active: true, name: "", conversion: "", stock: "", buyPrice: "", sellPrice: "" },
   ]);
 
   // Scanner
@@ -60,6 +60,7 @@ export default function AddProductPage() {
   useEffect(() => { return () => { stopScanner(); }; }, []);
 
   const updateUnit = (level: number, field: string, value: string) => { setUnits(prev => prev.map(u => u.level === level ? { ...u, [field]: value } : u)); };
+  const toggleUnit = (level: number) => { setUnits(prev => prev.map(u => u.level === level ? { ...u, active: !u.active } : u)); };
 
   const getMargin = (buy: string, sell: string) => { const b = Number(buy), s = Number(sell); if (!b || !s) return null; return Math.round((s - b) / s * 100); };
 
@@ -85,7 +86,7 @@ export default function AddProductPage() {
       router.push("/products");
     } else {
       // Multi-level mode
-      const activeUnits = units.filter(u => u.name.trim());
+      const activeUnits = units.filter(u => u.active && u.name.trim());
       if (activeUnits.length === 0) { alert("Minimal 1 satuan harus diisi!"); return; }
       const baseUnit = activeUnits[activeUnits.length - 1];
       const product = await addProduct({
@@ -206,37 +207,56 @@ export default function AddProductPage() {
               <div className="space-y-3">
                 {units.map((u, idx) => {
                   const m = getMargin(u.buyPrice, u.sellPrice);
-                  const labels = ["Satuan Terbesar (cth: Slop, Karton)", "Satuan Tengah (cth: Bungkus, Botol)", "Satuan Terkecil (cth: Batang, Pcs)"];
+                  const labels = ["Satuan Terbesar", "Satuan Tengah", "Satuan Terkecil"];
+                  const placeholders = [["Slop", "Karton", "Dus"], ["Bungkus", "Botol", "Pcs"], ["Batang", "Pcs", "Gram"]];
                   const colors = ["border-l-[#072C2C]", "border-l-[#FF5F03]", "border-l-[#D97706]"];
+                  const dotColors = ["bg-[#072C2C]", "bg-[#FF5F03]", "bg-[#D97706]"];
                   return (
-                    <div key={u.level} className={`border border-[#072C2C]/8 rounded-xl p-4 border-l-[3px] ${colors[idx]} ${!u.name && idx > 0 ? "opacity-50" : ""}`}>
-                      <p className="text-[10px] font-bold text-[#072C2C]/50 uppercase mb-3">Level {u.level} — {labels[idx]}</p>
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                        <div>
-                          <label className="block text-[10px] text-[#072C2C]/50 mb-1">Nama Satuan</label>
-                          <input value={u.name} onChange={(e) => updateUnit(u.level, "name", e.target.value)} placeholder={["Slop", "Bungkus", "Batang"][idx]} className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
+                    <div key={u.level} className={`border border-[#072C2C]/8 rounded-xl p-4 border-l-[3px] ${colors[idx]} ${!u.active ? "opacity-40" : ""}`}>
+                      {/* Level header with toggle */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2.5 h-2.5 rounded-full ${dotColors[idx]}`} />
+                          <span className="text-xs font-bold text-[#072C2C]">Level {u.level} — {labels[idx]}</span>
                         </div>
-                        {u.level < 3 ? (
-                          <div>
-                            <label className="block text-[10px] text-[#072C2C]/50 mb-1">Isi per 1</label>
-                            <input value={u.conversion} onChange={(e) => updateUnit(u.level, "conversion", e.target.value)} placeholder={["10", "12"][idx]} type="number" className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
+                        <button onClick={() => toggleUnit(u.level)} className="flex items-center gap-2 cursor-pointer">
+                          <span className="text-[10px] text-[#072C2C]/40">{u.active ? "Aktif" : "Nonaktif"}</span>
+                          <div className={`w-9 h-5 rounded-full relative transition-colors ${u.active ? "bg-[#16A34A]" : "bg-[#072C2C]/15"}`}>
+                            <div className={`absolute top-[2px] w-[16px] h-[16px] rounded-full bg-white shadow transition-all ${u.active ? "left-[18px]" : "left-[2px]"}`} />
                           </div>
-                        ) : (
-                          <div>
-                            <label className="block text-[10px] text-[#072C2C]/50 mb-1">Stok Awal</label>
-                            <input value={u.stock} onChange={(e) => updateUnit(u.level, "stock", e.target.value)} placeholder="0" type="number" className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
-                          </div>
-                        )}
-                        <div>
-                          <label className="block text-[10px] text-[#072C2C]/50 mb-1">Harga Jual</label>
-                          <input value={u.sellPrice} onChange={(e) => updateUnit(u.level, "sellPrice", e.target.value)} placeholder="0" type="number" className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] text-[#072C2C]/50 mb-1">Harga Beli</label>
-                          <input value={u.buyPrice} onChange={(e) => updateUnit(u.level, "buyPrice", e.target.value)} placeholder="0" type="number" className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
-                        </div>
+                        </button>
                       </div>
-                      {m !== null && <p className={`text-xs font-bold mt-3 ${m >= 20 ? "text-[#16A34A]" : m >= 10 ? "text-[#D97706]" : "text-[#DC2626]"}`}>Margin {m}%</p>}
+                      {/* Fields - only show when active */}
+                      {u.active && (
+                        <>
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                            <div>
+                              <label className="block text-[10px] text-[#072C2C]/50 mb-1">Nama Satuan</label>
+                              <input value={u.name} onChange={(e) => updateUnit(u.level, "name", e.target.value)} placeholder={placeholders[idx][0]} className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
+                            </div>
+                            {u.level < 3 ? (
+                              <div>
+                                <label className="block text-[10px] text-[#072C2C]/50 mb-1">Isi (ke level {u.level + 1})</label>
+                                <input value={u.conversion} onChange={(e) => updateUnit(u.level, "conversion", e.target.value)} placeholder={["10", "12"][idx]} type="number" className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
+                              </div>
+                            ) : (
+                              <div>
+                                <label className="block text-[10px] text-[#072C2C]/50 mb-1">Stok Awal</label>
+                                <input value={u.stock} onChange={(e) => updateUnit(u.level, "stock", e.target.value)} placeholder="0" type="number" className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
+                              </div>
+                            )}
+                            <div>
+                              <label className="block text-[10px] text-[#072C2C]/50 mb-1">Harga Jual</label>
+                              <input value={u.sellPrice} onChange={(e) => updateUnit(u.level, "sellPrice", e.target.value)} placeholder="0" type="number" className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] text-[#072C2C]/50 mb-1">Harga Beli</label>
+                              <input value={u.buyPrice} onChange={(e) => updateUnit(u.level, "buyPrice", e.target.value)} placeholder="0" type="number" className="w-full px-3 py-2.5 border border-[#072C2C]/10 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
+                            </div>
+                          </div>
+                          {m !== null && <p className={`text-xs font-bold mt-3 ${m >= 20 ? "text-[#16A34A]" : m >= 10 ? "text-[#D97706]" : "text-[#DC2626]"}`}>Margin {m}%</p>}
+                        </>
+                      )}
                     </div>
                   );
                 })}
