@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS expenses (
   amount INTEGER DEFAULT 0,
   category TEXT DEFAULT 'operasional',
   month TEXT, -- format: '2026-06'
+  date DATE, -- tanggal lengkap
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

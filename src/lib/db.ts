@@ -137,7 +137,7 @@ export async function getExpenses(month?: string) {
   return data || [];
 }
 
-export async function addExpense(expense: { name: string; amount: number; category?: string; month: string }) {
+export async function addExpense(expense: { name: string; amount: number; category?: string; month: string; date?: string }) {
   const { data, error } = await supabase.from("expenses").insert(expense).select().single();
   if (error) { console.error("addExpense error:", error); return null; }
   return data;

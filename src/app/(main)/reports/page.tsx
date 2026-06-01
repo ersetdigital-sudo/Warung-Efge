@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { TrendingUp, Download, Plus, Trash2 } from "lucide-react";
+import { TrendingUp, Download, Plus, Trash2, Wallet, Receipt, Calculator, AlertTriangle, Package, Users, ShoppingCart, BarChart3, DollarSign, Boxes } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -118,10 +118,10 @@ export default function ReportsPage() {
       {tab === "penjualan" && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#FF5F03]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Penjualan</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{formatCurrency(totalSales)}</p></div>
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Transaksi</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{totalTrx}</p></div>
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Rata-rata / Trx</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{formatCurrency(avgTrx)}</p></div>
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#D97706]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Metode Terpopuler</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{pmData[0]?.name || "–"}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#FF5F03]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Penjualan</p><Wallet className="w-4 h-4 text-[#FF5F03]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C]">{formatCurrency(totalSales)}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Transaksi</p><Receipt className="w-4 h-4 text-[#072C2C]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C]">{totalTrx}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Rata-rata / Trx</p><Calculator className="w-4 h-4 text-[#16A34A]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C]">{formatCurrency(avgTrx)}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#D97706]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Metode Terpopuler</p><ShoppingCart className="w-4 h-4 text-[#D97706]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C]">{pmData[0]?.name || "–"}</p></div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-3">
@@ -167,10 +167,10 @@ export default function ReportsPage() {
       {tab === "produk" && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#FF5F03]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total SKU</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{products.length}</p></div>
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Unit Terjual</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{topProducts.reduce((s, p) => s + p.sold, 0).toLocaleString("id-ID")}</p></div>
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Produk Terlaris</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{topProducts[0]?.name || "–"}</p></div>
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#DC2626]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Stok Habis</p><p className="font-[Oswald] text-[20px] font-semibold text-[#DC2626] mt-1">{stokHabis} produk</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#FF5F03]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total SKU</p><Package className="w-4 h-4 text-[#FF5F03]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C]">{products.length}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Unit Terjual</p><TrendingUp className="w-4 h-4 text-[#072C2C]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C]">{topProducts.reduce((s, p) => s + p.sold, 0).toLocaleString("id-ID")}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Produk Terlaris</p><BarChart3 className="w-4 h-4 text-[#16A34A]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C]">{topProducts[0]?.name || "–"}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#DC2626]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Stok Habis</p><AlertTriangle className="w-4 h-4 text-[#DC2626]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#DC2626]">{stokHabis} produk</p></div>
           </div>
           <Card>
             <div className="px-4 py-3 border-b border-[#D9D6C8]"><p className="font-[Oswald] text-xs font-semibold text-[#072C2C] uppercase tracking-wider">Performa Produk</p></div>
@@ -204,10 +204,10 @@ export default function ReportsPage() {
         <div className="space-y-4">
           {/* KPI */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#FF5F03]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Kasir Aktif</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{kasirData.length} kasir</p></div>
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Transaksi Terbanyak</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{kasirData[0]?.name || "–"}</p><p className="text-[9px] text-[#9CA3AF]">{kasirData[0]?.trx || 0} transaksi</p></div>
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Pendapatan Tertinggi</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{formatCurrency(kasirData[0]?.total || 0)}</p><p className="text-[9px] text-[#9CA3AF]">{kasirData[0]?.name || "–"}</p></div>
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#D97706]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Omzet</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{formatCurrency(kasirData.reduce((s, k) => s + k.total, 0))}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#FF5F03]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Kasir Aktif</p><Users className="w-4 h-4 text-[#FF5F03]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C]">{kasirData.length} kasir</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Transaksi Terbanyak</p><Receipt className="w-4 h-4 text-[#072C2C]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C]">{kasirData[0]?.name || "–"}</p><p className="text-[9px] text-[#9CA3AF]">{kasirData[0]?.trx || 0} transaksi</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Pendapatan Tertinggi</p><Wallet className="w-4 h-4 text-[#16A34A]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C]">{formatCurrency(kasirData[0]?.total || 0)}</p><p className="text-[9px] text-[#9CA3AF]">{kasirData[0]?.name || "–"}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#D97706]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Omzet</p><DollarSign className="w-4 h-4 text-[#D97706]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C]">{formatCurrency(kasirData.reduce((s, k) => s + k.total, 0))}</p></div>
           </div>
 
           {/* Chart + Ringkasan Shift */}
@@ -295,10 +295,10 @@ export default function ReportsPage() {
       {tab === "stok" && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total SKU</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{products.length}</p></div>
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Stok Aman</p><p className="font-[Oswald] text-[20px] font-semibold text-[#16A34A] mt-1">{stokAman}</p></div>
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#D97706]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Stok Menipis</p><p className="font-[Oswald] text-[20px] font-semibold text-[#D97706] mt-1">{stokMenipis}</p></div>
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#DC2626]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Stok Habis</p><p className="font-[Oswald] text-[20px] font-semibold text-[#DC2626] mt-1">{stokHabis}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total SKU</p><Boxes className="w-4 h-4 text-[#072C2C]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C]">{products.length}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Stok Aman</p><Package className="w-4 h-4 text-[#16A34A]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#16A34A]">{stokAman}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#D97706]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Stok Menipis</p><AlertTriangle className="w-4 h-4 text-[#D97706]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#D97706]">{stokMenipis}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#DC2626]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Stok Habis</p><AlertTriangle className="w-4 h-4 text-[#DC2626]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#DC2626]">{stokHabis}</p></div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-3">
@@ -367,7 +367,7 @@ export default function ReportsPage() {
         const handleAddExp = async () => {
           if (!newExpName || !newExpAmount) return;
           const expMonth = newExpDate ? newExpDate.substring(0, 7) : currentMonth;
-          await addExpense({ name: newExpName, amount: Number(newExpAmount), month: expMonth });
+          await addExpense({ name: newExpName, amount: Number(newExpAmount), month: expMonth, date: newExpDate });
           setNewExpName(""); setNewExpAmount(""); setNewExpDate(new Date().toISOString().split("T")[0]); setShowAddExp(false);
           getExpenses(currentMonth).then(setExpenses);
         };
@@ -383,10 +383,10 @@ export default function ReportsPage() {
         return (
           <div className="space-y-4">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-              <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Pendapatan</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{formatCurrency(totalSales)}</p></div>
-              <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#DC2626]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Pengeluaran</p><p className="font-[Oswald] text-[20px] font-semibold text-[#DC2626] mt-1">{formatCurrency(totalPengeluaran)}</p><p className="text-[9px] text-[#9CA3AF]">HPP + Operasional</p></div>
-              <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#FF5F03]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Laba Bersih</p><p className={`font-[Oswald] text-[20px] font-semibold mt-1 ${labaBersih >= 0 ? "text-[#16A34A]" : "text-[#DC2626]"}`}>{formatCurrency(labaBersih)}</p></div>
-              <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Margin</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{totalSales > 0 ? Math.round((labaBersih / totalSales) * 100) : 0}%</p></div>
+              <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Pendapatan</p><TrendingUp className="w-4 h-4 text-[#16A34A]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C]">{formatCurrency(totalSales)}</p></div>
+              <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#DC2626]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Pengeluaran</p><DollarSign className="w-4 h-4 text-[#DC2626]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#DC2626]">{formatCurrency(totalPengeluaran)}</p><p className="text-[9px] text-[#9CA3AF]">HPP + Operasional</p></div>
+              <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#FF5F03]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Laba Bersih</p><Wallet className="w-4 h-4 text-[#FF5F03]" /></div><p className={`font-[Oswald] text-[20px] font-semibold ${labaBersih >= 0 ? "text-[#16A34A]" : "text-[#DC2626]"}`}>{formatCurrency(labaBersih)}</p></div>
+              <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Margin</p><Calculator className="w-4 h-4 text-[#072C2C]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C]">{totalSales > 0 ? Math.round((labaBersih / totalSales) * 100) : 0}%</p></div>
             </div>
 
             {/* Charts row */}
