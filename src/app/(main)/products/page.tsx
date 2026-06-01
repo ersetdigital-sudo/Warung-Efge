@@ -177,13 +177,25 @@ export default function ProductsPage() {
                       <td className="px-2.5 py-2"><Badge variant="info">{p.category || "—"}</Badge></td>
                       <td className="px-2.5 py-2"><div className="flex gap-1 flex-wrap">{units.map((u: any, i: number) => <span key={u.id} className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${levelColors[i] || levelColors[0]}`}>{u.name}</span>)}</div></td>
                       <td className="px-2.5 py-2 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <span className={`font-mono font-bold text-[11px] ${stockStatus === "habis" ? "text-[#DC2626]" : stockStatus === "menipis" ? "text-[#D97706]" : "text-[#072C2C]"}`}>
-                            {stockVal} {p.unit || ""}
-                          </span>
-                          <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${stockStatus === "habis" ? "bg-[#DC2626] text-white" : stockStatus === "menipis" ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#ECFDF5] text-[#16A34A]"}`}>
-                            {stockStatus === "habis" ? "HABIS" : stockStatus === "menipis" ? "MENIPIS" : "AMAN"}
-                          </span>
+                        <div className="flex flex-col items-end gap-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`font-mono font-bold text-[11px] ${stockStatus === "habis" ? "text-[#DC2626]" : stockStatus === "menipis" ? "text-[#D97706]" : "text-[#072C2C]"}`}>
+                              {stockVal} {p.unit || ""}
+                            </span>
+                            <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${stockStatus === "habis" ? "bg-[#DC2626] text-white" : stockStatus === "menipis" ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#ECFDF5] text-[#16A34A]"}`}>
+                              {stockStatus === "habis" ? "HABIS" : stockStatus === "menipis" ? "MENIPIS" : "AMAN"}
+                            </span>
+                          </div>
+                          {units.length > 1 && stockVal > 0 && (() => {
+                            const sorted = [...units].sort((a: any, b: any) => (b.level || 0) - (a.level || 0));
+                            const biggest = sorted[0];
+                            if (biggest && biggest.conversion && biggest.conversion > 0) {
+                              const bigQty = Math.floor(stockVal / biggest.conversion);
+                              const remainder = stockVal % biggest.conversion;
+                              if (bigQty > 0) return <span className="text-[9px] text-[#9CA3AF] font-mono">{bigQty} {biggest.name}{remainder > 0 ? ` + ${remainder} ${p.unit}` : ""}</span>;
+                            }
+                            return null;
+                          })()}
                         </div>
                       </td>
                       <td className="px-2.5 py-2">
