@@ -14,132 +14,112 @@ export interface ReceiptData {
   change: number;
 }
 
-const formatRp = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
+const fmtRp = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 
 export function generateReceiptPDF(data: ReceiptData, action: "download" | "open" = "download") {
-  const pageWidth = 58;
-  const margin = 3;
-  const contentWidth = pageWidth - margin * 2;
-  const doc = new jsPDF({ unit: "mm", format: [pageWidth, 200] });
+  const W = 58; // page width mm
+  const M = 3; // margin
+  const doc = new jsPDF({ unit: "mm", format: [W, 200], orientation: "portrait" });
 
-  let y = 5;
-  const lineGap = 3.5;
-  const smallGap = 2.8;
+  let y = 6;
 
-  const center = (text: string, size: number, bold = false) => {
+  const setFont = (bold = false, size = 8) => {
     doc.setFontSize(size);
-    doc.setFont("Courier", bold ? "bold" : "normal");
-    const w = doc.getTextWidth(text);
-    doc.text(text, (pageWidth - w) / 2, y);
-    y += size * 0.4;
+    doc.setFont("helvetica", bold ? "bold" : "normal");
   };
 
-  const leftRight = (left: string, right: string, size: number, bold = false) => {
-    doc.setFontSize(size);
-    doc.setFont("Courier", bold ? "bold" : "normal");
-    doc.text(left, margin, y);
-    const rw = doc.getTextWidth(right);
-    doc.text(right, pageWidth - margin - rw, y);
-    y += size * 0.4;
+  const textCenter = (text: string, size = 8, bold = false) => {
+    setFont(bold, size);
+    doc.text(text, W / 2, y, { align: "center" });
+    y += size * 0.45;
   };
 
-  const line = (char = "-") => {
-    doc.setFontSize(7);
-    doc.setFont("Courier", "normal");
-    const sep = char === "=" ? "================================" : "--------------------------------";
-    doc.text(sep.substring(0, Math.floor(contentWidth / 1.5)), margin, y);
-    y += 2.5;
+  const textLeft = (text: string, size = 8, bold = false) => {
+    setFont(bold, size);
+    doc.text(text, M, y);
+    y += size * 0.45;
   };
 
-  // 1. Header
-  center(data.storeName, 10, true);
+  const textLeftRight = (left: string, right: string, size = 8, bold = false) => {
+    setFont(bold, size);
+    doc.text(left, M, y);
+    doc.text(right, W - M, y, { align: "right" });
+    y += size * 0.45;
+  };
+
+  const drawLine = (double = false) => {
+    setFont(false, 7);
+    const ch = double ? "=" : "-";
+    doc.text(ch.repeat(38), M, y);
+    y += 3;
+  };
+
+  // === HEADER ===
+  textCenter(data.storeName, 11, true);
+  y += 0.5;
+  textCenter("Sistem POS & Inventory", 7);
+  textCenter(`Kasir: ${data.cashier}`, 7);
   y += 1;
-  center("Sistem POS & Inventory", 7);
-  center(`Kasir: ${data.cashier}`, 7);
-  y += 1;
-  line("=");
+  drawLine(true);
 
-  // 2. Info transaksi
-  doc.setFontSize(7);
-  doc.setFont("Courier", "normal");
-  doc.text(`No: ${data.trxId}`, margin, y);
-  y += smallGap;
-  doc.text(data.date, margin, y);
-  y += smallGap;
-  line();
+  // === INFO TRANSAKSI ===
+  textLeft(`No: ${data.trxId}`, 7);
+  textLeft(data.date, 7);
+  drawLine();
 
-  // 3. Items
+  // === ITEMS ===
   for (const item of data.items) {
-    doc.setFontSize(8);
-    doc.setFont("Courier", "normal");
-    // Nama produk (mungkin perlu wrap)
-    const nameLines = doc.splitTextToSize(item.name, contentWidth);
-    for (const nl of nameLines) {
-      doc.text(nl, margin, y);
-      y += smallGap;
+    setFont(false, 8);
+    const lines = doc.splitTextToSize(item.name, W - M * 2);
+    for (const l of lines) {
+      doc.text(l, M, y);
+      y += 3.2;
     }
-    // Qty x harga + total
-    doc.setFontSize(7);
-    const qtyText = `${item.quantity} ${item.unit} x ${formatRp(item.price)}`;
-    const totalText = formatRp(item.subtotal);
-    doc.text(qtyText, margin, y);
-    const tw = doc.getTextWidth(totalText);
-    doc.text(totalText, pageWidth - margin - tw, y);
-    y += lineGap;
+    textLeftRight(
+      `${item.quantity} ${item.unit} x ${fmtRp(item.price)}`,
+      fmtRp(item.subtotal),
+      7
+    );
+    y += 1;
   }
-  line();
+  drawLine();
 
-  // 4. Ringkasan
-  leftRight("Subtotal", formatRp(data.subtotal), 7);
-  y += 0.5;
+  // === RINGKASAN ===
+  textLeftRight("Subtotal", fmtRp(data.subtotal), 8);
   if (data.discount > 0) {
-    leftRight("Diskon", `-${formatRp(data.discount)}`, 7);
-    y += 0.5;
+    textLeftRight("Diskon", `-${fmtRp(data.discount)}`, 8);
   }
-  line("=");
-  leftRight("TOTAL", formatRp(data.total), 9, true);
-  y += 0.5;
-  line("=");
+  drawLine(true);
+  textLeftRight("TOTAL", fmtRp(data.total), 10, true);
+  drawLine(true);
 
-  // 5. Pembayaran
-  leftRight(`Metode: ${data.method}`, "", 7);
+  // === PEMBAYARAN ===
+  textLeft(`Metode: ${data.method}`, 7);
   y += 0.5;
-  leftRight("Bayar", formatRp(data.paid), 7);
-  y += 0.5;
-  leftRight("Kembali", formatRp(data.change), 7);
-  y += 0.5;
-  line("=");
+  textLeftRight("Bayar", fmtRp(data.paid), 8);
+  textLeftRight("Kembali", fmtRp(data.change), 8);
+  drawLine(true);
 
-  // 6. Footer
+  // === FOOTER ===
   y += 1;
-  center("Terima kasih atas kunjungan Anda!", 7);
-  center("Barang yang dibeli tidak dapat", 7);
-  center("dikembalikan", 7);
+  textCenter("Terima kasih atas kunjungan Anda!", 7);
+  textCenter("Barang yang dibeli tidak dapat", 7);
+  textCenter("dikembalikan", 7);
   y += 10;
 
-  // Resize page to actual content height
-  const pageHeight = y + 5;
-  (doc as any).internal.pageSize.height = pageHeight;
+  // Trim page height to content
+  const finalHeight = Math.max(y + 5, 50);
+  (doc.internal.pageSize as any).height = finalHeight;
 
-  // Generate filename
-  const dateStr = data.date.replace(/[\/\s:]/g, "").replace(/,/g, "");
-  const filename = `Struk-${data.trxId}-${dateStr}.pdf`;
+  // Output
+  const dateClean = data.date.replace(/[\s\/,:]/g, "-");
+  const filename = `Struk-${data.trxId}-${dateClean}.pdf`;
 
   if (action === "download") {
-    // Mobile-friendly download using blob + anchor
-    const blob = doc.output("blob");
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    doc.save(filename);
   } else {
-    // Open in new tab
-    const blob = doc.output("blob");
-    const url = URL.createObjectURL(blob);
+    const pdfBlob = doc.output("blob");
+    const url = URL.createObjectURL(pdfBlob);
     window.open(url, "_blank");
   }
 }
