@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/lib/auth";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -33,7 +34,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Ubuntu:wght@300;400;500;700&family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="min-h-full flex flex-col bg-[#EDEADE] text-[#111827]">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

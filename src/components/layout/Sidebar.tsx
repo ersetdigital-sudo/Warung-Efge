@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
 import { useState } from "react";
 import {
   LayoutDashboard,
@@ -17,6 +18,7 @@ import {
   Store,
   ChevronLeft,
   ChevronRight,
+  LogOut,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -49,7 +51,14 @@ function NavTooltip({ label, show }: { label: string; show: boolean }) {
 
 export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { signOut } = useAuth();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+
+  const handleLogout = async () => {
+    await signOut();
+    router.push("/login");
+  };
 
   return (
     <>
@@ -132,8 +141,18 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
           })}
         </nav>
 
-        {/* Toggle button */}
-        <div className={cn("border-t border-white/10 transition-all duration-[220ms]", collapsed ? "p-2" : "p-3")}>
+        {/* Logout + Toggle */}
+        <div className={cn("border-t border-white/10 transition-all duration-[220ms]", collapsed ? "p-2 space-y-1" : "p-3 space-y-1")}>
+          <button
+            onClick={handleLogout}
+            className={cn(
+              "flex items-center rounded-lg text-white/60 hover:bg-[#DC2626]/20 hover:text-[#fca5a5] transition-all duration-200 cursor-pointer w-full",
+              collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5"
+            )}
+          >
+            <LogOut className="w-5 h-5" />
+            {!collapsed && <span className="text-sm font-medium whitespace-nowrap">Keluar</span>}
+          </button>
           <button
             onClick={onToggleCollapse}
             className={cn(
