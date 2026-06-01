@@ -226,13 +226,13 @@ export default function POSPage() {
   const getCartCountForProduct = (productId: string) => cart.filter(i => i.productId === productId).reduce((sum, i) => sum + i.quantity, 0);
 
   const handlePayment = async () => {
-    const trxData = { transaction_number: trxId, subtotal, discount: calculatedDiscount, total, payment_method: paymentMethod, amount_paid: Number(amountPaid) || 0, change_amount: change > 0 ? change : 0, is_debt: isDebt, cashier: "Pak Efge" };
+    const trxData = { transaction_number: trxId, subtotal, discount: calculatedDiscount, total, payment_method: paymentMethod, amount_paid: Number(amountPaid) || 0, change_amount: change > 0 ? change : 0, is_debt: isDebt, cashier: userName || "Kasir" };
     const items = cart.map(item => ({ product_id: item.productId, product_name: item.name, quantity: item.quantity, unit: item.unit, price: item.price, subtotal: item.subtotal }));
     await addTransaction(trxData, items);
     const stockUpdates: Record<string, number> = {};
     for (const item of cart) { stockUpdates[item.productId] = (stockUpdates[item.productId] || 0) + item.quantity * item.stockPerUnit; }
     for (const [productId, reduction] of Object.entries(stockUpdates)) { const product = products.find((p: any) => p.id === productId); if (product && reduction > 0) { await supabase.from("products").update({ stock: Math.max(0, (product.stock || 0) - Math.floor(reduction)) }).eq("id", productId); } }
-    for (const item of cart) { await addStockMovement({ product_id: item.productId, product_name: item.name, type: "out", quantity: item.quantity, unit: item.unit, notes: `Penjualan ${trxId} (${item.quantity} ${item.unit})`, user_name: "Pak Efge" }); }
+    for (const item of cart) { await addStockMovement({ product_id: item.productId, product_name: item.name, type: "out", quantity: item.quantity, unit: item.unit, notes: `Penjualan ${trxId} (${item.quantity} ${item.unit})`, user_name: userName || "Kasir" }); }
     setTodayTrxCount(prev => prev + 1); setTodayOmzet(prev => prev + total);
     // Save receipt data before showing success modal (in case cart gets cleared)
     setLastReceiptData({
@@ -637,7 +637,7 @@ export default function POSPage() {
             <div ref={receiptRef} className="hidden">
               <div style={{ fontFamily: "'Courier New', monospace", fontSize: "11px", textAlign: "center", lineHeight: "1.6" }}>
                 <p style={{ fontSize: "14px", fontWeight: "bold" }}>WARUNG EFGE</p>
-                <p style={{ fontSize: "10px", color: "#666" }}>Kasir: Pak Efge</p>
+                <p style={{ fontSize: "10px", color: "#666" }}>Kasir: {userName || "Kasir"}</p>
                 <p style={{ margin: "8px 0", borderTop: "1px dashed #ccc" }}></p>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#666" }}><span>{trxId}</span><span>{now.toLocaleDateString("id-ID")} {now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</span></div>
                 <p style={{ margin: "6px 0", borderTop: "1px dashed #ccc" }}></p>
