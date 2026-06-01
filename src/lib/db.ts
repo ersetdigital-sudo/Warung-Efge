@@ -128,3 +128,27 @@ export async function getUsers() {
   const { data } = await supabase.from("users").select("*").order("created_at");
   return data || [];
 }
+
+// ============ EXPENSES ============
+export async function getExpenses(month?: string) {
+  let query = supabase.from("expenses").select("*").order("created_at");
+  if (month) query = query.eq("month", month);
+  const { data } = await query;
+  return data || [];
+}
+
+export async function addExpense(expense: { name: string; amount: number; category?: string; month: string }) {
+  const { data, error } = await supabase.from("expenses").insert(expense).select().single();
+  if (error) { console.error("addExpense error:", error); return null; }
+  return data;
+}
+
+export async function updateExpense(id: string, amount: number) {
+  const { error } = await supabase.from("expenses").update({ amount }).eq("id", id);
+  return !error;
+}
+
+export async function deleteExpense(id: string) {
+  const { error } = await supabase.from("expenses").delete().eq("id", id);
+  return !error;
+}

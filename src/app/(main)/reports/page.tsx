@@ -1,23 +1,30 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { TrendingUp, Download } from "lucide-react";
+import { TrendingUp, Download, Plus, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { getProducts, getTransactions } from "@/lib/db";
+import { getProducts, getTransactions, getExpenses, addExpense, updateExpense, deleteExpense } from "@/lib/db";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
-type TabType = "penjualan" | "produk" | "kasir" | "stok";
+type TabType = "penjualan" | "produk" | "kasir" | "stok" | "keuangan";
 
 export default function ReportsPage() {
   const [tab, setTab] = useState<TabType>("penjualan");
   const [transactions, setTransactions] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [newExpName, setNewExpName] = useState("");
+  const [newExpAmount, setNewExpAmount] = useState("");
+  const [showAddExp, setShowAddExp] = useState(false);
+
+  const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
 
   useEffect(() => {
     getTransactions().then(setTransactions);
     getProducts().then(setProducts);
+    getExpenses(currentMonth).then(setExpenses);
   }, []);
 
   // === PENJUALAN DATA ===
@@ -86,6 +93,7 @@ export default function ReportsPage() {
     { id: "produk", label: "Produk" },
     { id: "kasir", label: "Kasir" },
     { id: "stok", label: "Stok" },
+    { id: "keuangan", label: "Keuangan" },
   ];
 
   return (
@@ -286,6 +294,114 @@ export default function ReportsPage() {
           </div>
         </div>
       )}
+
+      {/* ═══ TAB KEUANGAN ═══ */}
+      {tab === "keuangan" && (() => {
+        const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+        const labaBersih = totalSales - totalExpenses;
+        const handleAddExp = async () => {
+          if (!newExpName || !newExpAmount) return;
+          await addExpense({ name: newExpName, amount: Number(newExpAmount), month: currentMonth });
+          setNewExpName(""); setNewExpAmount(""); setShowAddExp(false);
+          getExpenses(currentMonth).then(setExpenses);
+        };
+        const handleDeleteExp = async (id: string) => {
+          if (!confirm("Hapus biaya ini?")) return;
+          await deleteExpense(id);
+          getExpenses(currentMonth).then(setExpenses);
+        };
+        const handleUpdateExp = async (id: string, newAmount: string) => {
+          await updateExpense(id, Number(newAmount) || 0);
+          getExpenses(currentMonth).then(setExpenses);
+        };
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+              <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Pendapatan</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{formatCurrency(totalSales)}</p></div>
+              <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#DC2626]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Pengeluaran</p><p className="font-[Oswald] text-[20px] font-semibold text-[#DC2626] mt-1">{formatCurrency(totalExpenses)}</p></div>
+              <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#FF5F03]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Laba Bersih</p><p className={`font-[Oswald] text-[20px] font-semibold mt-1 ${labaBersih >= 0 ? "text-[#16A34A]" : "text-[#DC2626]"}`}>{formatCurrency(labaBersih)}</p></div>
+              <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Margin</p><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C] mt-1">{totalSales > 0 ? Math.round((labaBersih / totalSales) * 100) : 0}%</p></div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {/* Laporan Laba Rugi */}
+              <Card>
+                <div className="px-4 py-3 border-b border-[#D9D6C8]"><p className="font-[Oswald] text-xs font-semibold text-[#072C2C] uppercase tracking-wider">Laporan Laba Rugi</p><p className="text-[9px] text-[#9CA3AF]">Bulan {currentMonth}</p></div>
+                <div className="divide-y divide-[#D9D6C8]">
+                  <div className="flex justify-between px-4 py-2 bg-[#EDEADE] text-[10px] font-bold text-[#9CA3AF] uppercase">Pendapatan</div>
+                  <div className="flex justify-between px-4 py-2.5 text-xs"><span>Penjualan</span><span className="font-mono font-bold text-[#16A34A]">+ {formatCurrency(totalSales)}</span></div>
+                  <div className="flex justify-between px-4 py-2 bg-[#EDEADE] text-[10px] font-bold text-[#9CA3AF] uppercase">Biaya Operasional</div>
+                  {expenses.map(exp => (
+                    <div key={exp.id} className="flex items-center justify-between px-4 py-2 text-xs group">
+                      <span>{exp.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-[#DC2626]">− {formatCurrency(exp.amount)}</span>
+                        <button onClick={() => handleDeleteExp(exp.id)} className="opacity-0 group-hover:opacity-100 text-[#9CA3AF] hover:text-[#DC2626] cursor-pointer transition-opacity"><Trash2 className="w-3 h-3" /></button>
+                      </div>
+                    </div>
+                  ))}
+                  {/* Add new */}
+                  {showAddExp ? (
+                    <div className="px-4 py-3 bg-[#FFFBEB] space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <input value={newExpName} onChange={e => setNewExpName(e.target.value)} placeholder="Nama biaya" className="px-3 py-2 text-xs border border-[#D9D6C8] rounded-lg focus:outline-none focus:border-[#FF5F03]" />
+                        <input value={newExpAmount} onChange={e => setNewExpAmount(e.target.value)} type="number" placeholder="Nominal" className="px-3 py-2 text-xs font-mono border border-[#D9D6C8] rounded-lg focus:outline-none focus:border-[#FF5F03]" />
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={handleAddExp} className="px-3 py-1.5 bg-[#072C2C] text-white text-[10px] font-bold rounded cursor-pointer">Tambah</button>
+                        <button onClick={() => setShowAddExp(false)} className="px-3 py-1.5 border border-[#D9D6C8] text-[10px] rounded cursor-pointer">Batal</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="px-4 py-2 cursor-pointer text-xs text-[#9CA3AF] hover:text-[#FF5F03] flex items-center gap-1" onClick={() => setShowAddExp(true)}>
+                      <Plus className="w-3 h-3" />Tambah biaya baru
+                    </div>
+                  )}
+                  <div className="flex justify-between px-4 py-3 bg-[#EDEADE] font-bold border-t-2 border-[#072C2C]">
+                    <span className="font-[Oswald] text-sm">LABA BERSIH</span>
+                    <span className={`font-[Oswald] text-base ${labaBersih >= 0 ? "text-[#16A34A]" : "text-[#DC2626]"}`}>{formatCurrency(labaBersih)}</span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Rekap Metode Bayar */}
+              <Card>
+                <div className="px-4 py-3 border-b border-[#D9D6C8]"><p className="font-[Oswald] text-xs font-semibold text-[#072C2C] uppercase tracking-wider">Rekap Metode Pembayaran</p></div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[12px]">
+                    <thead><tr className="border-b border-[#D9D6C8]">
+                      <th className="text-left px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Metode</th>
+                      <th className="text-right px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Trx</th>
+                      <th className="text-right px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Total</th>
+                      <th className="text-right px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">%</th>
+                    </tr></thead>
+                    <tbody>
+                      {pmData.map(p => {
+                        const trxCount = transactions.filter(t => (t.payment_method === "cash" && p.name === "Tunai") || (t.payment_method === "qris" && p.name === "QRIS") || (t.payment_method === "transfer" && p.name === "Transfer") || (t.payment_method === "edc" && p.name === "EDC")).length;
+                        const pmTotal = transactions.filter(t => (t.payment_method === "cash" && p.name === "Tunai") || (t.payment_method === "qris" && p.name === "QRIS") || (t.payment_method === "transfer" && p.name === "Transfer") || (t.payment_method === "edc" && p.name === "EDC")).reduce((s, t) => s + (t.total || 0), 0);
+                        return (
+                          <tr key={p.name} className="border-b border-[#D9D6C8]">
+                            <td className="px-3 py-2"><Badge variant="info">{p.name}</Badge></td>
+                            <td className="px-3 py-2 text-right font-mono">{trxCount}</td>
+                            <td className="px-3 py-2 text-right font-mono font-bold text-[#16A34A]">{formatCurrency(pmTotal)}</td>
+                            <td className="px-3 py-2 text-right font-mono">{p.value}%</td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="bg-[#EDEADE] font-bold">
+                        <td className="px-3 py-2 text-xs">Total</td>
+                        <td className="px-3 py-2 text-right font-mono">{totalTrx}</td>
+                        <td className="px-3 py-2 text-right font-mono text-[#16A34A]">{formatCurrency(totalSales)}</td>
+                        <td className="px-3 py-2 text-right font-mono">100%</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
