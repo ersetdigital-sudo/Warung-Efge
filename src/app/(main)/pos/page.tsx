@@ -284,7 +284,8 @@ export default function POSPage() {
   };
 
   const canPay = cart.length > 0 && (isDebt || paymentMethod !== "cash" || Number(amountPaid) >= total);
-  const now = new Date();
+  const [now, setNow] = useState(new Date());
+  useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
   const formatRupiah = (num: number) => num > 0 ? `Rp ${num.toLocaleString("id-ID")}` : "Rp 0";
   const displayAmountPaid = Number(amountPaid) > 0 ? `Rp ${Number(amountPaid).toLocaleString("id-ID")}` : "";
   const handleAmountInput = (raw: string) => { setAmountPaid(raw.replace(/\D/g, "")); };
@@ -295,8 +296,8 @@ export default function POSPage() {
       {/* Header */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 lg:px-5 py-2 bg-white border-b border-[#072C2C]/10">
         <div>
-          <h1 className="text-sm lg:text-base font-bold text-[#072C2C]">KASIR POS</h1>
-          <p className="text-[9px] lg:text-[10px] text-[#072C2C]/50">{now.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
+          <h1 className="text-sm lg:text-base font-bold text-[#072C2C]">{userName || "Kasir"}</h1>
+          <p className="text-[9px] lg:text-[10px] text-[#072C2C]/50">{now.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} · {now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="px-2.5 py-1 bg-[#EDEADE] rounded-md text-[10px]"><span className="text-[#072C2C]/50">Trx: </span><span className="font-bold text-[#072C2C]">{todayTrxCount}</span></div>
