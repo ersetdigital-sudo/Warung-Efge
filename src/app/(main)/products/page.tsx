@@ -29,6 +29,7 @@ export default function ProductsPage() {
   const [showStockIn, setShowStockIn] = useState(false);
   const [stockInProduct, setStockInProduct] = useState("");
   const [stockInQty, setStockInQty] = useState("");
+  const [stockInUnit, setStockInUnit] = useState("");
   const [stockInNote, setStockInNote] = useState("");
 
   useEffect(() => { loadProducts(); }, []);
@@ -46,8 +47,18 @@ export default function ProductsPage() {
     const qty = Number(stockInQty);
     if (qty <= 0) return;
 
-    // Update stock
-    const newStock = (product.stock || 0) + qty;
+    // Calculate how many base units to add based on selected unit
+    let baseQty = qty;
+    const unitName = stockInUnit || product.unit;
+    if (product.product_units && product.product_units.length > 0 && stockInUnit) {
+      const selectedPU = product.product_units.find((u: any) => u.name === stockInUnit);
+      if (selectedPU && selectedPU.conversion && selectedPU.conversion > 1) {
+        baseQty = qty * selectedPU.conversion;
+      }
+    }
+
+    // Update stock (in base unit)
+    const newStock = (product.stock || 0) + baseQty;
     await supabase.from("products").update({ stock: newStock }).eq("id", product.id);
 
     // Record movement
@@ -56,8 +67,8 @@ export default function ProductsPage() {
       product_name: product.name,
       type: "in",
       quantity: qty,
-      unit: product.unit,
-      notes: stockInNote || `Stok masuk ${qty} ${product.unit}`,
+      unit: unitName,
+      notes: stockInNote || `Stok masuk ${qty} ${unitName}${baseQty !== qty ? ` (= ${baseQty} ${product.unit})` : ""}`,
       user_name: "Pak Efge",
     });
 
@@ -65,6 +76,7 @@ export default function ProductsPage() {
     setShowStockIn(false);
     setStockInProduct("");
     setStockInQty("");
+    setStockInUnit("");
     setStockInNote("");
     setToast("Stok berhasil ditambahkan!");
     setTimeout(() => setToast(""), 2000);
@@ -372,15 +384,45 @@ export default function ProductsPage() {
 
             <div>
               <label className="text-xs font-medium text-[#072C2C]/60 mb-1 block">Pilih Produk</label>
-              <select value={stockInProduct} onChange={(e) => setStockInProduct(e.target.value)} className="w-full px-3 py-2.5 text-sm border border-[#D9D6C8] rounded-lg bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30">
+              <select value={stockInProduct} onChange={(e) => { setStockInProduct(e.target.value); setStockInUnit(""); }} className="w-full px-3 py-2.5 text-sm border border-[#D9D6C8] rounded-lg bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30">
                 <option value="">-- Pilih produk --</option>
                 {products.map(p => <option key={p.id} value={p.id}>{p.name} (stok: {p.stock} {p.unit})</option>)}
               </select>
             </div>
 
+            {/* Unit selector - show if product has multiple units */}
+            {stockInProduct && (() => {
+              const prod = products.find(p => p.id === stockInProduct);
+              const units = prod?.product_units || [];
+              if (units.length > 1) {
+                return (
+                  <div>
+                    <label className="text-xs font-medium text-[#072C2C]/60 mb-1 block">Satuan</label>
+                    <select value={stockInUnit} onChange={(e) => setStockInUnit(e.target.value)} className="w-full px-3 py-2.5 text-sm border border-[#D9D6C8] rounded-lg bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30">
+                      <option value="">{prod.unit} (satuan dasar)</option>
+                      {units.sort((a: any, b: any) => (b.level || 0) - (a.level || 0)).map((u: any) => (
+                        <option key={u.name} value={u.name}>{u.name}{u.conversion > 1 ? ` (1 = ${u.conversion} ${prod.unit})` : ""}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
             <div>
-              <label className="text-xs font-medium text-[#072C2C]/60 mb-1 block">Jumlah Masuk ({products.find(p => p.id === stockInProduct)?.unit || "unit"})</label>
+              <label className="text-xs font-medium text-[#072C2C]/60 mb-1 block">Jumlah Masuk ({stockInUnit || products.find(p => p.id === stockInProduct)?.unit || "unit"})</label>
               <input type="number" inputMode="numeric" value={stockInQty} onChange={(e) => setStockInQty(e.target.value)} placeholder="0" className="w-full px-3 py-2.5 text-sm border border-[#D9D6C8] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
+              {/* Preview conversion */}
+              {stockInQty && stockInUnit && (() => {
+                const prod = products.find(p => p.id === stockInProduct);
+                const pu = prod?.product_units?.find((u: any) => u.name === stockInUnit);
+                if (pu && pu.conversion > 1) {
+                  const base = Number(stockInQty) * pu.conversion;
+                  return <p className="text-[10px] text-[#16A34A] mt-1 font-mono">= {base} {prod.unit} akan ditambahkan ke stok</p>;
+                }
+                return null;
+              })()}
             </div>
 
             <div>
