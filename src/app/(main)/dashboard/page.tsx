@@ -297,19 +297,18 @@ export default function DashboardPage() {
             </button>
           </div>
           <div className="overflow-x-auto">
-          <table className="w-full text-[12px] min-w-[500px]">
+          <table className="w-full text-[12px]">
             <thead>
               <tr>
                 <th className="text-[10px] font-semibold text-[#9CA3AF] text-left px-2.5 py-1.5 bg-[#EDEADE] border-b border-[#D9D6C8] uppercase tracking-wider">Produk</th>
-                <th className="text-[10px] font-semibold text-[#9CA3AF] text-left px-2.5 py-1.5 bg-[#EDEADE] border-b border-[#D9D6C8] uppercase tracking-wider">Terjual</th>
-                <th className="text-[10px] font-semibold text-[#9CA3AF] text-left px-2.5 py-1.5 bg-[#EDEADE] border-b border-[#D9D6C8] uppercase tracking-wider hidden sm:table-cell">Pendapatan</th>
-                <th className="text-[10px] font-semibold text-[#9CA3AF] text-left px-2.5 py-1.5 bg-[#EDEADE] border-b border-[#D9D6C8] uppercase tracking-wider">Status</th>
-                <th className="text-[10px] font-semibold text-[#9CA3AF] text-left px-2.5 py-1.5 bg-[#EDEADE] border-b border-[#D9D6C8] uppercase tracking-wider hidden md:table-cell">Tren</th>
+                <th className="text-[10px] font-semibold text-[#9CA3AF] text-right px-2.5 py-1.5 bg-[#EDEADE] border-b border-[#D9D6C8] uppercase tracking-wider">Terjual</th>
+                <th className="text-[10px] font-semibold text-[#9CA3AF] text-right px-2.5 py-1.5 bg-[#EDEADE] border-b border-[#D9D6C8] uppercase tracking-wider hidden sm:table-cell">Pendapatan</th>
+                <th className="text-[10px] font-semibold text-[#9CA3AF] text-center px-2.5 py-1.5 bg-[#EDEADE] border-b border-[#D9D6C8] uppercase tracking-wider">Status</th>
               </tr>
             </thead>
             <tbody>
               {topProductsData.length === 0 ? (
-                <tr><td colSpan={5} className="px-2.5 py-6 text-center text-[11px] text-[#9CA3AF]">Belum ada data penjualan</td></tr>
+                <tr><td colSpan={4} className="px-2.5 py-6 text-center text-[11px] text-[#9CA3AF]">Belum ada data penjualan</td></tr>
               ) : topProductsData.map((p: any, idx: number) => {
                 const status = p.stock <= 0 ? "Habis" : p.stock <= p.min_stock ? "Menipis" : "Aman";
                 const statusType = p.stock <= 0 ? "r" : p.stock <= p.min_stock ? "a" : "g";
@@ -317,20 +316,21 @@ export default function DashboardPage() {
                 <tr key={p.name} className="border-b border-[#D9D6C8] last:border-b-0 hover:bg-[#FAFAF8] transition-colors">
                   <td className="px-2.5 py-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded bg-[#EDEADE] border border-[#D9D6C8] flex items-center justify-center text-[12px] font-bold text-[#072C2C]/50 flex-shrink-0">{idx + 1}</div>
-                      <div>
-                        <div className="text-[12px] font-medium text-[#111827]">{p.name}</div>
-                        <div className="text-[10px] text-[#9CA3AF] font-light">{p.cat}</div>
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded bg-[#EDEADE] border border-[#D9D6C8] flex items-center justify-center text-[11px] font-bold text-[#072C2C]/50 flex-shrink-0">{idx + 1}</div>
+                      <div className="min-w-0">
+                        <div className="text-[11px] sm:text-[12px] font-medium text-[#111827] truncate">{p.name}</div>
+                        <div className="text-[9px] sm:text-[10px] text-[#9CA3AF] font-light">{p.cat}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-2.5 py-2 font-mono text-[11px]">{p.sold} {p.unit}</td>
-                  <td className="px-2.5 py-2 font-mono text-[11px] font-bold text-[#16A34A] hidden sm:table-cell">{formatCurrency(p.rev)}</td>
-                  <td className="px-2.5 py-2">
-                    <span className={`text-[9px] font-bold font-mono px-[7px] py-[2px] rounded border ${pillClasses[statusType]} tracking-wide`}>{status}</span>
+                  <td className="px-2.5 py-2 text-right">
+                    <span className="font-mono text-[11px] font-bold text-[#072C2C]">{p.sold}</span>
+                    <span className="text-[9px] text-[#9CA3AF] ml-0.5">{p.unit}</span>
+                    <div className="sm:hidden text-[9px] text-[#16A34A] font-mono font-bold">{formatCurrency(p.rev)}</div>
                   </td>
-                  <td className="px-2.5 py-2 hidden md:table-cell">
-                    <span className="text-[10px] text-[#9CA3AF]">—</span>
+                  <td className="px-2.5 py-2 text-right font-mono text-[11px] font-bold text-[#16A34A] hidden sm:table-cell">{formatCurrency(p.rev)}</td>
+                  <td className="px-2.5 py-2 text-center">
+                    <span className={`text-[8px] sm:text-[9px] font-bold font-mono px-[6px] py-[2px] rounded border ${pillClasses[statusType]} tracking-wide`}>{status}</span>
                   </td>
                 </tr>
                 );
