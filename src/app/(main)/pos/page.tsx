@@ -7,6 +7,7 @@ import { categories } from "@/data/mock-data";
 import { getProductsWithUnits, addTransaction, addStockMovement } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
+import { generateReceiptPDF } from "@/lib/generate-receipt-pdf";
 
 interface CartItem {
   productId: string;
@@ -268,6 +269,31 @@ export default function POSPage() {
   };
 
   const closePrintPreview = () => { setShowPrintPreview(false); setPrintData(null); setPrintMeta(null); handleNewTransaction(); };
+
+  const handleSavePDF = (action: "download" | "open") => {
+    try {
+      const dateStr = `${now.toLocaleDateString("id-ID")} ${now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`;
+      generateReceiptPDF({
+        storeName: "WARUNG EFGE",
+        cashier: userName || "Kasir",
+        trxId,
+        date: dateStr,
+        items: cart.map(item => ({ name: item.name, quantity: item.quantity, unit: item.unit, price: item.price, subtotal: item.subtotal })),
+        subtotal,
+        discount: calculatedDiscount,
+        total,
+        method: paymentMethod === "cash" ? "Tunai" : paymentMethod === "transfer" ? "Transfer" : paymentMethod === "edc" ? "EDC" : "QRIS",
+        paid: Number(amountPaid) || 0,
+        change: change > 0 ? change : 0,
+      }, action);
+      setShowReceipt(false);
+      handleNewTransaction();
+      setPrintToast({ msg: "Struk berhasil disimpan ✓", color: "bg-[#16A34A]" });
+      setTimeout(() => setPrintToast(null), 3000);
+    } catch {
+      setPrintToast({ msg: "Gagal membuat struk. Coba lagi.", color: "bg-[#DC2626]" });
+      setTimeout(() => setPrintToast(null), 3000);
+    }
   };
 
   const canPay = cart.length > 0 && (isDebt || paymentMethod !== "cash" || Number(amountPaid) >= total);
@@ -650,8 +676,11 @@ export default function POSPage() {
 
             {/* Action buttons - clear and prominent */}
             <div className="px-5 pb-5 space-y-2">
-              <button onClick={handlePrintReceipt} className="w-full flex items-center justify-center gap-2 py-3 bg-[#072C2C] text-white font-bold text-sm rounded-xl cursor-pointer hover:bg-[#0a3d3d] transition-colors">
-                <Printer className="w-4 h-4" />Cetak Struk
+              <button onClick={() => handleSavePDF("download")} className="w-full flex items-center justify-center gap-2 py-3 bg-[#072C2C] text-white font-bold text-sm rounded-xl cursor-pointer hover:bg-[#0a3d3d] transition-colors">
+                💾 Simpan PDF
+              </button>
+              <button onClick={() => handleSavePDF("open")} className="w-full flex items-center justify-center gap-2 py-3 bg-white border-2 border-[#072C2C] text-[#072C2C] font-bold text-sm rounded-xl cursor-pointer hover:bg-[#EDEADE] transition-colors">
+                🖨️ Cetak Langsung
               </button>
               <button onClick={handleNewTransaction} className="w-full flex items-center justify-center gap-2 py-3 bg-[#FF5F03] text-white font-bold text-sm rounded-xl cursor-pointer hover:bg-[#e55503] transition-colors">
                 <Plus className="w-4 h-4" />Transaksi Baru
