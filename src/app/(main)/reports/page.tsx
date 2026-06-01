@@ -141,22 +141,52 @@ export default function ReportsPage() {
               </div>
             </Card>
             {/* Payment methods */}
+            {/* Distribusi Per Jam */}
             <Card>
-              <div className="px-4 py-3 border-b border-[#D9D6C8]"><p className="font-[Oswald] text-xs font-semibold text-[#072C2C] uppercase tracking-wider">Metode Bayar</p></div>
-              <div className="p-4 h-[140px]">
+              <div className="px-4 py-3 border-b border-[#D9D6C8]"><p className="font-[Oswald] text-xs font-semibold text-[#072C2C] uppercase tracking-wider">Distribusi Per Jam</p><p className="text-[9px] text-[#9CA3AF]">Rata-rata transaksi</p></div>
+              <div className="p-4 h-[160px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart><Pie data={pmData} cx="50%" cy="50%" innerRadius={40} outerRadius={55} paddingAngle={3} dataKey="value" strokeWidth={3} stroke="#fff">{pmData.map((e, i) => <Cell key={i} fill={e.color} />)}</Pie></PieChart>
+                  <BarChart data={(() => {
+                    const hourMap: Record<number, number> = {};
+                    transactions.forEach(t => { const h = new Date(t.created_at).getHours(); hourMap[h] = (hourMap[h] || 0) + 1; });
+                    return Array.from({ length: 16 }, (_, i) => i + 6).map(h => ({ hour: `${String(h).padStart(2, "0")}`, trx: hourMap[h] || 0 }));
+                  })()}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,44,44,0.05)" vertical={false} />
+                    <XAxis dataKey="hour" axisLine={false} tickLine={false} fontSize={9} tick={{ fill: "#9CA3AF" }} />
+                    <YAxis axisLine={false} tickLine={false} fontSize={9} tick={{ fill: "#9CA3AF" }} hide />
+                    <Tooltip formatter={(v: any) => [`${v} transaksi`, ""]} contentStyle={{ backgroundColor: "#072C2C", border: "none", borderRadius: "5px", fontSize: "11px" }} labelStyle={{ color: "rgba(255,255,255,.5)" }} itemStyle={{ color: "#fff", fontWeight: 700 }} />
+                    <Bar dataKey="trx" radius={[3, 3, 0, 0]}>
+                      {Array.from({ length: 16 }, (_, i) => i + 6).map((h, i) => {
+                        const hourMap: Record<number, number> = {};
+                        transactions.forEach(t => { const hr = new Date(t.created_at).getHours(); hourMap[hr] = (hourMap[hr] || 0) + 1; });
+                        const val = hourMap[h] || 0;
+                        const maxVal = Math.max(...Object.values(hourMap), 1);
+                        return <Cell key={i} fill={val >= maxVal * 0.7 ? "#FF5F03" : val >= maxVal * 0.4 ? "rgba(255,95,3,0.4)" : "rgba(7,44,44,0.1)"} />;
+                      })}
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
-              <div className="px-4 pb-3 space-y-2">
-                {pmData.map(p => (
-                  <div key={p.name} className="flex items-center gap-2 text-[11px]">
-                    <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: p.color }} />
-                    <span className="text-[#4B5563] flex-1">{p.name}</span>
-                    <div className="flex-[2] h-1 rounded-full bg-[#EDEADE] overflow-hidden"><div className="h-full rounded-full" style={{ width: `${p.value}%`, background: p.color }} /></div>
-                    <span className="font-mono font-bold text-[11px] min-w-[24px] text-right">{p.value}%</span>
-                  </div>
-                ))}
+              {/* Time period summary */}
+              <div className="px-4 pb-3 space-y-1.5">
+                {(() => {
+                  const pagi = transactions.filter(t => { const h = new Date(t.created_at).getHours(); return h >= 6 && h < 12; }).length;
+                  const siang = transactions.filter(t => { const h = new Date(t.created_at).getHours(); return h >= 12 && h < 17; }).length;
+                  const sore = transactions.filter(t => { const h = new Date(t.created_at).getHours(); return h >= 17 && h < 22; }).length;
+                  const total = Math.max(pagi + siang + sore, 1);
+                  return [
+                    { label: "Pagi 06–12", value: pagi, pct: Math.round((pagi / total) * 100), color: "#FF5F03" },
+                    { label: "Siang 12–17", value: siang, pct: Math.round((siang / total) * 100), color: "#072C2C" },
+                    { label: "Sore 17–22", value: sore, pct: Math.round((sore / total) * 100), color: "#D97706" },
+                  ].map(p => (
+                    <div key={p.label} className="flex items-center gap-2 text-[11px]">
+                      <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: p.color }} />
+                      <span className="text-[#4B5563] flex-1">{p.label}</span>
+                      <div className="flex-[2] h-1 rounded-full bg-[#EDEADE] overflow-hidden"><div className="h-full rounded-full" style={{ width: `${p.pct}%`, background: p.color }} /></div>
+                      <span className="font-mono font-bold text-[11px] min-w-[24px] text-right">{p.pct}%</span>
+                    </div>
+                  ));
+                })()}
               </div>
             </Card>
           </div>
@@ -196,6 +226,38 @@ export default function ReportsPage() {
               </table>
             </div>
           </Card>
+
+          {/* Produk Mendekati Expired */}
+          {(() => {
+            const today = new Date();
+            const expiring = products.filter(p => p.expiry_date).map(p => ({ ...p, daysLeft: Math.ceil((new Date(p.expiry_date).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) })).filter(p => p.daysLeft <= 30).sort((a, b) => a.daysLeft - b.daysLeft);
+            if (expiring.length === 0) return null;
+            return (
+              <Card>
+                <div className="px-4 py-3 border-b border-[#D9D6C8]"><div className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-[#D97706]" /><p className="font-[Oswald] text-xs font-semibold text-[#072C2C] uppercase tracking-wider">Produk Mendekati Expired</p></div><p className="text-[9px] text-[#9CA3AF] mt-0.5">Produk yang expired dalam 30 hari ke depan</p></div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[12px]">
+                    <thead><tr className="border-b border-[#D9D6C8]">
+                      <th className="text-left px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Produk</th>
+                      <th className="text-left px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Tanggal Expired</th>
+                      <th className="text-right px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Sisa Hari</th>
+                      <th className="text-center px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Status</th>
+                    </tr></thead>
+                    <tbody>
+                      {expiring.map(p => (
+                        <tr key={p.id} className={`border-b border-[#D9D6C8] ${p.daysLeft <= 0 ? "bg-[#FEF2F2]/50" : p.daysLeft <= 7 ? "bg-[#FFFBEB]/50" : ""}`}>
+                          <td className="px-3 py-2 font-medium">{p.name}</td>
+                          <td className="px-3 py-2 text-[#4B5563]">{formatDate(p.expiry_date)}</td>
+                          <td className="px-3 py-2 text-right font-mono font-bold">{p.daysLeft <= 0 ? "EXPIRED" : `${p.daysLeft} hari`}</td>
+                          <td className="px-3 py-2 text-center"><Badge variant={p.daysLeft <= 0 ? "danger" : p.daysLeft <= 7 ? "warning" : "info"}>{p.daysLeft <= 0 ? "Expired" : p.daysLeft <= 7 ? "Segera" : "Mendekati"}</Badge></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            );
+          })()}
         </div>
       )}
 
