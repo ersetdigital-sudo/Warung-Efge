@@ -340,7 +340,7 @@ export default function ReportsPage() {
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,44,44,0.05)" vertical={false} />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "#9CA3AF" }} />
                       <YAxis axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "#9CA3AF" }} tickFormatter={v => `${v}rb`} />
-                      <Tooltip formatter={(v: any, name: string) => [`Rp ${v}rb`, name === "pendapatan" ? "Pendapatan" : "Pengeluaran"]} contentStyle={{ backgroundColor: "#072C2C", border: "none", borderRadius: "5px", fontSize: "11px" }} labelStyle={{ color: "rgba(255,255,255,.5)" }} itemStyle={{ color: "#fff", fontWeight: 700 }} />
+                      <Tooltip formatter={(v: any, name: any) => [`Rp ${v}rb`, name === "pendapatan" ? "Pendapatan" : "Pengeluaran"]} contentStyle={{ backgroundColor: "#072C2C", border: "none", borderRadius: "5px", fontSize: "11px" }} labelStyle={{ color: "rgba(255,255,255,.5)" }} itemStyle={{ color: "#fff", fontWeight: 700 }} />
                       <Bar dataKey="pendapatan" fill="#16A34A" radius={[3, 3, 0, 0]} name="pendapatan" />
                       <Bar dataKey="pengeluaran" fill="#DC2626" radius={[3, 3, 0, 0]} name="pengeluaran" />
                     </BarChart>
