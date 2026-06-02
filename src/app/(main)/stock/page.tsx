@@ -44,7 +44,7 @@ export default function StockOpnamePage() {
     setLoading(true);
     const { data, error } = await supabase
       .from("products")
-      .select("id, name, sku, category, stock, unit")
+      .select("*")
       .order("name");
     if (error) {
       showToast("Gagal memuat produk", "error");
@@ -53,10 +53,10 @@ export default function StockOpnamePage() {
     }
     const prods: Product[] = (data || []).map((p: any) => ({
       id: p.id,
-      name: p.name || "",
+      name: p.name || "(Tanpa Nama)",
       sku: p.sku || "",
       category: p.category || "Lain-lain",
-      stock: Number(p.stock) || 0,
+      stock: Number(p.stock) ?? 0,
       unit: p.unit || "Pcs",
     }));
     setProducts(prods);
