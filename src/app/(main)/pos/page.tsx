@@ -45,6 +45,10 @@ export default function POSPage() {
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "transfer" | "qris" | "edc" | "bon">("cash");
   const [amountPaid, setAmountPaid] = useState("");
   const [isDebt, setIsDebt] = useState(false);
+  const [bonCustomerId, setBonCustomerId] = useState("");
+  const [bonCustomerName, setBonCustomerName] = useState("");
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [customerSearch, setCustomerSearch] = useState("");
   const [showReceipt, setShowReceipt] = useState(false);
   const [showCart, setShowCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
@@ -60,6 +64,8 @@ export default function POSPage() {
     const load = () => { getProductsWithUnits().then(setProducts); };
     load();
     getStoreSettings().then(setStoreSettings);
+    // Load customers for bon payment
+    supabase.from("customers").select("id, name, debt").order("name").then(({ data }) => setCustomers(data || []));
     window.addEventListener("focus", load);
     return () => window.removeEventListener("focus", load);
   }, []);
@@ -229,7 +235,22 @@ export default function POSPage() {
   const getCartCountForProduct = (productId: string) => cart.filter(i => i.productId === productId).reduce((sum, i) => sum + i.quantity, 0);
 
   const handlePayment = async () => {
-    const trxData = { transaction_number: trxId, subtotal, discount: calculatedDiscount, total, payment_method: paymentMethod, amount_paid: Number(amountPaid) || 0, change_amount: change > 0 ? change : 0, is_debt: isDebt, cashier: userName || "Kasir" };
+    const trxData = { transaction_number: trxId, subtotal, discount: calculatedDiscount, total, payment_method: paymentMethod, amount_paid: Number(amountPaid) || 0, change_amount: change > 0 ? change : 0, is_debt: paymentMethod === "bon", cashier: userName || "Kasir", customer_name: paymentMethod === "bon" ? bonCustomerName : null };
+    const items = cart.map(item => ({ product_id: item.productId, product_name: item.name, quantity: item.quantity, unit: item.unit, price: item.price, subtotal: item.subtotal }));
+    await addTransaction(trxData, items);
+
+    // Jika bon: tambah hutang ke customers + catat di debt_payments
+    if (paymentMethod === "bon" && bonCustomerId) {
+      const cust = customers.find(c => c.id === bonCustomerId);
+      const currentDebt = cust?.debt || 0;
+      await supabase.from("customers").update({ debt: currentDebt + total }).eq("id", bonCustomerId);
+      await supabase.from("debt_payments").insert({
+        customer_id: bonCustomerId,
+        amount: -total,
+        method: "hutang",
+        note: `Bon transaksi ${trxId}`,
+      });
+    }
     const items = cart.map(item => ({ product_id: item.productId, product_name: item.name, quantity: item.quantity, unit: item.unit, price: item.price, subtotal: item.subtotal }));
     await addTransaction(trxData, items);
     const stockUpdates: Record<string, number> = {};
@@ -246,7 +267,7 @@ export default function POSPage() {
     setShowReceipt(true); setShowCart(false);
   };
 
-  const handleNewTransaction = () => { const c = trxId; setCart([]); setDiscountInput(""); setShowDiscount(false); setAmountPaid(""); setIsDebt(false); setShowReceipt(false); setPaymentMethod("cash"); setTrxId(`TRX-${String(Math.floor(Math.random() * 9000) + 1000)}`); setSuccessToast(c); setTimeout(() => setSuccessToast(""), 3000); };
+  const handleNewTransaction = () => { const c = trxId; setCart([]); setDiscountInput(""); setShowDiscount(false); setAmountPaid(""); setIsDebt(false); setBonCustomerId(""); setBonCustomerName(""); setCustomerSearch(""); setShowReceipt(false); setPaymentMethod("cash"); setTrxId(`TRX-${String(Math.floor(Math.random() * 9000) + 1000)}`); setSuccessToast(c); setTimeout(() => setSuccessToast(""), 3000); };
 
   const [printToast, setPrintToast] = useState<{ msg: string; color: string } | null>(null);
   const [lastReceiptData, setLastReceiptData] = useState<any>(null);
@@ -285,7 +306,7 @@ export default function POSPage() {
     }
   };
 
-  const canPay = cart.length > 0 && (isDebt || paymentMethod === "bon" || paymentMethod !== "cash" || Number(amountPaid) >= total);
+  const canPay = cart.length > 0 && (paymentMethod === "bon" ? !!bonCustomerId : paymentMethod !== "cash" || Number(amountPaid) >= total);
   const [now, setNow] = useState(new Date());
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
   const formatRupiah = (num: number) => num > 0 ? `Rp ${num.toLocaleString("id-ID")}` : "Rp 0";
@@ -544,9 +565,64 @@ export default function POSPage() {
                   ))}
                 </div>
                 {paymentMethod === "bon" && (
-                  <div className="mt-2 flex items-start gap-2 p-2.5 bg-red-50 rounded-xl border border-red-100">
-                    <span className="text-red-500 text-sm">⚠️</span>
-                    <p className="text-xs text-red-600">Transaksi akan dicatat sebagai <strong>hutang pelanggan</strong>. Pastikan nama pelanggan sudah ada di menu Pelanggan.</p>
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2 p-2.5 bg-red-50 rounded-xl border border-red-100">
+                      <span className="text-red-500 text-sm mt-0.5">⚠️</span>
+                      <p className="text-xs text-red-600">Pilih pelanggan yang berhutang. Hutang akan otomatis tercatat di menu Pelanggan.</p>
+                    </div>
+                    {/* Customer search & select */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#9CA3AF]" />
+                      <input
+                        type="text"
+                        value={customerSearch}
+                        onChange={e => { setCustomerSearch(e.target.value); setBonCustomerId(""); setBonCustomerName(""); }}
+                        placeholder="Cari nama pelanggan..."
+                        className="w-full pl-8 pr-3 py-2.5 text-sm border border-[#E5E3DC] rounded-xl focus:outline-none focus:ring-2 focus:ring-red-200"
+                      />
+                    </div>
+                    {/* Dropdown hasil search */}
+                    {customerSearch && !bonCustomerId && (
+                      <div className="border border-[#E5E3DC] rounded-xl overflow-hidden max-h-44 overflow-y-auto shadow-sm">
+                        {customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase())).length === 0 ? (
+                          <p className="text-xs text-[#9CA3AF] p-3 text-center">Pelanggan tidak ditemukan</p>
+                        ) : customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase())).map(c => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => { setBonCustomerId(c.id); setBonCustomerName(c.name); setCustomerSearch(c.name); }}
+                            className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-[#F8F7F4] border-b border-[#F0EEE8] last:border-0 cursor-pointer"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-lg bg-[#072C2C]/10 flex items-center justify-center flex-shrink-0">
+                                <span className="text-[11px] font-black text-[#072C2C]">{c.name.charAt(0)}</span>
+                              </div>
+                              <span className="text-sm font-medium text-[#072C2C]">{c.name}</span>
+                            </div>
+                            {c.debt > 0 && (
+                              <span className="text-[10px] text-red-500 font-medium">{formatCurrency(c.debt)}</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {/* Selected customer badge */}
+                    {bonCustomerId && (
+                      <div className="flex items-center justify-between px-3 py-2.5 bg-[#072C2C] rounded-xl">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center">
+                            <span className="text-[11px] font-black text-white">{bonCustomerName.charAt(0)}</span>
+                          </div>
+                          <span className="text-sm font-bold text-white">{bonCustomerName}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-white/60">+{formatCurrency(total)}</span>
+                          <button type="button" onClick={() => { setBonCustomerId(""); setBonCustomerName(""); setCustomerSearch(""); }} className="text-white/50 hover:text-white cursor-pointer">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -615,8 +691,12 @@ export default function POSPage() {
 
             {/* Fixed bottom button */}
             <div className="flex-shrink-0 px-5 py-4 border-t border-[#072C2C]/10 bg-white" style={{ paddingBottom: "env(safe-area-inset-bottom, 16px)" }}>
+              {paymentMethod === "bon" && !bonCustomerId && (
+                <p className="text-xs text-red-500 text-center mb-2 font-medium">⚠️ Pilih pelanggan dulu untuk lanjut bayar dengan bon</p>
+              )}
               <button onClick={() => { handlePayment(); setShowCheckout(false); }} disabled={!canPay} className="w-full py-4 bg-[#FF5F03] text-white font-bold text-base rounded-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-[#e55503] flex items-center justify-center gap-2">
-                <Check className="w-5 h-5" />BAYAR SEKARANG
+                <Check className="w-5 h-5" />
+                {paymentMethod === "bon" && bonCustomerName ? `BON — ${bonCustomerName}` : "BAYAR SEKARANG"}
               </button>
             </div>
           </div>
