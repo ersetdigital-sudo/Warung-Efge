@@ -9,6 +9,7 @@ import { getProducts, getTransactions, getExpenses, addExpense, updateExpense, d
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 type TabType = "penjualan" | "produk" | "kasir" | "stok" | "keuangan";
+type DateFilter = "today" | "7days" | "30days" | "month" | "custom";
 
 export default function ReportsPage() {
   const [tab, setTab] = useState<TabType>("penjualan");
@@ -20,6 +21,11 @@ export default function ReportsPage() {
   const [newExpDate, setNewExpDate] = useState(new Date().toISOString().split("T")[0]);
   const [showAddExp, setShowAddExp] = useState(false);
 
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<DateFilter>("30days");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+
   const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
 
   useEffect(() => {
@@ -28,40 +34,67 @@ export default function ReportsPage() {
     getExpenses(currentMonth).then(setExpenses);
   }, []);
 
+  // Filter transactions by date
+  const filteredTransactions = useMemo(() => {
+    const now = new Date();
+    return transactions.filter(t => {
+      if (!t.created_at) return false;
+      const d = new Date(t.created_at);
+      if (dateFilter === "today") {
+        const start = new Date(now); start.setHours(0, 0, 0, 0);
+        return d >= start;
+      } else if (dateFilter === "7days") {
+        const start = new Date(now); start.setDate(now.getDate() - 6); start.setHours(0, 0, 0, 0);
+        return d >= start;
+      } else if (dateFilter === "30days") {
+        const start = new Date(now); start.setDate(now.getDate() - 29); start.setHours(0, 0, 0, 0);
+        return d >= start;
+      } else if (dateFilter === "month") {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        return d >= start;
+      } else if (dateFilter === "custom") {
+        const from = customFrom ? new Date(customFrom) : new Date(0);
+        const to = customTo ? new Date(customTo + "T23:59:59") : new Date();
+        return d >= from && d <= to;
+      }
+      return true;
+    });
+  }, [transactions, dateFilter, customFrom, customTo]);
+
   // === PENJUALAN DATA ===
-  const totalSales = transactions.reduce((s, t) => s + (t.total || 0), 0);
-  const totalTrx = transactions.length;
+  const totalSales = filteredTransactions.reduce((s, t) => s + (t.total || 0), 0);
+  const totalTrx = filteredTransactions.length;
   const avgTrx = totalTrx > 0 ? Math.round(totalSales / totalTrx) : 0;
 
   // Daily chart data
   const dailyData = useMemo(() => {
     const map: Record<string, number> = {};
     const days = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
-    transactions.forEach(t => {
+    filteredTransactions.forEach(t => {
       const d = new Date(t.created_at);
       const day = days[d.getDay()];
       map[day] = (map[day] || 0) + (t.total || 0);
     });
     return days.slice(1).concat(days[0]).map(d => ({ name: d, total: Math.round((map[d] || 0) / 1000) }));
-  }, [transactions]);
+  }, [filteredTransactions]);
 
   // Payment method breakdown
   const pmData = useMemo(() => {
     const map: Record<string, number> = {};
-    transactions.forEach(t => { const m = t.payment_method || "cash"; map[m] = (map[m] || 0) + 1; });
-    const total = transactions.length || 1;
+    filteredTransactions.forEach(t => { const m = t.payment_method || "cash"; map[m] = (map[m] || 0) + 1; });
+    const total = filteredTransactions.length || 1;
     return [
       { name: "Tunai", value: Math.round(((map.cash || 0) / total) * 100), color: "#FF5F03" },
       { name: "QRIS", value: Math.round(((map.qris || 0) / total) * 100), color: "#072C2C" },
       { name: "Transfer", value: Math.round(((map.transfer || 0) / total) * 100), color: "#D97706" },
       { name: "EDC", value: Math.round(((map.edc || 0) / total) * 100), color: "#16A34A" },
     ].filter(p => p.value > 0);
-  }, [transactions]);
+  }, [filteredTransactions]);
 
   // === PRODUK DATA ===
   const topProducts = useMemo(() => {
     const map: Record<string, { name: string; sold: number; rev: number }> = {};
-    transactions.forEach(t => {
+    filteredTransactions.forEach(t => {
       (t.transaction_items || []).forEach((i: any) => {
         const k = i.product_name || "?";
         if (!map[k]) map[k] = { name: k, sold: 0, rev: 0 };
@@ -70,19 +103,19 @@ export default function ReportsPage() {
       });
     });
     return Object.values(map).sort((a, b) => b.rev - a.rev).slice(0, 10);
-  }, [transactions]);
+  }, [filteredTransactions]);
 
   // === KASIR DATA ===
   const kasirData = useMemo(() => {
     const map: Record<string, { name: string; trx: number; total: number }> = {};
-    transactions.forEach(t => {
+    filteredTransactions.forEach(t => {
       const k = t.cashier || "Unknown";
       if (!map[k]) map[k] = { name: k, trx: 0, total: 0 };
       map[k].trx++;
       map[k].total += t.total || 0;
     });
     return Object.values(map).sort((a, b) => b.total - a.total);
-  }, [transactions]);
+  }, [filteredTransactions]);
 
   // === STOK DATA ===
   const stokAman = products.filter(p => p.stock > p.min_stock).length;
@@ -113,6 +146,43 @@ export default function ReportsPage() {
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} className={`px-4 py-1.5 rounded-sm text-[11px] font-medium cursor-pointer transition-all ${tab === t.id ? "bg-[#072C2C] text-white font-semibold" : "text-[#4B5563] hover:text-[#072C2C]"}`}>{t.label}</button>
         ))}
+      </div>
+
+      {/* Date Filter */}
+      <div className="flex flex-wrap items-center gap-2">
+        {([
+          { id: "today", label: "Hari Ini" },
+          { id: "7days", label: "7 Hari" },
+          { id: "30days", label: "30 Hari" },
+          { id: "month", label: "Bulan Ini" },
+          { id: "custom", label: "Custom" },
+        ] as { id: DateFilter; label: string }[]).map(f => (
+          <button
+            key={f.id}
+            onClick={() => setDateFilter(f.id)}
+            className={`px-3 py-1.5 rounded-lg text-[11px] font-medium cursor-pointer transition-all ${dateFilter === f.id ? "bg-[#FF5F03] text-white" : "bg-white border border-[#D9D6C8] text-[#4B5563] hover:border-[#FF5F03]/50"}`}
+          >
+            {f.label}
+          </button>
+        ))}
+        {dateFilter === "custom" && (
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={customFrom}
+              onChange={e => setCustomFrom(e.target.value)}
+              className="px-2.5 py-1.5 border border-[#D9D6C8] rounded-lg text-[11px] focus:outline-none focus:border-[#FF5F03]"
+            />
+            <span className="text-[10px] text-[#9CA3AF]">—</span>
+            <input
+              type="date"
+              value={customTo}
+              onChange={e => setCustomTo(e.target.value)}
+              className="px-2.5 py-1.5 border border-[#D9D6C8] rounded-lg text-[11px] focus:outline-none focus:border-[#FF5F03]"
+            />
+          </div>
+        )}
+        <span className="text-[10px] text-[#9CA3AF] ml-1">{filteredTransactions.length} transaksi</span>
       </div>
 
       {/* ═══ TAB PENJUALAN ═══ */}
@@ -149,7 +219,7 @@ export default function ReportsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={(() => {
                     const hourMap: Record<number, number> = {};
-                    transactions.forEach(t => { const h = new Date(t.created_at).getHours(); hourMap[h] = (hourMap[h] || 0) + 1; });
+                    filteredTransactions.forEach(t => { const h = new Date(t.created_at).getHours(); hourMap[h] = (hourMap[h] || 0) + 1; });
                     return Array.from({ length: 16 }, (_, i) => i + 6).map(h => ({ hour: `${String(h).padStart(2, "0")}`, trx: hourMap[h] || 0 }));
                   })()}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(7,44,44,0.05)" vertical={false} />
@@ -159,7 +229,7 @@ export default function ReportsPage() {
                     <Bar dataKey="trx" radius={[3, 3, 0, 0]}>
                       {Array.from({ length: 16 }, (_, i) => i + 6).map((h, i) => {
                         const hourMap: Record<number, number> = {};
-                        transactions.forEach(t => { const hr = new Date(t.created_at).getHours(); hourMap[hr] = (hourMap[hr] || 0) + 1; });
+                        filteredTransactions.forEach(t => { const hr = new Date(t.created_at).getHours(); hourMap[hr] = (hourMap[hr] || 0) + 1; });
                         const val = hourMap[h] || 0;
                         const maxVal = Math.max(...Object.values(hourMap), 1);
                         return <Cell key={i} fill={val >= maxVal * 0.7 ? "#FF5F03" : val >= maxVal * 0.4 ? "rgba(255,95,3,0.4)" : "rgba(7,44,44,0.1)"} />;
@@ -171,9 +241,9 @@ export default function ReportsPage() {
               {/* Time period summary */}
               <div className="px-4 pb-3 space-y-1.5">
                 {(() => {
-                  const pagi = transactions.filter(t => { const h = new Date(t.created_at).getHours(); return h >= 6 && h < 12; }).length;
-                  const siang = transactions.filter(t => { const h = new Date(t.created_at).getHours(); return h >= 12 && h < 17; }).length;
-                  const sore = transactions.filter(t => { const h = new Date(t.created_at).getHours(); return h >= 17 && h < 22; }).length;
+                  const pagi = filteredTransactions.filter(t => { const h = new Date(t.created_at).getHours(); return h >= 6 && h < 12; }).length;
+                  const siang = filteredTransactions.filter(t => { const h = new Date(t.created_at).getHours(); return h >= 12 && h < 17; }).length;
+                  const sore = filteredTransactions.filter(t => { const h = new Date(t.created_at).getHours(); return h >= 17 && h < 22; }).length;
                   const total = Math.max(pagi + siang + sore, 1);
                   return [
                     { label: "Pagi 06–12", value: pagi, pct: Math.round((pagi / total) * 100), color: "#FF5F03" },
@@ -331,8 +401,8 @@ export default function ReportsPage() {
                   <th className="text-left px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Status</th>
                 </tr></thead>
                 <tbody>
-                  {transactions.length === 0 && <tr><td colSpan={6} className="text-center py-8 text-[#9CA3AF]">Belum ada data</td></tr>}
-                  {transactions.slice(0, 12).map((t, i) => {
+                  {filteredTransactions.length === 0 && <tr><td colSpan={6} className="text-center py-8 text-[#9CA3AF]">Belum ada data</td></tr>}
+                  {filteredTransactions.slice(0, 12).map((t, i) => {
                     const pmLabel = t.payment_method === "cash" ? "Tunai" : t.payment_method === "qris" ? "QRIS" : t.payment_method === "transfer" ? "Transfer" : "EDC";
                     const pmColor = t.payment_method === "cash" ? "success" : t.payment_method === "qris" ? "info" : "warning";
                     return (
@@ -349,7 +419,7 @@ export default function ReportsPage() {
                 </tbody>
               </table>
             </div>
-            <div className="px-4 py-2 border-t border-[#D9D6C8] text-[11px] text-[#9CA3AF]">Menampilkan {Math.min(12, transactions.length)} dari {transactions.length} log</div>
+            <div className="px-4 py-2 border-t border-[#D9D6C8] text-[11px] text-[#9CA3AF]">Menampilkan {Math.min(12, filteredTransactions.length)} dari {filteredTransactions.length} log</div>
           </Card>
         </div>
       )}
@@ -453,7 +523,7 @@ export default function ReportsPage() {
       {tab === "keuangan" && (() => {
         const totalExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0);
         // HPP = total harga beli dari semua item terjual
-        const totalHPP = transactions.reduce((s, t) => {
+        const totalHPP = filteredTransactions.reduce((s, t) => {
           return s + (t.transaction_items || []).reduce((si: number, item: any) => {
             const prod = products.find(p => p.id === item.product_id);
             return si + ((prod?.cost_price || 0) * (item.quantity || 0));
@@ -496,7 +566,7 @@ export default function ReportsPage() {
                     <BarChart data={(() => {
                       const days = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
                       const dayMap: Record<string, number> = {};
-                      transactions.forEach(t => { const d = new Date(t.created_at); dayMap[days[d.getDay() === 0 ? 6 : d.getDay() - 1]] = (dayMap[days[d.getDay() === 0 ? 6 : d.getDay() - 1]] || 0) + (t.total || 0); });
+                      filteredTransactions.forEach(t => { const d = new Date(t.created_at); dayMap[days[d.getDay() === 0 ? 6 : d.getDay() - 1]] = (dayMap[days[d.getDay() === 0 ? 6 : d.getDay() - 1]] || 0) + (t.total || 0); });
                       const dailyExp = totalPengeluaran > 0 ? Math.round(totalPengeluaran / 30) : 0;
                       return days.map(d => ({ name: d, pendapatan: Math.round((dayMap[d] || 0) / 1000), pengeluaran: Math.round(dailyExp / 1000) }));
                     })()}>
@@ -593,8 +663,8 @@ export default function ReportsPage() {
                     </tr></thead>
                     <tbody>
                       {pmData.map(p => {
-                        const trxCount = transactions.filter(t => (t.payment_method === "cash" && p.name === "Tunai") || (t.payment_method === "qris" && p.name === "QRIS") || (t.payment_method === "transfer" && p.name === "Transfer") || (t.payment_method === "edc" && p.name === "EDC")).length;
-                        const pmTotal = transactions.filter(t => (t.payment_method === "cash" && p.name === "Tunai") || (t.payment_method === "qris" && p.name === "QRIS") || (t.payment_method === "transfer" && p.name === "Transfer") || (t.payment_method === "edc" && p.name === "EDC")).reduce((s, t) => s + (t.total || 0), 0);
+                        const trxCount = filteredTransactions.filter(t => (t.payment_method === "cash" && p.name === "Tunai") || (t.payment_method === "qris" && p.name === "QRIS") || (t.payment_method === "transfer" && p.name === "Transfer") || (t.payment_method === "edc" && p.name === "EDC")).length;
+                        const pmTotal = filteredTransactions.filter(t => (t.payment_method === "cash" && p.name === "Tunai") || (t.payment_method === "qris" && p.name === "QRIS") || (t.payment_method === "transfer" && p.name === "Transfer") || (t.payment_method === "edc" && p.name === "EDC")).reduce((s, t) => s + (t.total || 0), 0);
                         return (
                           <tr key={p.name} className="border-b border-[#D9D6C8]">
                             <td className="px-3 py-2"><Badge variant="info">{p.name}</Badge></td>
