@@ -102,7 +102,7 @@ export default function ReportsPage() {
         map[k].rev += i.subtotal || 0;
       });
     });
-    return Object.values(map).sort((a, b) => b.rev - a.rev).slice(0, 10);
+    return Object.values(map).sort((a, b) => b.sold - a.sold).slice(0, 10);
   }, [filteredTransactions]);
 
   // === KASIR DATA ===
@@ -270,7 +270,7 @@ export default function ReportsPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
             <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#FF5F03]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total SKU</p><Package className="w-4 h-4 text-[#FF5F03]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C]">{products.length}</p></div>
             <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total Unit Terjual</p><TrendingUp className="w-4 h-4 text-[#072C2C]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C]">{topProducts.reduce((s, p) => s + p.sold, 0).toLocaleString("id-ID")}</p></div>
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Produk Terlaris</p><BarChart3 className="w-4 h-4 text-[#16A34A]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C]">{topProducts[0]?.name || "–"}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Produk Terlaris</p><BarChart3 className="w-4 h-4 text-[#16A34A]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C]">{topProducts[0]?.name || "–"}</p><p className="text-[9px] text-[#9CA3AF]">{topProducts[0]?.sold || 0} unit terjual</p></div>
             <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#DC2626]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Stok Habis</p><AlertTriangle className="w-4 h-4 text-[#DC2626]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#DC2626]">{stokHabis} produk</p></div>
           </div>
           <Card>
@@ -390,7 +390,8 @@ export default function ReportsPage() {
           {/* Log Transaksi Per Kasir */}
           <Card>
             <div className="px-4 py-3 border-b border-[#D9D6C8]"><p className="font-[Oswald] text-xs font-semibold text-[#072C2C] uppercase tracking-wider">Log Transaksi Per Kasir</p><p className="text-[9px] text-[#9CA3AF]">Semua aktivitas</p></div>
-            <div className="overflow-x-auto">
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-[12px]">
                 <thead><tr className="border-b border-[#D9D6C8]">
                   <th className="text-left px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">#</th>
@@ -418,6 +419,34 @@ export default function ReportsPage() {
                   })}
                 </tbody>
               </table>
+            </div>
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-[#F0EEE8]">
+              {filteredTransactions.length === 0 && (
+                <p className="text-center py-8 text-[#9CA3AF] text-sm">Belum ada data</p>
+              )}
+              {filteredTransactions.slice(0, 12).map((t) => {
+                const pmLabel = t.payment_method === "cash" ? "💵 Tunai" : t.payment_method === "qris" ? "📱 QRIS" : t.payment_method === "transfer" ? "🏦 Transfer" : "💳 EDC";
+                return (
+                  <div key={t.id} className="px-4 py-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-7 h-7 bg-[#FF5F03] rounded-full flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">
+                          {(t.cashier || "?")[0]}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[12px] font-semibold text-[#072C2C] truncate">{t.cashier || "–"}</p>
+                          <p className="text-[10px] text-[#9CA3AF]">{t.created_at ? `${formatDate(t.created_at)} · ${new Date(t.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}` : "–"}</p>
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-[12px] font-bold text-[#072C2C] font-mono">{formatCurrency(t.total)}</p>
+                        <p className="text-[10px] text-[#9CA3AF]">{pmLabel}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
             <div className="px-4 py-2 border-t border-[#D9D6C8] text-[11px] text-[#9CA3AF]">Menampilkan {Math.min(12, filteredTransactions.length)} dari {filteredTransactions.length} log</div>
           </Card>
