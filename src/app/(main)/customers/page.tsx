@@ -154,20 +154,43 @@ export default function CustomersPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#072C2C]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Pelanggan</p><p className="font-[Oswald] text-[24px] font-semibold text-[#072C2C] mt-1">{customerList.length}</p></div>
-        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#D97706]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Punya Hutang</p><p className="font-[Oswald] text-[24px] font-semibold text-[#D97706] mt-1">{customerList.filter(c => c.debt > 0).length}</p></div>
-        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#DC2626]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Hutang</p><p className="font-[Oswald] text-[24px] font-semibold text-[#DC2626] mt-1">{formatCurrency(totalDebt)}</p></div>
-        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Lunas</p><p className="font-[Oswald] text-[24px] font-semibold text-[#16A34A] mt-1">{customerList.filter(c => c.debt === 0).length}</p></div>
+        <div className="bg-white rounded-2xl p-3.5 border border-[#EBEBEB] shadow-sm">
+          <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Total</p>
+          <p className="font-[Oswald] text-2xl font-bold text-[#072C2C] mt-0.5">{customerList.length}</p>
+          <p className="text-[10px] text-[#9CA3AF]">pelanggan</p>
+        </div>
+        <div className="bg-white rounded-2xl p-3.5 border border-[#EBEBEB] shadow-sm">
+          <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Hutang</p>
+          <p className="font-[Oswald] text-2xl font-bold text-amber-500 mt-0.5">{customerList.filter(c => c.debt > 0).length}</p>
+          <p className="text-[10px] text-[#9CA3AF]">pelanggan</p>
+        </div>
+        <div className="bg-white rounded-2xl p-3.5 border border-[#EBEBEB] shadow-sm">
+          <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Total Hutang</p>
+          <p className="font-[Oswald] text-xl font-bold text-red-500 mt-0.5 leading-tight">{formatCurrency(totalDebt)}</p>
+          <p className="text-[10px] text-[#9CA3AF]">keseluruhan</p>
+        </div>
+        <div className="bg-white rounded-2xl p-3.5 border border-[#EBEBEB] shadow-sm">
+          <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Lunas</p>
+          <p className="font-[Oswald] text-2xl font-bold text-green-500 mt-0.5">{customerList.filter(c => c.debt === 0).length}</p>
+          <p className="text-[10px] text-[#9CA3AF]">pelanggan</p>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-[#F0EEE8] p-1 rounded-xl w-fit">
-        <button onClick={() => setActiveTab("pelanggan")} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === "pelanggan" ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/50 hover:text-[#072C2C]/80"}`}>
-          <Users className="w-4 h-4" />Daftar Pelanggan
+      {/* Tabs — modern pill style */}
+      <div className="flex gap-0 bg-[#F0EEE8] p-1 rounded-2xl">
+        <button
+          onClick={() => setActiveTab("pelanggan")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === "pelanggan" ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/40"}`}
+        >
+          <Users className="w-3.5 h-3.5" />Pelanggan
+          <span className={`ml-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-bold ${activeTab === "pelanggan" ? "bg-[#072C2C] text-white" : "bg-[#072C2C]/10 text-[#072C2C]/50"}`}>{customerList.length}</span>
         </button>
-        <button onClick={() => setActiveTab("riwayat")} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === "riwayat" ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/50 hover:text-[#072C2C]/80"}`}>
-          <History className="w-4 h-4" />Riwayat Hutang
-          {allHistory.length > 0 && <span className="bg-[#FF5F03] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{allHistory.length}</span>}
+        <button
+          onClick={() => setActiveTab("riwayat")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === "riwayat" ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/40"}`}
+        >
+          <History className="w-3.5 h-3.5" />Riwayat
+          {allHistory.length > 0 && <span className={`ml-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-bold ${activeTab === "riwayat" ? "bg-[#FF5F03] text-white" : "bg-[#FF5F03]/10 text-[#FF5F03]"}`}>{allHistory.length}</span>}
         </button>
       </div>
 
@@ -181,70 +204,105 @@ export default function CustomersPage() {
           </div>
           <div className="md:hidden space-y-3">
             {customerList.length === 0 ? (
-              <div className="text-center py-12 text-[#072C2C]/40 text-sm">Belum ada pelanggan</div>
+              <div className="text-center py-16">
+                <div className="w-16 h-16 bg-[#F0EEE8] rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <Users className="w-8 h-8 text-[#072C2C]/20" />
+                </div>
+                <p className="text-sm font-medium text-[#072C2C]/40">Belum ada pelanggan</p>
+                <button onClick={() => { setShowAddModal(true); setFormData({ name: "", phone: "", address: "" }); }} className="mt-3 text-xs font-bold text-[#FF5F03] flex items-center gap-1 mx-auto">
+                  <Plus className="w-3.5 h-3.5" />Tambah pelanggan pertama
+                </button>
+              </div>
             ) : customerList.map((item) => {
               const custPayments = payments.filter(p => p.customer_id === item.id && p.amount > 0);
+              const hasDebt = item.debt > 0;
               return (
-                <div key={item.id} className="bg-white border border-[#E5E3DC] rounded-2xl overflow-hidden shadow-sm">
+                <div key={item.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#EBEBEB]">
+                  {/* Top strip warna hutang */}
+                  {hasDebt && <div className="h-0.5 bg-gradient-to-r from-red-400 to-orange-400" />}
+                  {!hasDebt && <div className="h-0.5 bg-gradient-to-r from-green-400 to-emerald-400" />}
+
+                  {/* Card body */}
                   <div className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-[#072C2C]/10 flex items-center justify-center flex-shrink-0">
-                          <User className="w-5 h-5 text-[#072C2C]/50" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-[#072C2C] text-sm">{item.name}</p>
-                          <p className="text-xs text-[#9CA3AF] flex items-center gap-1 mt-0.5"><Phone className="w-3 h-3" />{item.phone}</p>
-                          {item.address && <p className="text-xs text-[#9CA3AF] flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />{item.address}</p>}
-                        </div>
+                    <div className="flex items-center gap-3">
+                      {/* Avatar initials */}
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${hasDebt ? "bg-red-50" : "bg-green-50"}`}>
+                        <span className={`text-base font-black ${hasDebt ? "text-red-400" : "text-green-500"}`}>
+                          {item.name.charAt(0).toUpperCase()}
+                        </span>
                       </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-[#072C2C] text-sm leading-tight">{item.name}</p>
+                        <p className="text-xs text-[#9CA3AF] mt-0.5">{item.phone}</p>
+                      </div>
+
+                      {/* Debt badge */}
                       <div className="text-right flex-shrink-0">
-                        {item.debt > 0 ? (
-                          <span className="inline-block px-2.5 py-1 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-100">{formatCurrency(item.debt)}</span>
+                        {hasDebt ? (
+                          <div>
+                            <p className="text-xs font-black text-red-600">{formatCurrency(item.debt)}</p>
+                            <p className="text-[10px] text-red-400 font-medium">hutang</p>
+                          </div>
                         ) : (
-                          <span className="inline-block px-2.5 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-lg border border-green-100">Lunas</span>
+                          <div className="flex items-center gap-1 bg-green-50 px-2.5 py-1 rounded-xl">
+                            <Check className="w-3 h-3 text-green-500" />
+                            <span className="text-[11px] font-bold text-green-600">Lunas</span>
+                          </div>
                         )}
-                        <p className="text-[10px] text-[#9CA3AF] mt-0.5">hutang</p>
                       </div>
                     </div>
-                  </div>
-                  {/* Riwayat bayar ringkas */}
-                  {custPayments.length > 0 && (
-                    <div className="mx-4 mb-3 bg-[#F8F7F4] rounded-xl p-3">
-                      <p className="text-[10px] font-semibold text-[#072C2C]/50 uppercase tracking-wider mb-2">Terakhir Bayar</p>
-                      {custPayments.slice(0, 2).map((p) => (
-                        <div key={p.id} className="flex items-center justify-between mb-1.5 last:mb-0">
-                          <div className="flex items-center gap-2">
-                            <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center"><Check className="w-3 h-3 text-green-600" /></div>
-                            <div>
-                              <p className="text-xs font-medium text-[#16A34A]">+{formatCurrency(p.amount)}</p>
-                              <p className="text-[10px] text-[#9CA3AF]">{p.note}</p>
-                            </div>
-                          </div>
-                          <p className="text-[10px] text-[#9CA3AF]">{formatDate(p.created_at)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {/* 4 tombol aksi */}
-                  <div className="border-t border-[#F0EEE8] grid grid-cols-4 divide-x divide-[#F0EEE8]">
-                    <button onClick={() => { setShowAddDebt(item); setAddDebtAmount(""); setAddDebtNote(""); }} className="py-2.5 text-[11px] font-bold text-orange-600 hover:bg-orange-50 flex items-center justify-center gap-1 cursor-pointer">
-                      <Plus className="w-3 h-3" />Hutang
-                    </button>
-                    {item.debt > 0 ? (
-                      <button onClick={() => { setShowPayDebt(item); setPayAmount(""); setPayNote(""); }} className="py-2.5 text-[11px] font-bold text-[#16A34A] hover:bg-green-50 flex items-center justify-center gap-1 cursor-pointer">
-                        <DollarSign className="w-3 h-3" />Bayar
-                      </button>
-                    ) : (
-                      <button onClick={() => setViewingCustomer(item)} className="py-2.5 text-[11px] font-medium text-[#072C2C]/50 hover:bg-[#F8F7F4] flex items-center justify-center gap-1 cursor-pointer">
-                        <Receipt className="w-3 h-3" />Detail
-                      </button>
+
+                    {/* Last payment mini strip */}
+                    {custPayments.length > 0 && (
+                      <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-[#F8FFF9] rounded-xl border border-green-100">
+                        <Check className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                        <p className="text-[11px] text-green-700 flex-1">
+                          <span className="font-bold">+{formatCurrency(custPayments[0].amount)}</span>
+                          <span className="text-green-500"> · {custPayments[0].note} · {formatDate(custPayments[0].created_at)}</span>
+                        </p>
+                      </div>
                     )}
-                    <button onClick={() => { setEditingCustomer(item); setFormData({ name: item.name, phone: item.phone, address: item.address || "" }); }} className="py-2.5 text-[11px] font-medium text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-1 cursor-pointer">
-                      <Edit className="w-3 h-3" />Edit
+                  </div>
+
+                  {/* Action bar */}
+                  <div className="border-t border-[#F5F5F5] grid grid-cols-4">
+                    <button
+                      onClick={() => { setShowAddDebt(item); setAddDebtAmount(""); setAddDebtNote(""); }}
+                      className="py-3 flex flex-col items-center gap-0.5 hover:bg-orange-50 active:bg-orange-100 transition-colors cursor-pointer group"
+                    >
+                      <div className="w-6 h-6 rounded-lg bg-orange-100 group-hover:bg-orange-200 flex items-center justify-center transition-colors">
+                        <Plus className="w-3.5 h-3.5 text-orange-600" />
+                      </div>
+                      <span className="text-[10px] font-semibold text-orange-600">Hutang</span>
                     </button>
-                    <button onClick={() => setDeleteTarget(item)} className="py-2.5 text-[11px] font-medium text-red-500 hover:bg-red-50 flex items-center justify-center gap-1 cursor-pointer">
-                      <Trash2 className="w-3 h-3" />Hapus
+                    <button
+                      onClick={() => hasDebt ? (setShowPayDebt(item), setPayAmount(""), setPayNote("")) : setViewingCustomer(item)}
+                      className={`py-3 flex flex-col items-center gap-0.5 transition-colors cursor-pointer group ${hasDebt ? "hover:bg-green-50 active:bg-green-100" : "hover:bg-[#F8F7F4]"}`}
+                    >
+                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${hasDebt ? "bg-green-100 group-hover:bg-green-200" : "bg-[#F0EEE8]"}`}>
+                        {hasDebt ? <DollarSign className="w-3.5 h-3.5 text-green-600" /> : <Receipt className="w-3.5 h-3.5 text-[#072C2C]/40" />}
+                      </div>
+                      <span className={`text-[10px] font-semibold ${hasDebt ? "text-green-600" : "text-[#072C2C]/40"}`}>{hasDebt ? "Bayar" : "Detail"}</span>
+                    </button>
+                    <button
+                      onClick={() => { setEditingCustomer(item); setFormData({ name: item.name, phone: item.phone, address: item.address || "" }); }}
+                      className="py-3 flex flex-col items-center gap-0.5 hover:bg-blue-50 active:bg-blue-100 transition-colors cursor-pointer group"
+                    >
+                      <div className="w-6 h-6 rounded-lg bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center transition-colors">
+                        <Edit className="w-3.5 h-3.5 text-blue-600" />
+                      </div>
+                      <span className="text-[10px] font-semibold text-blue-600">Edit</span>
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget(item)}
+                      className="py-3 flex flex-col items-center gap-0.5 hover:bg-red-50 active:bg-red-100 transition-colors cursor-pointer group"
+                    >
+                      <div className="w-6 h-6 rounded-lg bg-red-100 group-hover:bg-red-200 flex items-center justify-center transition-colors">
+                        <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                      </div>
+                      <span className="text-[10px] font-semibold text-red-500">Hapus</span>
                     </button>
                   </div>
                 </div>
@@ -313,23 +371,32 @@ export default function CustomersPage() {
                   const custName = p.customers?.name || customerList.find(c => c.id === p.customer_id)?.name || "—";
                   const isDebt = p.amount < 0;
                   return (
-                    <div key={p.id} className="bg-white border border-[#E5E3DC] rounded-2xl p-4 flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${isDebt ? "bg-red-50" : "bg-green-50"}`}>
-                        {isDebt ? <AlertCircle className="w-5 h-5 text-red-500" /> : <Check className="w-5 h-5 text-[#16A34A]" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className="font-bold text-[#072C2C] text-sm truncate">{custName}</p>
-                          <p className={`font-bold text-sm ml-2 ${isDebt ? "text-red-600" : "text-[#16A34A]"}`}>
-                            {isDebt ? `-${formatCurrency(Math.abs(p.amount))}` : `+${formatCurrency(p.amount)}`}
-                          </p>
+                    <div key={p.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#EBEBEB]">
+                      <div className={`h-0.5 ${isDebt ? "bg-gradient-to-r from-red-400 to-orange-300" : "bg-gradient-to-r from-green-400 to-emerald-400"}`} />
+                      <div className="p-3.5 flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDebt ? "bg-red-50" : "bg-green-50"}`}>
+                          {isDebt
+                            ? <AlertCircle className="w-5 h-5 text-red-400" />
+                            : <Check className="w-5 h-5 text-green-500" />}
                         </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className={`text-[10px] font-medium ${isDebt ? "text-red-500" : "text-green-600"}`}>{isDebt ? "Hutang baru" : "Pembayaran"}</span>
-                          {!isDebt && <span className="text-[10px] text-[#9CA3AF]">· {p.method === "cash" ? "Tunai" : "Transfer"}</span>}
-                          {p.note && <span className="text-[10px] text-[#9CA3AF]">· {p.note}</span>}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-bold text-[#072C2C] text-sm truncate">{custName}</p>
+                            <p className={`text-sm font-black flex-shrink-0 ${isDebt ? "text-red-500" : "text-green-600"}`}>
+                              {isDebt ? `-${formatCurrency(Math.abs(p.amount))}` : `+${formatCurrency(p.amount)}`}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${isDebt ? "bg-red-50 text-red-500" : "bg-green-50 text-green-600"}`}>
+                              {isDebt ? "Hutang" : "Bayar"}
+                            </span>
+                            {!isDebt && (
+                              <span className="text-[10px] text-[#9CA3AF]">{p.method === "cash" ? "💵 Tunai" : "🏦 Transfer"}</span>
+                            )}
+                            {p.note && <span className="text-[10px] text-[#9CA3AF] truncate">· {p.note}</span>}
+                          </div>
+                          <p className="text-[10px] text-[#BBBBBB] mt-0.5">{formatDateTime(p.created_at)}</p>
                         </div>
-                        <p className="text-[10px] text-[#9CA3AF] mt-0.5">{formatDateTime(p.created_at)}</p>
                       </div>
                     </div>
                   );
