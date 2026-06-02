@@ -30,6 +30,11 @@ export default function SettingsPage() {
   const [catSaving, setCatSaving] = useState(false);
   const [catToDelete, setCatToDelete] = useState<string | null>(null);
 
+  // WhatsApp notification state
+  const [waNumbers, setWaNumbers] = useState("");
+  const [waSaving, setWaSaving] = useState(false);
+  const [waTesting, setWaTesting] = useState(false);
+
   useEffect(() => {
     getStoreSettings().then((data) => {
       setForm({
@@ -38,6 +43,7 @@ export default function SettingsPage() {
         store_address: data.store_address || "",
         store_phone: data.store_phone || "",
       });
+      setWaNumbers(data.wa_numbers || "");
       setLoading(false);
     });
   }, []);
@@ -99,6 +105,32 @@ export default function SettingsPage() {
       setToast("");
       setSaved(false);
     }, 3000);
+  };
+
+  const handleSaveWa = async () => {
+    setWaSaving(true);
+    await updateStoreSetting("wa_numbers", waNumbers.trim());
+    setWaSaving(false);
+    setToast("Nomor WhatsApp berhasil disimpan ✓");
+    setTimeout(() => setToast(""), 3000);
+  };
+
+  const handleTestWa = async () => {
+    if (!waNumbers.trim()) { setToast("Isi nomor WhatsApp terlebih dahulu"); setTimeout(() => setToast(""), 3000); return; }
+    setWaTesting(true);
+    try {
+      const res = await fetch("/api/test-wa-notif", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        setToast(`Notifikasi test terkirim! (${data.notified} produk)`);
+      } else {
+        setToast(data.error || "Gagal mengirim notifikasi test");
+      }
+    } catch {
+      setToast("Gagal mengirim notifikasi test");
+    }
+    setWaTesting(false);
+    setTimeout(() => setToast(""), 4000);
   };
 
   if (loading)
@@ -369,6 +401,88 @@ export default function SettingsPage() {
                 <p className="text-[10px] text-[#9CA3AF] flex items-center gap-1 pt-1">
                   <Lock className="w-3 h-3" />
                   Hanya Owner / Admin yang dapat mengubah kategori
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Notifikasi WhatsApp */}
+          <div className="bg-white border border-[#E5E3DC] rounded-2xl overflow-hidden shadow-sm">
+            <div className="px-5 py-4 bg-gradient-to-r from-[#16A34A] to-[#15803d] flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21" />
+                  <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1Zm0 0a5 5 0 0 0 5 5m0 0h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1Z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">Notifikasi WhatsApp</h3>
+                <p className="text-[10px] text-white/60">Otomatis kirim peringatan H-7 kadaluarsa</p>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="flex items-start gap-2 px-3 py-2.5 bg-green-50 border border-green-100 rounded-xl">
+                <Info className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-green-700 leading-relaxed">
+                  Sistem akan otomatis mengirim notifikasi WhatsApp <strong>H-7</strong> sebelum produk kadaluarsa. Notif dikirim setiap hari pukul <strong>07.00 WIB</strong>.
+                </p>
+              </div>
+
+              {isOwner && (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold text-[#072C2C]/80">
+                      <Phone className="w-3.5 h-3.5 text-[#16A34A]" />
+                      Nomor WhatsApp Penerima
+                    </label>
+                    <textarea
+                      value={waNumbers}
+                      onChange={(e) => setWaNumbers(e.target.value)}
+                      placeholder="628123456789, 628987654321"
+                      rows={2}
+                      className="w-full px-4 py-2.5 border border-[#E5E3DC] rounded-xl text-sm text-[#072C2C] placeholder:text-[#072C2C]/25 focus:outline-none focus:ring-2 focus:ring-[#16A34A]/30 focus:border-[#16A34A] transition-all resize-none font-mono"
+                    />
+                    <p className="text-[10px] text-[#9CA3AF]">
+                      Pisahkan dengan koma untuk beberapa nomor. Format: 628xxxxxxxxxx
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSaveWa}
+                      disabled={waSaving}
+                      className="flex items-center gap-1.5 px-4 py-2.5 bg-[#16A34A] hover:bg-[#15803d] text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50"
+                    >
+                      {waSaving ? (
+                        <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4" />
+                      )}
+                      Simpan Nomor
+                    </button>
+                    <button
+                      onClick={handleTestWa}
+                      disabled={waTesting || !waNumbers.trim()}
+                      className="flex items-center gap-1.5 px-4 py-2.5 border-2 border-[#16A34A] text-[#16A34A] text-sm font-bold rounded-xl hover:bg-green-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {waTesting ? (
+                        <div className="w-4 h-4 border-2 border-[#16A34A]/40 border-t-[#16A34A] rounded-full animate-spin" />
+                      ) : (
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polygon points="5 3 19 12 5 21 5 3" />
+                        </svg>
+                      )}
+                      Test Kirim
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {!isOwner && (
+                <p className="text-[10px] text-[#9CA3AF] flex items-center gap-1">
+                  <Lock className="w-3 h-3" />
+                  Hanya Owner / Admin yang dapat mengubah pengaturan notifikasi
                 </p>
               )}
             </div>
