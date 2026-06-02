@@ -80,16 +80,17 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />
       )}
 
-      {/* Mobile bottom nav */}
+      {/* Mobile bottom nav — 5 items */}
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#D9D6C8] flex items-center justify-around shadow-[0_-2px_10px_rgba(0,0,0,0.06)]"
-        style={{ height: "72px", paddingBottom: "env(safe-area-inset-bottom, 0px)", paddingTop: "4px" }}
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#D9D6C8] flex items-center shadow-[0_-2px_10px_rgba(0,0,0,0.06)]"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
         {[
           { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
           { href: "/pos", icon: ShoppingCart, label: "Kasir" },
           { href: "/products", icon: Package, label: "Produk" },
           { href: "/transactions", icon: Receipt, label: "Transaksi" },
+          { href: "/reports", icon: BarChart3, label: "Laporan" },
         ].filter(item => {
           if (role === "cashier") return ["/pos", "/products", "/transactions"].includes(item.href);
           return true;
@@ -100,12 +101,12 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 flex-1 py-2 min-h-[56px] rounded-lg transition-all active:scale-90 active:opacity-70",
+                "flex flex-col items-center justify-center gap-0.5 flex-1 py-2.5 transition-all active:scale-90 active:opacity-70",
                 isActive ? "text-[#FF5F03]" : "text-[#9CA3AF]"
               )}
             >
-              <item.icon className="w-6 h-6" strokeWidth={isActive ? 2.2 : 1.7} />
-              <span className={cn("text-[11px]", isActive ? "font-bold" : "font-medium")}>{item.label}</span>
+              <item.icon className="w-[22px] h-[22px]" strokeWidth={isActive ? 2.2 : 1.7} />
+              <span className={cn("text-[10px]", isActive ? "font-bold" : "font-medium")}>{item.label}</span>
             </Link>
           );
         })}
@@ -114,7 +115,7 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
       {/* Desktop/Tablet sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-50 h-full bg-[#072C2C] flex-col transition-all duration-[220ms] ease-in-out lg:static lg:z-auto",
+          "fixed top-0 left-0 z-50 h-full bg-[#072C2C] flex flex-col overflow-y-auto transition-all duration-[220ms] ease-in-out lg:static lg:z-auto",
           collapsed ? "w-[56px]" : "w-56",
           "hidden md:flex",
           isOpen && "!flex !fixed !z-50"
@@ -197,10 +198,10 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
           })}
         </nav>
 
-        {/* Keluar + Tutup Sidebar — nempel langsung setelah menu */}
+        {/* Keluar + Tutup Sidebar */}
         <div className={cn(
-          "flex-shrink-0 border-t border-white/10 transition-all duration-[220ms]",
-          collapsed ? "p-1.5 space-y-0.5" : "px-2 py-1.5 space-y-0.5"
+          "flex-shrink-0 mt-auto border-t border-white/10 pt-2 transition-all duration-[220ms]",
+          collapsed ? "p-1.5" : "px-2 py-1.5 space-y-0.5"
         )}>
           <button
             onClick={handleLogout}
