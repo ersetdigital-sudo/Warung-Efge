@@ -182,9 +182,16 @@ export default function PurchasesPage() {
 
     // Update supplier debt — hanya jika kredit/hutang
     if (supplier && paymentMethod === "credit") {
+      // Fetch fresh debt value langsung dari DB untuk menghindari stale state
+      const { data: freshSupplier } = await supabase
+        .from("suppliers")
+        .select("debt")
+        .eq("id", supplierId)
+        .single();
+      const currentDebt = freshSupplier?.debt || 0;
       await supabase
         .from("suppliers")
-        .update({ debt: (supplier.debt || 0) + totalAmount })
+        .update({ debt: currentDebt + totalAmount })
         .eq("id", supplierId);
     }
 
@@ -228,11 +235,15 @@ export default function PurchasesPage() {
       .update({ paid_amount: newPaid, status: newStatus })
       .eq("id", showPayPurchase.id);
     if (error) { showToast("Gagal mencatat pembayaran", "error"); return; }
-    // Reduce supplier debt
+    // Reduce supplier debt — fetch fresh dari DB
     if (showPayPurchase.supplier_id) {
-      const supplier = suppliers.find(s => s.id === showPayPurchase.supplier_id);
-      if (supplier) {
-        const newDebt = Math.max(0, (supplier.debt || 0) - amount);
+      const { data: freshSupplier } = await supabase
+        .from("suppliers")
+        .select("debt")
+        .eq("id", showPayPurchase.supplier_id)
+        .single();
+      if (freshSupplier) {
+        const newDebt = Math.max(0, (freshSupplier.debt || 0) - amount);
         await supabase.from("suppliers").update({ debt: newDebt }).eq("id", showPayPurchase.supplier_id);
       }
     }
