@@ -67,6 +67,7 @@ export default function PurchasesPage() {
   // Form state
   const [supplierId, setSupplierId] = useState("");
   const [purchaseDate, setPurchaseDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit">("cash");
   const [items, setItems] = useState<ItemRow[]>([{ ...EMPTY_ITEM }]);
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
@@ -90,6 +91,7 @@ export default function PurchasesPage() {
   const openAdd = () => {
     setSupplierId("");
     setPurchaseDate(new Date().toISOString().slice(0, 10));
+    setPaymentMethod("cash");
     setItems([{ ...EMPTY_ITEM }]);
     setShowAddModal(true);
   };
@@ -97,6 +99,7 @@ export default function PurchasesPage() {
   const closeAdd = () => {
     setShowAddModal(false);
     setSupplierId("");
+    setPaymentMethod("cash");
     setItems([{ ...EMPTY_ITEM }]);
   };
 
@@ -148,8 +151,8 @@ export default function PurchasesPage() {
         supplier_id: supplierId,
         supplier_name: supplier?.name || "",
         total_amount: totalAmount,
-        paid_amount: 0,
-        status: "unpaid",
+        paid_amount: paymentMethod === "cash" ? totalAmount : 0,
+        status: paymentMethod === "cash" ? "paid" : "unpaid",
       })
       .select()
       .single();
@@ -173,8 +176,8 @@ export default function PurchasesPage() {
     }));
     await supabase.from("purchase_items").insert(itemRows);
 
-    // Update supplier debt
-    if (supplier) {
+    // Update supplier debt — hanya jika kredit/hutang
+    if (supplier && paymentMethod === "credit") {
       await supabase
         .from("suppliers")
         .update({ debt: (supplier.debt || 0) + totalAmount })
@@ -195,7 +198,7 @@ export default function PurchasesPage() {
     await loadData();
     setSaving(false);
     closeAdd();
-    showToast(`Pembelian ${purchaseNumber} berhasil dibuat`);
+    showToast(`Pembelian ${purchaseNumber} berhasil dibuat${paymentMethod === "credit" ? " — hutang dicatat" : " — lunas"}`);
   };
 
   const handleDelete = async () => {
@@ -375,6 +378,41 @@ export default function PurchasesPage() {
                     className="w-full px-3 py-2.5 border border-[#E5E3DC] rounded-xl text-sm text-[#072C2C] focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]"
                   />
                 </div>
+              </div>
+
+              {/* Metode Pembayaran */}
+              <div>
+                <label className="text-xs font-semibold text-[#072C2C]/60 mb-2 block">Metode Pembayaran *</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("cash")}
+                    className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-bold transition-all cursor-pointer ${
+                      paymentMethod === "cash"
+                        ? "border-[#16A34A] bg-green-50 text-[#16A34A]"
+                        : "border-[#E5E3DC] bg-white text-[#9CA3AF] hover:border-[#16A34A]/40"
+                    }`}
+                  >
+                    <span className="text-base">💵</span> Cash / Tunai
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("credit")}
+                    className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-bold transition-all cursor-pointer ${
+                      paymentMethod === "credit"
+                        ? "border-red-500 bg-red-50 text-red-600"
+                        : "border-[#E5E3DC] bg-white text-[#9CA3AF] hover:border-red-400/40"
+                    }`}
+                  >
+                    <span className="text-base">📋</span> Kredit / Hutang
+                  </button>
+                </div>
+                {paymentMethod === "credit" && (
+                  <p className="text-xs text-red-500 mt-1.5 font-medium">⚠ Akan dicatat sebagai hutang ke supplier</p>
+                )}
+                {paymentMethod === "cash" && (
+                  <p className="text-xs text-[#16A34A] mt-1.5 font-medium">✓ Lunas, tidak ada hutang</p>
+                )}
               </div>
 
               {/* Items */}
