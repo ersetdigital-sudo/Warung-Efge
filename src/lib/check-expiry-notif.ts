@@ -96,9 +96,12 @@ export async function checkAndSendExpiryNotif(isTest = false): Promise<{ notifie
     return { notified: 0, error: "FONNTE_API_KEY not configured" };
   }
 
+  let sendSuccess = false;
+  const errors: string[] = [];
+
   for (const phone of waNumbers) {
     try {
-      await fetch("https://api.fonnte.com/send", {
+      const res = await fetch("https://api.fonnte.com/send", {
         method: "POST",
         headers: {
           Authorization: apiKey,
@@ -110,9 +113,21 @@ export async function checkAndSendExpiryNotif(isTest = false): Promise<{ notifie
           countryCode: "62",
         }),
       });
-    } catch (err) {
-      console.error(`Failed to send WA to ${phone}:`, err);
+
+      const result = await res.json();
+      
+      if (result.status === true || result.status === "true") {
+        sendSuccess = true;
+      } else {
+        errors.push(`${phone}: ${result.reason || result.message || "gagal"}`);
+      }
+    } catch (err: any) {
+      errors.push(`${phone}: ${err.message || "network error"}`);
     }
+  }
+
+  if (!sendSuccess && errors.length > 0) {
+    return { notified: 0, error: `Gagal kirim WA: ${errors.join(", ")}` };
   }
 
   // Mark products as notified (only if not test)

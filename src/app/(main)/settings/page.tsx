@@ -121,16 +121,20 @@ export default function SettingsPage() {
     try {
       const res = await fetch("/api/test-wa-notif", { method: "POST" });
       const data = await res.json();
-      if (data.success) {
-        setToast(`Notifikasi test terkirim! (${data.notified} produk)`);
+      if (data.success && data.notified > 0 && !data.error) {
+        setToast(`✅ Notifikasi terkirim ke WA (${data.notified} produk)`);
+      } else if (data.error) {
+        setToast(`❌ ${data.error}`);
+      } else if (data.notified === 0) {
+        setToast("Tidak ada produk yang mendekati kadaluarsa");
       } else {
-        setToast(data.error || "Gagal mengirim notifikasi test");
+        setToast("❌ Gagal mengirim notifikasi");
       }
     } catch {
-      setToast("Gagal mengirim notifikasi test");
+      setToast("❌ Gagal menghubungi server");
     }
     setWaTesting(false);
-    setTimeout(() => setToast(""), 4000);
+    setTimeout(() => setToast(""), 5000);
   };
 
   if (loading)
