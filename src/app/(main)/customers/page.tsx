@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Phone, MapPin, DollarSign, Check, User, Receipt } from "lucide-react";
+import { Plus, Edit, Trash2, Phone, MapPin, DollarSign, Check, User, Receipt, History, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import Badge from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
 import DataTable from "@/components/ui/DataTable";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
@@ -12,6 +11,7 @@ import { getCustomers, updateCustomerDebt, addDebtPayment, getDebtPayments } fro
 import { supabase } from "@/lib/supabase";
 
 export default function CustomersPage() {
+  const [activeTab, setActiveTab] = useState<"pelanggan" | "riwayat">("pelanggan");
   const [customerList, setCustomerList] = useState<any[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any | null>(null);
@@ -160,91 +160,169 @@ export default function CustomersPage() {
         <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#16A34A]"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Lunas</p><p className="font-[Oswald] text-[24px] font-semibold text-[#16A34A] mt-1">{customerList.filter(c => c.debt === 0).length}</p></div>
       </div>
 
-      {/* Desktop Table */}
-      <div className="hidden md:block">
-        <Card><CardContent><DataTable columns={columns} data={customerList} searchPlaceholder="Cari pelanggan..." searchKeys={["name", "phone", "address"]} /></CardContent></Card>
+      {/* Tabs */}
+      <div className="flex gap-1 bg-[#F0EEE8] p-1 rounded-xl w-fit">
+        <button
+          onClick={() => setActiveTab("pelanggan")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === "pelanggan" ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/50 hover:text-[#072C2C]/80"}`}
+        >
+          <Users className="w-4 h-4" />Daftar Pelanggan
+        </button>
+        <button
+          onClick={() => setActiveTab("riwayat")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === "riwayat" ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/50 hover:text-[#072C2C]/80"}`}
+        >
+          <History className="w-4 h-4" />Riwayat Bayar Hutang
+          {payments.length > 0 && <span className="bg-[#16A34A] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{payments.length}</span>}
+        </button>
       </div>
 
-      {/* Mobile Cards */}
-      <div className="md:hidden space-y-3">
-        {customerList.length === 0 ? (
-          <div className="text-center py-12 text-[#072C2C]/40 text-sm">Belum ada pelanggan</div>
-        ) : customerList.map((item) => {
-          const custPayments = payments.filter(p => p.customer_id === item.id);
-          return (
-            <div key={item.id} className="bg-white border border-[#E5E3DC] rounded-2xl overflow-hidden shadow-sm">
-              <div className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#072C2C]/10 flex items-center justify-center flex-shrink-0">
-                      <User className="w-5 h-5 text-[#072C2C]/50" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-[#072C2C] text-sm">{item.name}</p>
-                      <p className="text-xs text-[#9CA3AF] flex items-center gap-1 mt-0.5"><Phone className="w-3 h-3" />{item.phone}</p>
-                      {item.address && <p className="text-xs text-[#9CA3AF] flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />{item.address}</p>}
-                    </div>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    {item.debt > 0 ? (
-                      <span className="inline-block px-2.5 py-1 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-100">{formatCurrency(item.debt)}</span>
-                    ) : (
-                      <span className="inline-block px-2.5 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-lg border border-green-100">Lunas</span>
-                    )}
-                    <p className="text-[10px] text-[#9CA3AF] mt-0.5">hutang</p>
-                  </div>
-                </div>
-              </div>
-              {/* Riwayat bayar ringkas */}
-              {custPayments.length > 0 && (
-                <div className="mx-4 mb-3 bg-[#F8F7F4] rounded-xl p-3">
-                  <p className="text-[10px] font-semibold text-[#072C2C]/50 uppercase tracking-wider mb-2">Riwayat Bayar Terakhir</p>
-                  <div className="space-y-1.5">
-                    {custPayments.slice(0, 2).map((p) => (
-                      <div key={p.id} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
-                            <Check className="w-3 h-3 text-green-600" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium text-[#16A34A]">+{formatCurrency(p.amount)}</p>
-                            <p className="text-[10px] text-[#9CA3AF]">{p.note}</p>
-                          </div>
+      {/* Tab: Daftar Pelanggan */}
+      {activeTab === "pelanggan" && (
+        <>
+          {/* Desktop Table */}
+          <div className="hidden md:block">
+            <Card><CardContent><DataTable columns={columns} data={customerList} searchPlaceholder="Cari pelanggan..." searchKeys={["name", "phone", "address"]} /></CardContent></Card>
+          </div>
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-3">
+            {customerList.length === 0 ? (
+              <div className="text-center py-12 text-[#072C2C]/40 text-sm">Belum ada pelanggan</div>
+            ) : customerList.map((item) => {
+              const custPayments = payments.filter(p => p.customer_id === item.id);
+              return (
+                <div key={item.id} className="bg-white border border-[#E5E3DC] rounded-2xl overflow-hidden shadow-sm">
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[#072C2C]/10 flex items-center justify-center flex-shrink-0">
+                          <User className="w-5 h-5 text-[#072C2C]/50" />
                         </div>
-                        <div className="text-right">
-                          <p className="text-[10px] text-[#9CA3AF]">{formatDate(p.created_at)}</p>
-                          <p className="text-[10px] text-[#9CA3AF]">{p.method === "cash" ? "Tunai" : "Transfer"}</p>
+                        <div>
+                          <p className="font-bold text-[#072C2C] text-sm">{item.name}</p>
+                          <p className="text-xs text-[#9CA3AF] flex items-center gap-1 mt-0.5"><Phone className="w-3 h-3" />{item.phone}</p>
+                          {item.address && <p className="text-xs text-[#9CA3AF] flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />{item.address}</p>}
                         </div>
                       </div>
-                    ))}
-                    {custPayments.length > 2 && (
-                      <button onClick={() => setViewingCustomer(item)} className="text-[10px] text-[#FF5F03] font-medium mt-1">+{custPayments.length - 2} riwayat lainnya →</button>
+                      <div className="text-right flex-shrink-0">
+                        {item.debt > 0 ? (
+                          <span className="inline-block px-2.5 py-1 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-100">{formatCurrency(item.debt)}</span>
+                        ) : (
+                          <span className="inline-block px-2.5 py-1 bg-green-50 text-green-600 text-xs font-bold rounded-lg border border-green-100">Lunas</span>
+                        )}
+                        <p className="text-[10px] text-[#9CA3AF] mt-0.5">hutang</p>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Riwayat ringkas */}
+                  {custPayments.length > 0 && (
+                    <div className="mx-4 mb-3 bg-[#F8F7F4] rounded-xl p-3">
+                      <p className="text-[10px] font-semibold text-[#072C2C]/50 uppercase tracking-wider mb-2">Riwayat Bayar ({custPayments.length}x)</p>
+                      {custPayments.slice(0, 2).map((p) => (
+                        <div key={p.id} className="flex items-center justify-between mb-1.5 last:mb-0">
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
+                              <Check className="w-3 h-3 text-green-600" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-medium text-[#16A34A]">+{formatCurrency(p.amount)}</p>
+                              <p className="text-[10px] text-[#9CA3AF]">{p.note}</p>
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-[#9CA3AF]">{formatDate(p.created_at)}</p>
+                        </div>
+                      ))}
+                      {custPayments.length > 2 && (
+                        <button onClick={() => { setViewingCustomer(item); }} className="text-[10px] text-[#FF5F03] font-medium mt-1">+{custPayments.length - 2} lainnya →</button>
+                      )}
+                    </div>
+                  )}
+                  {/* Actions */}
+                  <div className="border-t border-[#F0EEE8] grid grid-cols-3 divide-x divide-[#F0EEE8]">
+                    <button onClick={() => { setEditingCustomer(item); setFormData({ name: item.name, phone: item.phone, address: item.address || "" }); }} className="py-2.5 text-xs font-medium text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-1.5 cursor-pointer">
+                      <Edit className="w-3.5 h-3.5" />Edit
+                    </button>
+                    <button onClick={() => setViewingCustomer(item)} className="py-2.5 text-xs font-medium text-[#072C2C]/70 hover:bg-[#F8F7F4] flex items-center justify-center gap-1.5 cursor-pointer">
+                      <Receipt className="w-3.5 h-3.5" />Detail
+                    </button>
+                    {item.debt > 0 ? (
+                      <button onClick={() => { setShowPayDebt(item); setPayAmount(""); setPayNote(""); }} className="py-2.5 text-xs font-bold text-[#16A34A] hover:bg-green-50 flex items-center justify-center gap-1.5 cursor-pointer">
+                        <DollarSign className="w-3.5 h-3.5" />Bayar
+                      </button>
+                    ) : (
+                      <button onClick={() => setDeleteTarget(item)} className="py-2.5 text-xs font-medium text-red-500 hover:bg-red-50 flex items-center justify-center gap-1.5 cursor-pointer">
+                        <Trash2 className="w-3.5 h-3.5" />Hapus
+                      </button>
                     )}
                   </div>
                 </div>
-              )}
-              {/* Actions */}
-              <div className="border-t border-[#F0EEE8] grid grid-cols-3 divide-x divide-[#F0EEE8]">
-                <button onClick={() => { setEditingCustomer(item); setFormData({ name: item.name, phone: item.phone, address: item.address || "" }); }} className="py-2.5 text-xs font-medium text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-1.5 cursor-pointer">
-                  <Edit className="w-3.5 h-3.5" />Edit
-                </button>
-                <button onClick={() => setViewingCustomer(item)} className="py-2.5 text-xs font-medium text-[#072C2C]/70 hover:bg-[#F8F7F4] flex items-center justify-center gap-1.5 cursor-pointer">
-                  <Receipt className="w-3.5 h-3.5" />Detail
-                </button>
-                {item.debt > 0 ? (
-                  <button onClick={() => { setShowPayDebt(item); setPayAmount(""); setPayNote(""); }} className="py-2.5 text-xs font-bold text-[#16A34A] hover:bg-green-50 flex items-center justify-center gap-1.5 cursor-pointer">
-                    <DollarSign className="w-3.5 h-3.5" />Bayar
-                  </button>
-                ) : (
-                  <button onClick={() => setDeleteTarget(item)} className="py-2.5 text-xs font-medium text-red-500 hover:bg-red-50 flex items-center justify-center gap-1.5 cursor-pointer">
-                    <Trash2 className="w-3.5 h-3.5" />Hapus
-                  </button>
-                )}
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Tab: Riwayat Bayar Hutang */}
+      {activeTab === "riwayat" && (
+        <div className="space-y-3">
+          {payments.length === 0 ? (
+            <div className="bg-white border border-[#E5E3DC] rounded-2xl p-10 text-center">
+              <div className="w-14 h-14 bg-[#F0EEE8] rounded-full flex items-center justify-center mx-auto mb-3">
+                <History className="w-7 h-7 text-[#072C2C]/30" />
               </div>
+              <p className="text-sm font-medium text-[#072C2C]/50">Belum ada riwayat pembayaran hutang</p>
+              <p className="text-xs text-[#9CA3AF] mt-1">Riwayat akan muncul setelah pelanggan melakukan pembayaran hutang</p>
             </div>
-          );
-        })}
-      </div>
+          ) : (
+            <>
+              {/* Desktop table */}
+              <div className="hidden md:block bg-white border border-[#E5E3DC] rounded-2xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-[#F8F7F4] border-b border-[#E5E3DC]">
+                    <tr>
+                      {["Pelanggan", "Jumlah", "Metode", "Catatan", "Tanggal"].map(h => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-[#072C2C]/60 uppercase tracking-wider">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F0EEE8]">
+                    {payments.map(p => (
+                      <tr key={p.id} className="hover:bg-[#FAFAF8]">
+                        <td className="px-4 py-3 font-medium text-[#072C2C]">{p.customers?.name || "—"}</td>
+                        <td className="px-4 py-3 font-bold text-[#16A34A]">+{formatCurrency(p.amount)}</td>
+                        <td className="px-4 py-3 text-[#072C2C]/70">{p.method === "cash" ? "💵 Tunai" : "🏦 Transfer"}</td>
+                        <td className="px-4 py-3 text-[#9CA3AF]">{p.note || "—"}</td>
+                        <td className="px-4 py-3 text-[#9CA3AF] text-xs">{formatDateTime(p.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {/* Mobile cards riwayat */}
+              <div className="md:hidden space-y-2.5">
+                {payments.map(p => (
+                  <div key={p.id} className="bg-white border border-[#E5E3DC] rounded-2xl p-4 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#F0FDF4] flex items-center justify-center flex-shrink-0">
+                      <Check className="w-5 h-5 text-[#16A34A]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="font-bold text-[#072C2C] text-sm truncate">{p.customers?.name || "—"}</p>
+                        <p className="font-bold text-[#16A34A] text-sm ml-2">+{formatCurrency(p.amount)}</p>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] text-[#9CA3AF]">{p.method === "cash" ? "💵 Tunai" : "🏦 Transfer"}</span>
+                        {p.note && <span className="text-[10px] text-[#9CA3AF]">· {p.note}</span>}
+                      </div>
+                      <p className="text-[10px] text-[#9CA3AF] mt-0.5">{formatDateTime(p.created_at)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Add/Edit Modal */}
       <Modal

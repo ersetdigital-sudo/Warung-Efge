@@ -58,9 +58,10 @@ export async function addDebtPayment(payment: { customer_id: string; amount: num
 }
 
 export async function getDebtPayments(customerId?: string) {
-  let query = supabase.from("debt_payments").select("*").order("created_at", { ascending: false });
+  let query = supabase.from("debt_payments").select("*, customers(name)").order("created_at", { ascending: false });
   if (customerId) query = query.eq("customer_id", customerId);
-  const { data } = await query;
+  const { data, error } = await query;
+  if (error) { console.error("getDebtPayments error:", error); return []; }
   return data || [];
 }
 
