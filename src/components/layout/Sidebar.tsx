@@ -20,6 +20,7 @@ import {
   ChevronRight,
   LogOut,
   Receipt,
+  Settings,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -39,6 +40,7 @@ const menuItems = [
   { href: "/customers", icon: Users, label: "Pelanggan" },
   { href: "/reports", icon: BarChart3, label: "Laporan" },
   { href: "/users", icon: UserCircle, label: "Pengguna" },
+  { href: "/settings", icon: Settings, label: "Pengaturan" },
 ];
 
 function NavTooltip({ label, show }: { label: string; show: boolean }) {

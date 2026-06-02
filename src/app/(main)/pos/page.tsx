@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, QrCode, Banknote, ScanBarcode, AlertTriangle, RotateCcw, X, Check, Smartphone } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { categories } from "@/data/mock-data";
-import { getProductsWithUnits, addTransaction, addStockMovement } from "@/lib/db";
+import { getProductsWithUnits, addTransaction, addStockMovement, getStoreSettings } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { generateReceiptPDF } from "@/lib/generate-receipt-pdf";
@@ -35,6 +35,7 @@ const getEmoji = (cat: string) => categoryEmoji[cat] || "📦";
 
 export default function POSPage() {
   const { userName } = useAuth();
+  const [storeSettings, setStoreSettings] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -57,6 +58,7 @@ export default function POSPage() {
   useEffect(() => {
     const load = () => { getProductsWithUnits().then(setProducts); };
     load();
+    getStoreSettings().then(setStoreSettings);
     window.addEventListener("focus", load);
     return () => window.removeEventListener("focus", load);
   }, []);
@@ -259,7 +261,7 @@ export default function POSPage() {
         paid: Number(amountPaid) || 0, change: change > 0 ? change : 0, trxId,
       };
       generateReceiptPDF({
-        storeName: "WARUNG EFGE",
+        storeName: storeSettings.store_name || "WARUNG EFGE",
         cashier: userName || "Kasir",
         trxId: data.trxId || trxId,
         date: dateStr,
