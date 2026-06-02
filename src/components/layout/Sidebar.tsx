@@ -22,6 +22,7 @@ import {
   Receipt,
   Settings,
   BookOpen,
+  ClipboardCheck,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -35,6 +36,7 @@ const menuItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/pos", icon: ShoppingCart, label: "Kasir (POS)" },
   { href: "/products", icon: Package, label: "Produk & Stok" },
+  { href: "/stock", icon: ClipboardCheck, label: "Stock Opname" },
   { href: "/transactions", icon: Receipt, label: "Transaksi" },
   { href: "/purchases", icon: ClipboardList, label: "Pembelian" },
   { href: "/suppliers", icon: Truck, label: "Supplier" },
