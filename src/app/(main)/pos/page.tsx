@@ -243,12 +243,17 @@ export default function POSPage() {
     if (paymentMethod === "bon" && bonCustomerId) {
       const cust = customers.find(c => c.id === bonCustomerId);
       const currentDebt = cust?.debt || 0;
+      // Buat ringkasan item: "Beras 5kg x2, Gula 1kg x1, ..."
+      const itemSummary = cart
+        .map(i => `${i.name} ${i.unit} x${i.quantity}`)
+        .join(", ");
+      const noteText = `[${trxId}] ${itemSummary}`;
       await supabase.from("customers").update({ debt: currentDebt + total }).eq("id", bonCustomerId);
       await supabase.from("debt_payments").insert({
         customer_id: bonCustomerId,
         amount: -total,
         method: "hutang",
-        note: `Bon transaksi ${trxId}`,
+        note: noteText,
       });
     }
     const stockUpdates: Record<string, number> = {};
