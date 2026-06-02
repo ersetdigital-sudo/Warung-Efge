@@ -88,6 +88,7 @@ export default function ReportsPage() {
   const stokAman = products.filter(p => p.stock > p.min_stock).length;
   const stokMenipis = products.filter(p => p.stock > 0 && p.stock <= p.min_stock).length;
   const stokHabis = products.filter(p => p.stock <= 0).length;
+  const expiredSoon = products.filter(p => p.expiry_date && Math.ceil((new Date(p.expiry_date).getTime() - Date.now()) / 86400000) <= 30).length;
 
   const tabs: { id: TabType; label: string }[] = [
     { id: "penjualan", label: "Penjualan" },
@@ -359,8 +360,8 @@ export default function ReportsPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
             <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#072C2C]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Total SKU</p><Boxes className="w-4 h-4 text-[#072C2C]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#072C2C]">{products.length}</p></div>
             <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#16A34A]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Stok Aman</p><Package className="w-4 h-4 text-[#16A34A]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#16A34A]">{stokAman}</p></div>
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#D97706]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Stok Menipis</p><AlertTriangle className="w-4 h-4 text-[#D97706]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#D97706]">{stokMenipis}</p></div>
-            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#DC2626]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Stok Habis</p><AlertTriangle className="w-4 h-4 text-[#DC2626]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#DC2626]">{stokHabis}</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#D97706]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Stok Menipis / Habis</p><AlertTriangle className="w-4 h-4 text-[#D97706]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#D97706]">{stokMenipis + stokHabis}</p><p className="text-[9px] text-[#9CA3AF]">{stokMenipis} menipis · {stokHabis} habis</p></div>
+            <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#8B5CF6]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Mau Kadaluarsa</p><AlertTriangle className="w-4 h-4 text-[#8B5CF6]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#8B5CF6]">{expiredSoon}</p><p className="text-[9px] text-[#9CA3AF]">dalam 30 hari</p></div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-3">
@@ -411,6 +412,58 @@ export default function ReportsPage() {
               </div>
             </Card>
           </div>
+
+          {/* Tabel Kadaluarsa di tab Stok */}
+          {(() => {
+            const now = Date.now();
+            const expiring = products
+              .filter(p => p.expiry_date)
+              .map(p => ({ ...p, daysLeft: Math.ceil((new Date(p.expiry_date).getTime() - now) / 86400000) }))
+              .filter(p => p.daysLeft <= 60)
+              .sort((a, b) => a.daysLeft - b.daysLeft);
+            if (expiring.length === 0) return null;
+            return (
+              <Card>
+                <div className="px-4 py-3 border-b border-[#D9D6C8] flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-[#D97706]" />
+                  <div>
+                    <p className="font-[Oswald] text-xs font-semibold text-[#072C2C] uppercase tracking-wider">Produk Mendekati Kadaluarsa</p>
+                    <p className="text-[9px] text-[#9CA3AF]">Dalam 60 hari ke depan</p>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[12px]">
+                    <thead><tr className="border-b border-[#D9D6C8]">
+                      <th className="text-left px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Produk</th>
+                      <th className="text-left px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Kategori</th>
+                      <th className="text-right px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Stok</th>
+                      <th className="text-left px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Tgl Exp</th>
+                      <th className="text-right px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Sisa Hari</th>
+                      <th className="text-center px-3 py-2 bg-[#EDEADE] text-[10px] font-semibold text-[#9CA3AF] uppercase">Status</th>
+                    </tr></thead>
+                    <tbody>
+                      {expiring.map(p => (
+                        <tr key={p.id} className={`border-b border-[#D9D6C8] hover:bg-[#FAFAF8] ${p.daysLeft <= 0 ? "bg-[#FEF2F2]/40" : p.daysLeft <= 7 ? "bg-[#FFFBEB]/40" : ""}`}>
+                          <td className="px-3 py-2 font-medium">{p.name}</td>
+                          <td className="px-3 py-2 text-[#9CA3AF]">{p.category}</td>
+                          <td className="px-3 py-2 text-right font-mono font-bold">{p.stock} {p.unit}</td>
+                          <td className="px-3 py-2 text-[#4B5563]">{formatDate(p.expiry_date)}</td>
+                          <td className={`px-3 py-2 text-right font-mono font-bold ${p.daysLeft <= 0 ? "text-[#DC2626]" : p.daysLeft <= 7 ? "text-amber-600" : "text-[#D97706]"}`}>
+                            {p.daysLeft <= 0 ? "EXPIRED" : `${p.daysLeft}h`}
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            <Badge variant={p.daysLeft <= 0 ? "danger" : p.daysLeft <= 7 ? "warning" : "info"}>
+                              {p.daysLeft <= 0 ? "Expired" : p.daysLeft <= 7 ? "Segera" : "Mendekati"}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            );
+          })()}
         </div>
       )}
 
