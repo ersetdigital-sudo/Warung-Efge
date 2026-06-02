@@ -110,6 +110,13 @@ export default function SuppliersPage() {
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
+    // Hapus data terkait dulu (foreign key)
+    await supabase.from("supplier_payments").delete().eq("supplier_id", deleteTarget.id);
+    await supabase.from("purchase_items").delete().in(
+      "purchase_id",
+      (await supabase.from("purchases").select("id").eq("supplier_id", deleteTarget.id)).data?.map((p: any) => p.id) || []
+    );
+    await supabase.from("purchases").delete().eq("supplier_id", deleteTarget.id);
     const { error } = await supabase.from("suppliers").delete().eq("id", deleteTarget.id);
     if (error) { showToast("Gagal menghapus supplier", "error"); return; }
     await loadData();
