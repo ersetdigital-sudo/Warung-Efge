@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, Bell, Search, Package, Truck, Users, X } from "lucide-react";
+import { Menu, Bell, Search, Package, Truck, Users, X, CalendarX } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
@@ -12,7 +12,7 @@ interface HeaderProps {
 
 type NotifItem = {
   id: string;
-  type: "stock" | "supplier_debt" | "customer_debt";
+  type: "stock" | "supplier_debt" | "customer_debt" | "expiry";
   title: string;
   subtitle: string;
   amount?: number;
@@ -34,7 +34,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     // 1. Stok hampir habis — ambil semua lalu filter di client
     const { data: products } = await supabase
       .from("products")
-      .select("id, name, stock, min_stock, unit")
+      .select("id, name, stock, min_stock, unit, expiry_date")
       .order("stock", { ascending: true })
       .limit(50);
 
@@ -48,6 +48,25 @@ export default function Header({ onMenuClick }: HeaderProps) {
           type: "stock",
           title: p.name,
           subtitle: `Stok tersisa ${p.stock} ${p.unit ?? ""} — batas min ${p.min_stock}`,
+        });
+      }
+
+      // Produk hampir / sudah kadaluarsa
+      const now = Date.now();
+      const expiring = products
+        .filter(p => p.expiry_date)
+        .map(p => ({ ...p, daysLeft: Math.ceil((new Date(p.expiry_date).getTime() - now) / 86400000) }))
+        .filter(p => p.daysLeft <= 30)
+        .sort((a, b) => a.daysLeft - b.daysLeft)
+        .slice(0, 5);
+      for (const p of expiring) {
+        items.push({
+          id: `expiry-${p.id}`,
+          type: "expiry" as NotifItem["type"],
+          title: p.name,
+          subtitle: p.daysLeft < 0
+            ? `Sudah kadaluarsa ${Math.abs(p.daysLeft)} hari lalu`
+            : `Kadaluarsa dalam ${p.daysLeft} hari`,
         });
       }
     }
@@ -120,18 +139,21 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const iconByType = (type: NotifItem["type"]) => {
     if (type === "stock") return <Package className="w-4 h-4 text-amber-500" />;
     if (type === "supplier_debt") return <Truck className="w-4 h-4 text-red-500" />;
+    if (type === "expiry") return <CalendarX className="w-4 h-4 text-purple-500" />;
     return <Users className="w-4 h-4 text-blue-500" />;
   };
 
   const bgByType = (type: NotifItem["type"]) => {
     if (type === "stock") return "bg-amber-50";
     if (type === "supplier_debt") return "bg-red-50";
+    if (type === "expiry") return "bg-purple-50";
     return "bg-blue-50";
   };
 
   const stockCount = notifs.filter(n => n.type === "stock").length;
   const supplierCount = notifs.filter(n => n.type === "supplier_debt").length;
   const customerCount = notifs.filter(n => n.type === "customer_debt").length;
+  const expiryCount = notifs.filter(n => n.type === "expiry").length;
 
   return (
     <header className="sticky top-0 z-30 h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 shadow-sm">
@@ -188,6 +210,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   {stockCount > 0 && (
                     <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 bg-amber-100 text-amber-700 rounded-full">
                       <Package className="w-3 h-3" />{stockCount} stok tipis
+                    </span>
+                  )}
+                  {expiryCount > 0 && (
+                    <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 bg-purple-100 text-purple-700 rounded-full">
+                      <CalendarX className="w-3 h-3" />{expiryCount} mau exp
                     </span>
                   )}
                   {supplierCount > 0 && (

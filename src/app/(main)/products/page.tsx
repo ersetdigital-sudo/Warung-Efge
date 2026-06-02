@@ -184,7 +184,15 @@ export default function ProductsPage() {
                           {isOpen ? <ChevronDown className="w-3 h-3 text-[#072C2C]" /> : <ChevronRight className="w-3 h-3 text-[#9CA3AF]" />}
                         </button>}
                       </td>
-                      <td className="px-2.5 py-2"><div className="font-medium text-[#111827]">{p.name}</div></td>
+                      <td className="px-2.5 py-2">
+                        <div className="font-medium text-[#111827]">{p.name}</div>
+                        {p.expiry_date && (() => {
+                          const days = Math.ceil((new Date(p.expiry_date).getTime() - Date.now()) / 86400000);
+                          if (days < 0) return <div className="text-[9px] font-bold text-[#DC2626] mt-0.5">⚠ Exp: kadaluarsa {Math.abs(days)}h lalu</div>;
+                          if (days <= 30) return <div className="text-[9px] font-bold text-amber-500 mt-0.5">⚠ Exp: {days} hari lagi</div>;
+                          return <div className="text-[9px] text-[#9CA3AF] mt-0.5">Exp: {new Date(p.expiry_date).toLocaleDateString("id-ID", { day:"2-digit", month:"short", year:"2-digit" })}</div>;
+                        })()}
+                      </td>
                       <td className="px-2.5 py-2 font-mono text-[11px] text-[#9CA3AF]">{p.sku || "—"}</td>
                       <td className="px-2.5 py-2"><Badge variant="info">{p.category || "—"}</Badge></td>
                       <td className="px-2.5 py-2"><div className="flex gap-1 flex-wrap">{units.map((u: any, i: number) => <span key={u.id} className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${levelColors[i] || levelColors[0]}`}>{u.name}</span>)}</div></td>
@@ -272,6 +280,12 @@ export default function ProductsPage() {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-[#111827] text-sm">{p.name}</p>
                     <p className="text-[10px] text-[#9CA3AF] font-mono">{p.sku || "—"} · {p.category}</p>
+                    {p.expiry_date && (() => {
+                      const days = Math.ceil((new Date(p.expiry_date).getTime() - Date.now()) / 86400000);
+                      if (days < 0) return <p className="text-[9px] font-bold text-[#DC2626] mt-0.5">⚠ Kadaluarsa {Math.abs(days)} hari lalu</p>;
+                      if (days <= 30) return <p className="text-[9px] font-bold text-amber-500 mt-0.5">⚠ Exp {days} hari lagi</p>;
+                      return <p className="text-[9px] text-[#9CA3AF] mt-0.5">Exp: {new Date(p.expiry_date).toLocaleDateString("id-ID", { day:"2-digit", month:"short", year:"2-digit" })}</p>;
+                    })()}
                   </div>
                   <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${stockStatus === "habis" ? "bg-[#DC2626] text-white" : stockStatus === "menipis" ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#ECFDF5] text-[#16A34A]"}`}>
                     {stockStatus === "habis" ? "HABIS" : stockStatus === "menipis" ? "MENIPIS" : "AMAN"}
