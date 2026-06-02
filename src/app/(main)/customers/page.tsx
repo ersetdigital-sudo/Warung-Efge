@@ -215,38 +215,49 @@ export default function CustomersPage() {
               </div>
             ) : customerList.map((item) => {
               const custPayments = payments.filter(p => p.customer_id === item.id && p.amount > 0);
+              const custDebts = payments.filter(p => p.customer_id === item.id && p.amount < 0);
               const hasDebt = item.debt > 0;
+              const totalPaid = custPayments.reduce((s, p) => s + p.amount, 0);
+              const totalBorrowed = Math.abs(custDebts.reduce((s, p) => s + p.amount, 0));
+              const lastPay = custPayments[0];
+              // Progress bayar: totalPaid / (totalPaid + debt)
+              const progressPct = totalPaid + item.debt > 0
+                ? Math.round((totalPaid / (totalPaid + item.debt)) * 100)
+                : 100;
+
               return (
                 <div key={item.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#EBEBEB]">
-                  {/* Top strip warna hutang */}
-                  {hasDebt && <div className="h-0.5 bg-gradient-to-r from-red-400 to-orange-400" />}
-                  {!hasDebt && <div className="h-0.5 bg-gradient-to-r from-green-400 to-emerald-400" />}
+                  {/* Color strip */}
+                  <div className={`h-1 ${hasDebt ? "bg-gradient-to-r from-red-400 via-orange-400 to-amber-300" : "bg-gradient-to-r from-green-400 to-emerald-400"}`} />
 
-                  {/* Card body */}
-                  <div className="p-4">
-                    <div className="flex items-center gap-3">
-                      {/* Avatar initials */}
-                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${hasDebt ? "bg-red-50" : "bg-green-50"}`}>
-                        <span className={`text-base font-black ${hasDebt ? "text-red-400" : "text-green-500"}`}>
+                  {/* Main card body */}
+                  <div className="p-4 pb-3">
+                    <div className="flex items-start gap-3">
+                      {/* Avatar */}
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm ${hasDebt ? "bg-gradient-to-br from-red-100 to-orange-50" : "bg-gradient-to-br from-green-100 to-emerald-50"}`}>
+                        <span className={`text-lg font-black ${hasDebt ? "text-red-500" : "text-green-600"}`}>
                           {item.name.charAt(0).toUpperCase()}
                         </span>
                       </div>
 
-                      {/* Info */}
+                      {/* Info kiri */}
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-[#072C2C] text-sm leading-tight">{item.name}</p>
-                        <p className="text-xs text-[#9CA3AF] mt-0.5">{item.phone}</p>
+                        <p className="font-bold text-[#072C2C] text-[15px] leading-tight">{item.name}</p>
+                        <p className="text-xs text-[#9CA3AF] mt-0.5">📞 {item.phone}</p>
+                        {item.address && (
+                          <p className="text-[11px] text-[#BBBBBB] mt-0.5 truncate">📍 {item.address}</p>
+                        )}
                       </div>
 
-                      {/* Debt badge */}
+                      {/* Debt info kanan */}
                       <div className="text-right flex-shrink-0">
                         {hasDebt ? (
-                          <div>
-                            <p className="text-xs font-black text-red-600">{formatCurrency(item.debt)}</p>
-                            <p className="text-[10px] text-red-400 font-medium">hutang</p>
-                          </div>
+                          <>
+                            <p className="text-sm font-black text-red-600">{formatCurrency(item.debt)}</p>
+                            <p className="text-[10px] text-red-400 font-semibold">sisa hutang</p>
+                          </>
                         ) : (
-                          <div className="flex items-center gap-1 bg-green-50 px-2.5 py-1 rounded-xl">
+                          <div className="flex items-center gap-1 bg-green-50 border border-green-100 px-2 py-1 rounded-xl">
                             <Check className="w-3 h-3 text-green-500" />
                             <span className="text-[11px] font-bold text-green-600">Lunas</span>
                           </div>
@@ -254,14 +265,50 @@ export default function CustomersPage() {
                       </div>
                     </div>
 
-                    {/* Last payment mini strip */}
-                    {custPayments.length > 0 && (
-                      <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-[#F8FFF9] rounded-xl border border-green-100">
-                        <Check className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-                        <p className="text-[11px] text-green-700 flex-1">
-                          <span className="font-bold">+{formatCurrency(custPayments[0].amount)}</span>
-                          <span className="text-green-500"> · {custPayments[0].note} · {formatDate(custPayments[0].created_at)}</span>
-                        </p>
+                    {/* Stats row */}
+                    <div className="grid grid-cols-3 gap-2 mt-3">
+                      <div className="bg-[#F8F7F4] rounded-xl p-2 text-center">
+                        <p className="text-[11px] font-black text-[#072C2C]">{custPayments.length}x</p>
+                        <p className="text-[9px] text-[#9CA3AF] font-medium">Bayar</p>
+                      </div>
+                      <div className="bg-[#F8F7F4] rounded-xl p-2 text-center">
+                        <p className="text-[11px] font-black text-green-600 truncate">{totalPaid > 0 ? formatCurrency(totalPaid) : "—"}</p>
+                        <p className="text-[9px] text-[#9CA3AF] font-medium">Sudah Bayar</p>
+                      </div>
+                      <div className="bg-[#F8F7F4] rounded-xl p-2 text-center">
+                        <p className="text-[11px] font-black text-[#072C2C]">{custDebts.length}x</p>
+                        <p className="text-[9px] text-[#9CA3AF] font-medium">Bon</p>
+                      </div>
+                    </div>
+
+                    {/* Progress bar (hanya kalau ada hutang) */}
+                    {hasDebt && (totalPaid > 0 || totalBorrowed > 0) && (
+                      <div className="mt-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-[10px] text-[#9CA3AF]">Progress pelunasan</p>
+                          <p className="text-[10px] font-bold text-[#072C2C]">{progressPct}%</p>
+                        </div>
+                        <div className="w-full h-1.5 bg-[#F0EEE8] rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full transition-all"
+                            style={{ width: `${progressPct}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Last payment info */}
+                    {lastPay && (
+                      <div className="mt-3 flex items-center gap-2 px-2.5 py-2 bg-green-50 rounded-xl border border-green-100">
+                        <div className="w-5 h-5 rounded-full bg-green-200 flex items-center justify-center flex-shrink-0">
+                          <Check className="w-3 h-3 text-green-700" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] text-green-800 font-bold truncate">
+                            Terakhir bayar +{formatCurrency(lastPay.amount)}
+                          </p>
+                          <p className="text-[10px] text-green-600 truncate">{lastPay.note} · {formatDate(lastPay.created_at)}</p>
+                        </div>
                       </div>
                     )}
                   </div>
