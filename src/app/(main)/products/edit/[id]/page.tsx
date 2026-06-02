@@ -162,34 +162,32 @@ export default function EditProductPage() {
               <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Harga Beli</label><input value={buyPrice} onChange={(e) => setBuyPrice(e.target.value)} type="number" className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
               <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Harga Jual</label><input value={sellPrice} onChange={(e) => setSellPrice(e.target.value)} type="number" className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
           </div>
-          {/* Expiry date */}
-          <div className="mt-4">
-            <label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">
-              Tanggal Kadaluarsa <span className="text-[#072C2C]/30">(opsional)</span>
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="date"
-                value={expiryDate}
-                onChange={(e) => setExpiryDate(e.target.value)}
-                className="w-full lg:w-60 px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20"
-              />
-              {expiryDate && (
-                <button type="button" onClick={() => setExpiryDate("")} className="text-xs text-[#9CA3AF] hover:text-[#DC2626] cursor-pointer">
-                  Hapus
-                </button>
-              )}
-            </div>
-            {expiryDate && (() => {
-              const days = Math.ceil((new Date(expiryDate).getTime() - Date.now()) / 86400000);
-              if (days < 0) return <p className="text-xs font-bold text-[#DC2626] mt-1.5">⚠ Sudah kadaluarsa {Math.abs(days)} hari yang lalu</p>;
-              if (days <= 30) return <p className="text-xs font-bold text-amber-500 mt-1.5">⚠ Kadaluarsa dalam {days} hari</p>;
-              return <p className="text-xs text-[#16A34A] font-medium mt-1.5">✓ Masih {days} hari lagi</p>;
-            })()}
-          </div>
           {margin !== null && <p className={`mt-3 text-sm font-semibold ${margin >= 20 ? "text-[#16A34A]" : margin >= 10 ? "text-[#D97706]" : "text-[#DC2626]"}`}>Margin {margin}%</p>}
         </div>
         )}
+        {/* Kadaluarsa — selalu tampil */}
+        <div className="bg-white border border-[#072C2C]/8 rounded-2xl p-5 lg:p-6 shadow-sm">
+          <h3 className="text-sm font-bold text-[#072C2C] mb-3">Tanggal Kadaluarsa</h3>
+          <div className="flex items-center gap-3">
+            <input
+              type="date"
+              value={expiryDate}
+              onChange={(e) => setExpiryDate(e.target.value)}
+              className="w-full lg:w-60 px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20 focus:border-[#FF5F03]"
+            />
+            {expiryDate && (
+              <button type="button" onClick={() => setExpiryDate("")} className="text-xs text-[#9CA3AF] hover:text-[#DC2626] cursor-pointer">
+                Hapus
+              </button>
+            )}
+          </div>
+          {expiryDate ? (() => {
+            const days = Math.ceil((new Date(expiryDate).getTime() - Date.now()) / 86400000);
+            if (days < 0) return <p className="text-xs font-bold text-[#DC2626] mt-1.5">⚠ Sudah kadaluarsa {Math.abs(days)} hari yang lalu</p>;
+            if (days <= 30) return <p className="text-xs font-bold text-amber-500 mt-1.5">⚠ Kadaluarsa dalam {days} hari</p>;
+            return <p className="text-xs text-[#16A34A] font-medium mt-1.5">✓ Masih {days} hari lagi</p>;
+          })() : <p className="text-xs text-[#9CA3AF] mt-1.5">Kosongkan jika tidak ada tanggal kadaluarsa</p>}
+        </div>
         {/* Multi toggle */}
         <div className="bg-white border border-[#072C2C]/8 rounded-2xl p-5 lg:p-6 shadow-sm">
           <div className="flex items-center justify-between">
