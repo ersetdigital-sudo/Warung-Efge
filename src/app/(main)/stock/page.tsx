@@ -113,30 +113,49 @@ export default function StockOpnamePage() {
     }
     setSaving(true);
     try {
+      let savedCount = 0;
       for (const [id, row] of checkedRows) {
         const actual = Number(row.actualStock);
         const diff = actual - row.systemStock;
-        await supabase
+        
+        // Update product stock — ini yang paling penting
+        const { error: updateError } = await supabase
           .from("products")
           .update({ stock: actual, updated_at: new Date().toISOString() })
           .eq("id", id);
+        
+        if (updateError) {
+          console.error("Update stock error:", updateError);
+          continue;
+        }
+        
+        savedCount++;
+        
+        // Record stock movement (optional — skip jika tabel belum ada)
         if (diff !== 0) {
           const product = products.find(p => p.id === id);
-          await addStockMovement({
+          await supabase.from("stock_movements").insert({
             product_id: id,
             product_name: product?.name || "",
             type: "opname",
             quantity: diff,
             unit: product?.unit || "Pcs",
             notes: `Stock opname: selisih ${diff >= 0 ? "+" : ""}${diff}`,
-            created_at: new Date().toISOString(),
+          }).then(({ error }) => {
+            if (error) console.error("Stock movement insert error (non-critical):", error);
           });
         }
       }
-      showToast(`${checkedRows.length} produk berhasil disimpan`, "success");
-      loadProducts();
-    } catch {
-      showToast("Gagal menyimpan", "error");
+      
+      if (savedCount > 0) {
+        showToast(`${savedCount} produk berhasil disimpan`, "success");
+        loadProducts();
+      } else {
+        showToast("Gagal menyimpan — cek console untuk detail", "error");
+      }
+    } catch (err) {
+      console.error("handleSave error:", err);
+      showToast("Terjadi kesalahan saat menyimpan", "error");
     } finally {
       setSaving(false);
     }
