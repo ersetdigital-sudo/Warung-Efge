@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Warung Efge - Sistem POS & Inventory Modern</title>
+<title>Warung Efge - Presentasi Serah Terima Project</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 @page { size: A4 landscape; margin: 0; }
@@ -11,85 +11,69 @@ body { font-family: 'Segoe UI', -apple-system, sans-serif; background: #f5f5f0; 
 .slide { width: 297mm; height: 210mm; padding: 40px 50px; display: flex; flex-direction: column; justify-content: center; page-break-after: always; position: relative; overflow: hidden; }
 .slide:last-child { page-break-after: auto; }
 
-/* Slide 1 - Cover */
+/* Cover */
 .cover { background: linear-gradient(135deg, #072C2C 0%, #0a3d3d 100%); color: white; align-items: center; text-align: center; }
 .cover .logo { width: 80px; height: 80px; background: #FF5F03; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 900; color: white; margin-bottom: 30px; box-shadow: 0 20px 40px rgba(255,95,3,0.3); }
-.cover h1 { font-size: 52px; font-weight: 900; letter-spacing: 3px; margin-bottom: 10px; }
-.cover .tagline { font-size: 20px; color: rgba(255,255,255,0.7); margin-bottom: 40px; }
-.cover .badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 10px 24px; border-radius: 50px; font-size: 14px; color: rgba(255,255,255,0.8); }
+.cover h1 { font-size: 48px; font-weight: 900; letter-spacing: 2px; margin-bottom: 10px; }
+.cover .tagline { font-size: 22px; color: rgba(255,255,255,0.7); margin-bottom: 12px; }
+.cover .status { font-size: 16px; color: #16A34A; background: rgba(22,163,74,0.15); border: 1px solid rgba(22,163,74,0.3); display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px; border-radius: 50px; margin-top: 20px; }
+.cover .meta { margin-top: 30px; font-size: 13px; color: rgba(255,255,255,0.4); }
 
-/* Slide 2 - Problem */
-.problem { background: white; }
-.problem h2 { font-size: 36px; font-weight: 800; color: #072C2C; margin-bottom: 30px; }
-.problem .subtitle { font-size: 16px; color: #9CA3AF; margin-bottom: 30px; }
-.pain-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.pain-item { display: flex; gap: 16px; padding: 20px; background: #FEF2F2; border-radius: 12px; border-left: 4px solid #DC2626; }
-.pain-item .icon { font-size: 28px; flex-shrink: 0; }
-.pain-item h4 { font-size: 14px; font-weight: 700; color: #DC2626; margin-bottom: 4px; }
-.pain-item p { font-size: 12px; color: #4B5563; line-height: 1.5; }
+/* General slide */
+.content-slide { background: white; }
+.content-slide h2 { font-size: 32px; font-weight: 800; color: #072C2C; margin-bottom: 8px; }
+.content-slide .subtitle { font-size: 14px; color: #9CA3AF; margin-bottom: 28px; }
 
-/* Slide 3 - Solution */
-.solution { background: white; }
-.solution h2 { font-size: 36px; font-weight: 800; margin-bottom: 10px; }
-.solution .subtitle { font-size: 16px; color: #9CA3AF; margin-bottom: 30px; }
-.feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.feature-card { background: #f8faf8; border: 1px solid #E5E3DC; border-radius: 12px; padding: 20px; border-top: 3px solid #FF5F03; }
-.feature-card .icon { font-size: 24px; margin-bottom: 10px; }
-.feature-card h4 { font-size: 13px; font-weight: 700; color: #072C2C; margin-bottom: 6px; }
-.feature-card p { font-size: 11px; color: #6B7280; line-height: 1.5; }
+/* Summary */
+.summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+.summary-card { background: #EDEADE; border-radius: 12px; padding: 20px; text-align: center; border-left: 4px solid #FF5F03; }
+.summary-card .number { font-size: 32px; font-weight: 900; color: #072C2C; }
+.summary-card p { font-size: 11px; color: #6B7280; margin-top: 4px; }
 
-/* Slide 4 - Features Detail */
-.features { background: linear-gradient(135deg, #072C2C 0%, #0a3d3d 100%); color: white; }
-.features h2 { font-size: 36px; font-weight: 800; margin-bottom: 30px; }
-.feat-list { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.feat-item { display: flex; align-items: flex-start; gap: 12px; padding: 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; }
-.feat-item .check { width: 24px; height: 24px; background: #FF5F03; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
-.feat-item h4 { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
-.feat-item p { font-size: 11px; color: rgba(255,255,255,0.6); }
+/* Feature list */
+.module-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.module-item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border: 1px solid #E5E3DC; border-radius: 10px; }
+.module-item .icon { width: 36px; height: 36px; background: #FF5F03; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.module-item h4 { font-size: 13px; font-weight: 700; color: #072C2C; margin-bottom: 3px; }
+.module-item p { font-size: 11px; color: #6B7280; line-height: 1.4; }
+.module-item .badge { display: inline-block; font-size: 9px; font-weight: 700; background: #ECFDF5; color: #16A34A; padding: 2px 8px; border-radius: 4px; margin-top: 4px; }
 
-/* Slide 5 - Tech Stack */
-.tech { background: white; }
-.tech h2 { font-size: 36px; font-weight: 800; margin-bottom: 10px; }
-.tech .subtitle { font-size: 16px; color: #9CA3AF; margin-bottom: 30px; }
-.tech-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-.tech-card { text-align: center; padding: 24px 16px; background: #EDEADE; border-radius: 12px; }
-.tech-card .icon { font-size: 32px; margin-bottom: 10px; }
-.tech-card h4 { font-size: 13px; font-weight: 700; color: #072C2C; margin-bottom: 4px; }
-.tech-card p { font-size: 11px; color: #6B7280; }
-.benefits { margin-top: 30px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.benefit { text-align: center; padding: 20px; border: 2px solid #FF5F03; border-radius: 12px; }
-.benefit .number { font-size: 28px; font-weight: 900; color: #FF5F03; }
-.benefit p { font-size: 12px; color: #4B5563; margin-top: 4px; }
+/* Dark slide */
+.dark-slide { background: linear-gradient(135deg, #072C2C 0%, #0a3d3d 100%); color: white; }
+.dark-slide h2 { color: white; }
+.dark-slide .subtitle { color: rgba(255,255,255,0.5); }
+.feat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.feat-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 16px; }
+.feat-card h4 { font-size: 13px; font-weight: 700; margin-bottom: 4px; color: #FF5F03; }
+.feat-card p { font-size: 11px; color: rgba(255,255,255,0.6); line-height: 1.5; }
 
-/* Slide 6 - Pricing */
-.pricing { background: white; }
-.pricing h2 { font-size: 36px; font-weight: 800; margin-bottom: 10px; }
-.pricing .subtitle { font-size: 16px; color: #9CA3AF; margin-bottom: 30px; }
-.price-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; align-items: start; }
-.price-card { border: 2px solid #E5E3DC; border-radius: 16px; padding: 28px 24px; text-align: center; }
-.price-card.featured { border-color: #FF5F03; background: linear-gradient(135deg, #FFF8F5, white); position: relative; }
-.price-card.featured::before { content: "POPULER"; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #FF5F03; color: white; font-size: 10px; font-weight: 800; padding: 4px 16px; border-radius: 20px; }
-.price-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: #072C2C; }
-.price-card .price { font-size: 32px; font-weight: 900; color: #FF5F03; margin-bottom: 4px; }
-.price-card .period { font-size: 12px; color: #9CA3AF; margin-bottom: 16px; }
-.price-card ul { text-align: left; list-style: none; font-size: 12px; color: #4B5563; }
-.price-card ul li { padding: 6px 0; border-bottom: 1px solid #F0EEE8; }
-.price-card ul li::before { content: "✓ "; color: #16A34A; font-weight: bold; }
+/* Tech */
+.tech-row { display: flex; gap: 16px; margin-bottom: 24px; }
+.tech-badge { background: #EDEADE; border-radius: 8px; padding: 12px 20px; font-size: 12px; font-weight: 700; color: #072C2C; display: flex; align-items: center; gap: 8px; }
+.tech-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: #FF5F03; }
 
-/* Slide 7 - CTA */
+/* Info table */
+.info-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+.info-table td { padding: 10px 16px; font-size: 12px; border-bottom: 1px solid #F0EEE8; }
+.info-table td:first-child { font-weight: 600; color: #072C2C; width: 200px; }
+.info-table td:last-child { color: #4B5563; }
+
+/* Next steps */
+.steps-list { list-style: none; counter-reset: step; }
+.steps-list li { counter-increment: step; display: flex; align-items: flex-start; gap: 16px; padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.steps-list li::before { content: counter(step); width: 32px; height: 32px; background: #FF5F03; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0; }
+.steps-list li div h4 { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+.steps-list li div p { font-size: 12px; color: rgba(255,255,255,0.5); }
+
+/* CTA */
 .cta { background: linear-gradient(135deg, #FF5F03 0%, #e05500 100%); color: white; align-items: center; text-align: center; }
-.cta h2 { font-size: 42px; font-weight: 900; margin-bottom: 16px; }
-.cta p { font-size: 18px; color: rgba(255,255,255,0.8); margin-bottom: 40px; max-width: 600px; }
-.cta .contact { display: flex; gap: 30px; align-items: center; }
-.cta .contact-item { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.15); padding: 14px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; }
+.cta h2 { font-size: 38px; font-weight: 900; margin-bottom: 12px; }
+.cta p { font-size: 16px; color: rgba(255,255,255,0.8); margin-bottom: 30px; }
+.cta .link { font-size: 20px; font-weight: 800; background: rgba(255,255,255,0.2); padding: 14px 32px; border-radius: 12px; margin-bottom: 16px; display: inline-block; }
+.cta .contact { font-size: 14px; color: rgba(255,255,255,0.7); margin-top: 10px; }
 
-@media print {
-  body { background: white; }
-  .slide { box-shadow: none; }
-}
-@media screen {
-  .slide { margin: 20px auto; box-shadow: 0 4px 30px rgba(0,0,0,0.1); border-radius: 8px; }
-}
+@media print { body { background: white; } .slide { box-shadow: none; } }
+@media screen { .slide { margin: 20px auto; box-shadow: 0 4px 30px rgba(0,0,0,0.1); border-radius: 8px; } }
 </style>
 </head>
 <body>
@@ -98,125 +82,103 @@ body { font-family: 'Segoe UI', -apple-system, sans-serif; background: #f5f5f0; 
 <div class="slide cover">
   <div class="logo">E</div>
   <h1>WARUNG EFGE</h1>
-  <p class="tagline">Sistem POS & Inventory Modern untuk Warung Anda</p>
-  <div class="badge">🚀 Web-Based • Real-Time • Mobile Friendly</div>
+  <p class="tagline">Sistem POS & Inventory</p>
+  <div class="status">✅ Project Selesai — Siap Digunakan</div>
+  <p class="meta">Presentasi Serah Terima • Juni 2026 • Developed by Erset Digital</p>
 </div>
 
-<!-- SLIDE 2: Masalah -->
-<div class="slide problem">
-  <h2>😰 Masalah yang Sering Dihadapi</h2>
-  <p class="subtitle">Pemilik warung kehilangan uang setiap hari tanpa disadari</p>
-  <div class="pain-grid">
-    <div class="pain-item"><div class="icon">📝</div><div><h4>Catatan Manual</h4><p>Tulis tangan rawan hilang, salah hitung, dan susah direkap</p></div></div>
-    <div class="pain-item"><div class="icon">📦</div><div><h4>Stok Tidak Terkontrol</h4><p>Barang kadaluarsa tanpa sadar, stok habis baru tahu saat pelanggan minta</p></div></div>
-    <div class="pain-item"><div class="icon">💸</div><div><h4>Piutang Menumpuk</h4><p>Lupa siapa yang hutang, berapa jumlahnya, dan kapan bayarnya</p></div></div>
-    <div class="pain-item"><div class="icon">📊</div><div><h4>Tidak Tahu Untung Rugi</h4><p>Omset besar tapi tidak tahu kemana uangnya pergi</p></div></div>
+<!-- SLIDE 2: Ringkasan Project -->
+<div class="slide content-slide">
+  <h2>📋 Ringkasan Project</h2>
+  <p class="subtitle">Apa yang sudah dibangun untuk Warung Efge</p>
+  <div class="summary-grid">
+    <div class="summary-card"><div class="number">12</div><p>Menu / Halaman</p></div>
+    <div class="summary-card"><div class="number">50+</div><p>Fitur Aktif</p></div>
+    <div class="summary-card"><div class="number">100%</div><p>Responsif Mobile</p></div>
+    <div class="summary-card"><div class="number">24/7</div><p>Online & Cloud</p></div>
+  </div>
+  <table class="info-table">
+    <tr><td>Nama Project</td><td>Warung Efge — POS & Inventory System</td></tr>
+    <tr><td>URL Akses</td><td>https://warung-efge.vercel.app</td></tr>
+    <tr><td>Platform</td><td>Web Application (bisa diakses dari HP, tablet, dan laptop)</td></tr>
+    <tr><td>Database</td><td>Supabase (PostgreSQL cloud, backup otomatis)</td></tr>
+    <tr><td>Hosting</td><td>Vercel (CDN global, uptime 99.9%)</td></tr>
+    <tr><td>Notifikasi</td><td>WhatsApp otomatis via Fonnte (H-7 kadaluarsa)</td></tr>
+  </table>
+</div>
+
+<!-- SLIDE 3: Modul yang Sudah Jadi -->
+<div class="slide content-slide">
+  <h2>✅ Modul yang Sudah Jadi</h2>
+  <p class="subtitle">Semua modul sudah aktif dan bisa langsung digunakan</p>
+  <div class="module-grid">
+    <div class="module-item"><div class="icon">🛒</div><div><h4>Kasir (POS)</h4><p>Transaksi cepat, scan barcode, multi metode bayar, cetak struk thermal</p><span class="badge">LIVE</span></div></div>
+    <div class="module-item"><div class="icon">📦</div><div><h4>Produk & Stok</h4><p>Katalog, multi satuan, stok otomatis, expired tracking, stock opname</p><span class="badge">LIVE</span></div></div>
+    <div class="module-item"><div class="icon">📋</div><div><h4>Pembelian</h4><p>Catat pembelian, cash/kredit, bayar hutang partial, auto stok masuk</p><span class="badge">LIVE</span></div></div>
+    <div class="module-item"><div class="icon">🚛</div><div><h4>Supplier</h4><p>Data supplier, hutang otomatis, riwayat pembayaran, bayar hutang</p><span class="badge">LIVE</span></div></div>
+    <div class="module-item"><div class="icon">👥</div><div><h4>Pelanggan & Piutang</h4><p>Data pelanggan, piutang, umur piutang, cicilan, riwayat bayar</p><span class="badge">LIVE</span></div></div>
+    <div class="module-item"><div class="icon">📊</div><div><h4>Laporan</h4><p>Penjualan, produk terlaris, kasir, stok, laba rugi, filter periode</p><span class="badge">LIVE</span></div></div>
+    <div class="module-item"><div class="icon">👤</div><div><h4>Pengguna & Role</h4><p>Owner, Admin, Kasir — akses disesuaikan per role</p><span class="badge">LIVE</span></div></div>
+    <div class="module-item"><div class="icon">⚙️</div><div><h4>Pengaturan</h4><p>Info toko, kategori produk, notifikasi WA, preview struk</p><span class="badge">LIVE</span></div></div>
   </div>
 </div>
 
-<!-- SLIDE 3: Solusi -->
-<div class="slide solution">
-  <h2>✅ Solusi: Warung Efge</h2>
-  <p class="subtitle">Semua kebutuhan warung dalam satu aplikasi web</p>
-  <div class="feature-grid">
-    <div class="feature-card"><div class="icon">🛒</div><h4>Kasir Digital (POS)</h4><p>Transaksi cepat, support barcode scanner, multi metode bayar, cetak struk</p></div>
-    <div class="feature-card"><div class="icon">📦</div><h4>Manajemen Stok</h4><p>Multi satuan, stok otomatis berkurang saat jual, alert stok menipis</p></div>
-    <div class="feature-card"><div class="icon">📋</div><h4>Pembelian & Supplier</h4><p>Catat pembelian, hutang supplier otomatis, riwayat pembayaran</p></div>
-    <div class="feature-card"><div class="icon">👥</div><h4>Pelanggan & Piutang</h4><p>Catat hutang pelanggan, umur piutang, riwayat bayar lengkap</p></div>
-    <div class="feature-card"><div class="icon">📊</div><h4>Laporan Lengkap</h4><p>Laba rugi, produk terlaris, performa kasir, filter periode</p></div>
-    <div class="feature-card"><div class="icon">🔔</div><h4>Notifikasi Otomatis</h4><p>WA otomatis H-7 kadaluarsa, alert stok menipis, piutang menunggak</p></div>
-  </div>
-</div>
-
-<!-- SLIDE 4: Fitur Detail -->
-<div class="slide features">
+<!-- SLIDE 4: Fitur Unggulan -->
+<div class="slide dark-slide">
   <h2>🔥 Fitur Unggulan</h2>
-  <div class="feat-list">
-    <div class="feat-item"><div class="check">✓</div><div><h4>Multi Satuan Otomatis</h4><p>Slop → Bungkus → Batang, konversi stok & harga otomatis</p></div></div>
-    <div class="feat-item"><div class="check">✓</div><div><h4>Barcode Scanner</h4><p>Scan langsung dari HP, tidak perlu alat tambahan</p></div></div>
-    <div class="feat-item"><div class="check">✓</div><div><h4>Monitoring Kadaluarsa</h4><p>Pantau produk expired, potensi kerugian, notifikasi WA otomatis</p></div></div>
-    <div class="feat-item"><div class="check">✓</div><div><h4>Stock Opname</h4><p>Input stok aktual, selisih dihitung otomatis, riwayat tercatat</p></div></div>
-    <div class="feat-item"><div class="check">✓</div><div><h4>Laporan Laba Rugi</h4><p>HPP, biaya operasional, laba bersih — semua otomatis</p></div></div>
-    <div class="feat-item"><div class="check">✓</div><div><h4>Multi User & Role</h4><p>Owner, Admin, Kasir — akses berbeda sesuai tanggung jawab</p></div></div>
-    <div class="feat-item"><div class="check">✓</div><div><h4>Cetak Struk Thermal</h4><p>Support printer thermal 58mm, langsung dari browser</p></div></div>
-    <div class="feat-item"><div class="check">✓</div><div><h4>Cloud & Real-Time</h4><p>Data aman di cloud, akses dari mana saja, sync real-time</p></div></div>
+  <p class="subtitle">Yang membedakan sistem ini dari aplikasi kasir biasa</p>
+  <div class="feat-grid">
+    <div class="feat-card"><h4>Multi Satuan Otomatis</h4><p>Produk bisa dijual dalam satuan berbeda (Slop → Bungkus → Batang). Stok & harga terkonversi otomatis.</p></div>
+    <div class="feat-card"><h4>Monitoring Kadaluarsa</h4><p>Setiap produk bisa diisi tanggal expired. Dashboard menampilkan potensi kerugian, notifikasi WA otomatis H-7.</p></div>
+    <div class="feat-card"><h4>Notifikasi WhatsApp</h4><p>Sistem kirim WA otomatis setiap hari jika ada produk mendekati kadaluarsa. Tidak perlu cek manual.</p></div>
+    <div class="feat-card"><h4>Barcode Scanner</h4><p>Scan barcode langsung dari kamera HP — tidak perlu beli alat scanner terpisah.</p></div>
+    <div class="feat-card"><h4>Laporan Laba Rugi</h4><p>HPP dihitung otomatis dari harga beli. Input biaya operasional, dan laba bersih langsung terlihat.</p></div>
+    <div class="feat-card"><h4>Stock Opname</h4><p>Halaman khusus untuk hitung stok fisik. Selisih dengan stok sistem dihitung otomatis, langsung tersimpan.</p></div>
+    <div class="feat-card"><h4>Hutang 2 Arah</h4><p>Hutang ke supplier (pembelian kredit) dan piutang dari pelanggan — keduanya terpantau dan bisa dibayar bertahap.</p></div>
+    <div class="feat-card"><h4>100% Mobile Friendly</h4><p>Bisa dioperasikan penuh dari HP. Bottom navigation, modal responsif, dan layout optimal untuk layar kecil.</p></div>
   </div>
 </div>
 
-<!-- SLIDE 5: Teknologi -->
-<div class="slide tech">
-  <h2>⚡ Teknologi Modern</h2>
-  <p class="subtitle">Dibangun dengan stack terbaik untuk performa & keamanan</p>
-  <div class="tech-grid">
-    <div class="tech-card"><div class="icon">⚛️</div><h4>Next.js 15</h4><p>Framework React terbaru, super cepat</p></div>
-    <div class="tech-card"><div class="icon">🗄️</div><h4>Supabase</h4><p>Database PostgreSQL cloud, real-time sync</p></div>
-    <div class="tech-card"><div class="icon">🎨</div><h4>Tailwind CSS</h4><p>UI modern, responsif, mobile-first</p></div>
-    <div class="tech-card"><div class="icon">☁️</div><h4>Vercel</h4><p>Hosting CDN global, 99.9% uptime</p></div>
+<!-- SLIDE 5: Teknologi & Keamanan -->
+<div class="slide content-slide">
+  <h2>🛡️ Teknologi & Keamanan</h2>
+  <p class="subtitle">Infrastruktur yang menjamin data aman dan sistem selalu online</p>
+  <div class="tech-row">
+    <div class="tech-badge"><span class="dot"></span>Next.js 15</div>
+    <div class="tech-badge"><span class="dot"></span>Supabase (PostgreSQL)</div>
+    <div class="tech-badge"><span class="dot"></span>Vercel Hosting</div>
+    <div class="tech-badge"><span class="dot"></span>Fonnte WA API</div>
+    <div class="tech-badge"><span class="dot"></span>Row Level Security</div>
   </div>
-  <div class="benefits">
-    <div class="benefit"><div class="number">< 1s</div><p>Loading Time</p></div>
-    <div class="benefit"><div class="number">99.9%</div><p>Uptime Server</p></div>
-    <div class="benefit"><div class="number">∞</div><p>Skalabilitas</p></div>
-  </div>
+  <table class="info-table">
+    <tr><td>Data tersimpan di</td><td>Cloud (Supabase Singapore) — tidak bisa hilang walau HP rusak</td></tr>
+    <tr><td>Keamanan login</td><td>Email + password, session management, auto logout</td></tr>
+    <tr><td>Akses kontrol</td><td>Row Level Security — setiap role hanya bisa akses sesuai haknya</td></tr>
+    <tr><td>Backup</td><td>Otomatis setiap hari oleh Supabase</td></tr>
+    <tr><td>Uptime</td><td>99.9% — server Vercel global CDN</td></tr>
+    <tr><td>Kecepatan</td><td>Loading < 1 detik (optimized build + caching)</td></tr>
+  </table>
 </div>
 
-<!-- SLIDE 6: Harga -->
-<div class="slide pricing">
-  <h2>💰 Investasi</h2>
-  <p class="subtitle">Pilih paket yang sesuai kebutuhan usaha Anda</p>
-  <div class="price-cards">
-    <div class="price-card">
-      <h3>Starter</h3>
-      <div class="price">Rp 1.5jt</div>
-      <div class="period">sekali bayar</div>
-      <ul>
-        <li>Kasir POS</li>
-        <li>Manajemen Stok</li>
-        <li>Laporan Dasar</li>
-        <li>1 User</li>
-        <li>Support 1 bulan</li>
-      </ul>
-    </div>
-    <div class="price-card featured">
-      <h3>Business</h3>
-      <div class="price">Rp 3.5jt</div>
-      <div class="period">sekali bayar</div>
-      <ul>
-        <li>Semua fitur Starter</li>
-        <li>Multi User (5)</li>
-        <li>Hutang & Piutang</li>
-        <li>Pembelian & Supplier</li>
-        <li>Notifikasi WA</li>
-        <li>Laporan Lengkap</li>
-        <li>Support 3 bulan</li>
-      </ul>
-    </div>
-    <div class="price-card">
-      <h3>Enterprise</h3>
-      <div class="price">Custom</div>
-      <div class="period">negosiasi</div>
-      <ul>
-        <li>Semua fitur Business</li>
-        <li>Unlimited User</li>
-        <li>Multi Cabang</li>
-        <li>Custom Fitur</li>
-        <li>Integrasi Marketplace</li>
-        <li>Dedicated Support</li>
-        <li>SLA 99.9%</li>
-      </ul>
-    </div>
-  </div>
+<!-- SLIDE 6: Langkah Selanjutnya -->
+<div class="slide dark-slide">
+  <h2>📌 Langkah Selanjutnya</h2>
+  <p class="subtitle">Yang perlu dilakukan setelah serah terima</p>
+  <ol class="steps-list">
+    <li><div><h4>Login & atur info toko</h4><p>Buka Pengaturan → isi nama toko, alamat, telepon. Ini akan tampil di struk.</p></div></li>
+    <li><div><h4>Input produk</h4><p>Tambah semua produk warung: nama, harga beli, harga jual, stok awal, dan satuan.</p></div></li>
+    <li><div><h4>Tambah supplier & pelanggan</h4><p>Input data supplier tempat beli barang dan pelanggan yang sering hutang.</p></div></li>
+    <li><div><h4>Isi nomor WA notifikasi</h4><p>Di Pengaturan → Notifikasi WhatsApp, isi nomor yang mau terima alert kadaluarsa.</p></div></li>
+    <li><div><h4>Mulai pakai kasir</h4><p>Semua sudah siap! Buka menu Kasir dan mulai transaksi pertama.</p></div></li>
+  </ol>
 </div>
 
-<!-- SLIDE 7: CTA -->
+<!-- SLIDE 7: Closing -->
 <div class="slide cta">
-  <h2>Siap Naik Level?</h2>
-  <p>Jangan biarkan warung Anda tertinggal. Digitalisasi sekarang, rasakan bedanya dalam hitungan hari.</p>
-  <div class="contact">
-    <div class="contact-item">📱 0822-1411-2143</div>
-    <div class="contact-item">✉️ ersetdigital@gmail.com</div>
-    <div class="contact-item">🌐 warung-efge.vercel.app</div>
-  </div>
+  <h2>🎉 Selamat!</h2>
+  <p>Warung Efge sekarang punya sistem digital yang lengkap. Kelola lebih mudah, pantau dari mana saja, dan tidak ada lagi catatan yang hilang.</p>
+  <div class="link">warung-efge.vercel.app</div>
+  <p class="contact">Butuh bantuan? Hubungi developer:<br><strong>Erset Digital — 0822-1411-2143 — ersetdigital@gmail.com</strong></p>
 </div>
 
 </body>
