@@ -1,17 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { ClipboardList, CheckCircle, AlertTriangle, RefreshCw, Save } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { ClipboardCheck, CheckCircle, AlertTriangle, RefreshCw, Save, Search, Check, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { formatCurrency } from "@/lib/utils";
 import { addStockMovement } from "@/lib/db";
-
-interface ProductUnit {
-  id: string;
-  level: number;
-  name: string;
-  stock: number;
-}
 
 interface Product {
   id: string;
@@ -20,17 +12,19 @@ interface Product {
   category: string;
   stock: number;
   unit: string;
-  selling_price: number;
-  product_units: ProductUnit[];
 }
+
+type OpnameStatus = "pending" | "match" | "diff";
 
 interface OpnameRow {
-  productId: string;
   systemStock: number;
-  actualStock: string; // string so input can be empty
+  actualStock: string;
+  status: OpnameStatus;
 }
 
-export default function StockPage() {
+type FilterType = "all" | "pending" | "checked" | "diff";
+
+export default function StockOpnamePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [opname, setOpname] = useState<Record<string, OpnameRow>>({});
   const [loading, setLoading] = useState(true);
@@ -38,6 +32,8 @@ export default function StockPage() {
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
+  const [filterStatus, setFilterStatus] = useState<FilterType>("all");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const showToast = (msg: string, type: "success" | "error") => {
     setToast({ msg, type });
@@ -48,110 +44,124 @@ export default function StockPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from("products")
-      .select("*, product_units(*)")
+      .select("id, name, sku, category, stock, unit")
       .order("name");
     if (error) {
-      console.error("loadProducts error:", error);
       showToast("Gagal memuat produk", "error");
       setLoading(false);
       return;
     }
     const prods: Product[] = (data || []).map((p: any) => ({
       id: p.id,
-      name: p.name,
+      name: p.name || "",
       sku: p.sku || "",
       category: p.category || "Lain-lain",
       stock: Number(p.stock) || 0,
       unit: p.unit || "Pcs",
-      selling_price: Number(p.selling_price) || 0,
-      product_units: (p.product_units || []).map((u: any) => ({
-        id: u.id,
-        level: u.level,
-        name: u.name,
-        stock: Number(u.stock) || 0,
-      })),
     }));
     setProducts(prods);
-    // Initialise opname rows with empty actual stock
     const rows: Record<string, OpnameRow> = {};
     prods.forEach((p) => {
-      rows[p.id] = { productId: p.id, systemStock: p.stock, actualStock: "" };
+      rows[p.id] = { systemStock: p.stock, actualStock: "", status: "pending" };
     });
     setOpname(rows);
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    loadProducts();
-  }, [loadProducts]);
+  useEffect(() => { loadProducts(); }, [loadProducts]);
 
-  const handleActualChange = (productId: string, value: string) => {
-    setOpname((prev) => ({
+  // Mark as match (cocok)
+  const handleMatch = (id: string) => {
+    const row = opname[id];
+    if (!row) return;
+    setOpname(prev => ({
       ...prev,
-      [productId]: { ...prev[productId], actualStock: value },
+      [id]: { ...prev[id], actualStock: String(prev[id].systemStock), status: "match" },
+    }));
+    setExpandedId(null);
+  };
+
+  // Open diff input
+  const handleOpenDiff = (id: string) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
+
+  // Set actual stock value
+  const handleActualChange = (id: string, value: string) => {
+    const sys = opname[id]?.systemStock ?? 0;
+    const actual = Number(value);
+    const status: OpnameStatus = value === "" ? "pending" : actual === sys ? "match" : "diff";
+    setOpname(prev => ({
+      ...prev,
+      [id]: { ...prev[id], actualStock: value, status },
     }));
   };
 
-  // Only rows where actual stock has been entered
-  const dirtyRows = Object.values(opname).filter((r) => r.actualStock !== "");
-
-  const getDiff = (row: OpnameRow): number | null => {
-    if (row.actualStock === "") return null;
-    return Number(row.actualStock) - row.systemStock;
+  // Confirm diff input
+  const handleConfirmDiff = (id: string) => {
+    const row = opname[id];
+    if (!row || row.actualStock === "") return;
+    setExpandedId(null);
   };
 
+  // Save all
   const handleSave = async () => {
-    if (dirtyRows.length === 0) {
-      showToast("Belum ada stok yang diinput", "error");
+    const checkedRows = Object.entries(opname).filter(([, r]) => r.status !== "pending");
+    if (checkedRows.length === 0) {
+      showToast("Belum ada produk yang dicek", "error");
       return;
     }
     setSaving(true);
     try {
-      for (const row of dirtyRows) {
-        const diff = getDiff(row);
-        if (diff === null) continue;
+      for (const [id, row] of checkedRows) {
         const actual = Number(row.actualStock);
-        // Update product stock
+        const diff = actual - row.systemStock;
         await supabase
           .from("products")
           .update({ stock: actual, updated_at: new Date().toISOString() })
-          .eq("id", row.productId);
-        // Insert stock movement
-        const sign = diff >= 0 ? `+${diff}` : `${diff}`;
-        await addStockMovement({
-          product_id: row.productId,
-          type: "opname",
-          quantity: diff,
-          notes: `Stock opname: selisih ${sign}`,
-          created_at: new Date().toISOString(),
-        });
+          .eq("id", id);
+        if (diff !== 0) {
+          const product = products.find(p => p.id === id);
+          await addStockMovement({
+            product_id: id,
+            product_name: product?.name || "",
+            type: "opname",
+            quantity: diff,
+            unit: product?.unit || "Pcs",
+            notes: `Stock opname: selisih ${diff >= 0 ? "+" : ""}${diff}`,
+            created_at: new Date().toISOString(),
+          });
+        }
       }
-      showToast(`${dirtyRows.length} produk berhasil disimpan`, "success");
-      // Reload fresh data
+      showToast(`${checkedRows.length} produk berhasil disimpan`, "success");
       loadProducts();
-    } catch (err) {
-      console.error("handleSave error:", err);
-      showToast("Terjadi kesalahan saat menyimpan", "error");
+    } catch {
+      showToast("Gagal menyimpan", "error");
     } finally {
       setSaving(false);
     }
   };
 
-  const categories = Array.from(new Set(products.map((p) => p.category))).sort();
+  // Computed
+  const categories = useMemo(() => Array.from(new Set(products.map(p => p.category))).sort(), [products]);
+  const checkedCount = Object.values(opname).filter(r => r.status !== "pending").length;
+  const diffCount = Object.values(opname).filter(r => r.status === "diff").length;
+  const pendingCount = products.length - checkedCount;
+  const progressPct = products.length > 0 ? Math.round((checkedCount / products.length) * 100) : 0;
 
-  const filtered = products.filter((p) => {
-    const matchSearch =
-      search === "" ||
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.sku.toLowerCase().includes(search.toLowerCase());
-    const matchCat = filterCategory === "" || p.category === filterCategory;
-    return matchSearch && matchCat;
-  });
-
-  // Summary KPIs
-  const enteredCount = dirtyRows.length;
-  const discrepancies = dirtyRows.filter((r) => getDiff(r) !== 0).length;
-  const totalDiff = dirtyRows.reduce((sum, r) => sum + (getDiff(r) ?? 0), 0);
+  const filtered = useMemo(() => {
+    return products.filter(p => {
+      const row = opname[p.id];
+      const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase());
+      const matchCat = !filterCategory || p.category === filterCategory;
+      const matchStatus =
+        filterStatus === "all" ? true :
+        filterStatus === "pending" ? row?.status === "pending" :
+        filterStatus === "checked" ? (row?.status === "match" || row?.status === "diff") :
+        filterStatus === "diff" ? row?.status === "diff" : true;
+      return matchSearch && matchCat && matchStatus;
+    });
+  }, [products, opname, search, filterCategory, filterStatus]);
 
   if (loading) {
     return (
@@ -165,267 +175,231 @@ export default function StockPage() {
   }
 
   return (
-    <div className="space-y-5 pb-10">
+    <div className="space-y-4 pb-20 md:pb-6">
       {/* Toast */}
       {toast && (
-        <div
-          className={`fixed z-[9999] top-4 right-4 flex items-center gap-2 px-4 py-3 rounded-xl shadow-2xl text-sm font-medium text-white animate-in slide-in-from-top-2 ${
-            toast.type === "success" ? "bg-[#16A34A]" : "bg-[#DC2626]"
-          }`}
-        >
-          {toast.type === "success" ? (
-            <CheckCircle className="w-4 h-4" />
-          ) : (
-            <AlertTriangle className="w-4 h-4" />
-          )}
+        <div className={`fixed z-[9999] top-4 right-4 flex items-center gap-2 px-4 py-3 rounded-xl shadow-2xl text-sm font-medium text-white animate-in slide-in-from-top-2 ${toast.type === "success" ? "bg-[#16A34A]" : "bg-[#DC2626]"}`}>
+          {toast.type === "success" ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
           {toast.msg}
         </div>
       )}
 
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#072C2C] flex items-center justify-center shadow-lg">
-            <ClipboardList className="w-6 h-6 text-[#EDEADE]" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide leading-tight">
-              Stock Opname
-            </h1>
-            <p className="text-xs text-[#9CA3AF]">
-              Input stok aktual dan bandingkan dengan stok sistem
-            </p>
-          </div>
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Stock Opname</h1>
+          <p className="text-[10px] text-[#9CA3AF]">Hitung stok fisik, bandingkan dengan sistem</p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={loadProducts}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-[#072C2C]/60 hover:text-[#072C2C] border border-[#D9D6C8] rounded-lg transition-colors"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Refresh
+          <button onClick={loadProducts} className="p-2 border border-[#D9D6C8] rounded-lg text-[#9CA3AF] hover:text-[#072C2C] hover:border-[#072C2C]/30 transition-colors cursor-pointer">
+            <RefreshCw className="w-4 h-4" />
           </button>
           <button
             onClick={handleSave}
-            disabled={saving || enteredCount === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-[#16A34A] hover:bg-[#15803D] text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={saving || checkedCount === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-[#16A34A] hover:bg-[#15803D] text-white text-sm font-bold rounded-lg transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving ? (
-              <>
-                <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                Menyimpan...
-              </>
-            ) : (
-              <>
-                <Save className="w-3.5 h-3.5" />
-                Simpan Opname
-              </>
-            )}
+            {saving ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
+            {saving ? "Menyimpan..." : `Simpan (${checkedCount})`}
           </button>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          {
-            label: "Total Produk",
-            value: products.length,
-            sub: "dalam sistem",
-            color: "border-l-[#072C2C]",
-          },
-          {
-            label: "Sudah Diinput",
-            value: enteredCount,
-            sub: `dari ${products.length} produk`,
-            color: "border-l-[#FF5F03]",
-          },
-          {
-            label: "Ada Selisih",
-            value: discrepancies,
-            sub: "produk perlu koreksi",
-            color: discrepancies > 0 ? "border-l-[#DC2626]" : "border-l-[#16A34A]",
-          },
-          {
-            label: "Total Selisih",
-            value: totalDiff >= 0 ? `+${totalDiff}` : `${totalDiff}`,
-            sub: "unit (aktual vs sistem)",
-            color: totalDiff === 0 ? "border-l-[#16A34A]" : "border-l-[#D97706]",
-          },
-        ].map((kpi) => (
-          <div
-            key={kpi.label}
-            className={`bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] ${kpi.color}`}
-          >
-            <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wide">
-              {kpi.label}
-            </p>
-            <p className="text-xl font-bold text-[#072C2C] font-[Oswald] mt-1">{kpi.value}</p>
-            <p className="text-[10px] text-[#9CA3AF] mt-0.5">{kpi.sub}</p>
+      {/* Sticky Progress */}
+      <div className="sticky top-0 z-10 bg-[#EDEADE] -mx-4 lg:-mx-6 px-4 lg:px-6 py-3 border-b border-[#D9D6C8] shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold text-[#072C2C]">{checkedCount} / {products.length} Produk Selesai</span>
+            <span className="text-[10px] text-[#9CA3AF]">{progressPct}%</span>
           </div>
-        ))}
+          <div className="flex items-center gap-3 text-[10px]">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#9CA3AF]" />{pendingCount} belum</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#16A34A]" />{checkedCount - diffCount} cocok</span>
+            {diffCount > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#DC2626]" />{diffCount} selisih</span>}
+          </div>
+        </div>
+        <div className="h-2 bg-white rounded-full overflow-hidden border border-[#D9D6C8]">
+          <div className="h-full bg-[#16A34A] rounded-full transition-all duration-300" style={{ width: `${progressPct}%` }} />
+        </div>
       </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Cari nama produk / SKU..."
-          className="flex-1 px-4 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20 focus:border-[#FF5F03]"
-        />
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Cari produk..."
+            className="w-full pl-9 pr-4 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20 focus:border-[#FF5F03]"
+          />
+        </div>
         <select
           value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          className="px-4 py-2.5 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20 cursor-pointer"
+          onChange={e => setFilterCategory(e.target.value)}
+          className="px-3 py-2.5 border border-[#D9D6C8] rounded-lg text-sm cursor-pointer focus:outline-none"
         >
           <option value="">Semua Kategori</option>
-          {categories.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
+          {categories.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
       </div>
 
-      {/* Table */}
-      <div className="bg-white border border-[#D9D6C8] rounded-xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-[#EDEADE]">
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wide">
-                  Produk
-                </th>
-                <th className="text-left px-4 py-3 text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wide hidden md:table-cell">
-                  Kategori
-                </th>
-                <th className="text-right px-4 py-3 text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wide">
-                  Stok Sistem
-                </th>
-                <th className="text-right px-4 py-3 text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wide">
-                  Stok Aktual
-                </th>
-                <th className="text-right px-4 py-3 text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wide">
-                  Selisih
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#F0EEE8]">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-12 text-sm text-[#9CA3AF]">
-                    Tidak ada produk ditemukan
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((product) => {
-                  const row = opname[product.id];
-                  const diff = row ? getDiff(row) : null;
-                  const hasInput = row?.actualStock !== "";
+      {/* Status filter chips */}
+      <div className="flex gap-2">
+        {([
+          { id: "all", label: "Semua", count: products.length },
+          { id: "pending", label: "Belum Dicek", count: pendingCount },
+          { id: "checked", label: "Sudah Dicek", count: checkedCount },
+          { id: "diff", label: "Ada Selisih", count: diffCount },
+        ] as { id: FilterType; label: string; count: number }[]).map(f => (
+          <button
+            key={f.id}
+            onClick={() => setFilterStatus(f.id)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold cursor-pointer transition-all ${
+              filterStatus === f.id
+                ? "bg-[#FF5F03] text-white"
+                : "bg-white border border-[#D9D6C8] text-[#4B5563] hover:border-[#FF5F03]/40"
+            }`}
+          >
+            {f.label}
+            <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${
+              filterStatus === f.id ? "bg-white/20 text-white" : "bg-[#EDEADE] text-[#9CA3AF]"
+            }`}>{f.count}</span>
+          </button>
+        ))}
+      </div>
 
-                  return (
-                    <tr
-                      key={product.id}
-                      className={`hover:bg-[#FAFAF8] transition-colors ${
-                        hasInput && diff !== 0 ? "bg-amber-50/40" : ""
-                      }`}
-                    >
-                      {/* Product info */}
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-[#072C2C] text-sm leading-tight">
-                          {product.name}
-                        </p>
-                        {product.sku && (
-                          <p className="text-[10px] text-[#9CA3AF] font-mono mt-0.5">
-                            {product.sku}
-                          </p>
-                        )}
-                      </td>
-                      {/* Category */}
-                      <td className="px-4 py-3 hidden md:table-cell">
-                        <span className="text-xs text-[#072C2C]/60">{product.category}</span>
-                      </td>
-                      {/* System stock */}
-                      <td className="px-4 py-3 text-right">
-                        <span className="text-sm font-semibold text-[#072C2C]">
-                          {product.stock}
-                        </span>
-                        <span className="text-[10px] text-[#9CA3AF] ml-1">{product.unit}</span>
-                      </td>
-                      {/* Actual input */}
-                      <td className="px-4 py-3 text-right">
-                        <input
-                          type="number"
-                          min="0"
-                          value={row?.actualStock ?? ""}
-                          onChange={(e) => handleActualChange(product.id, e.target.value)}
-                          placeholder="—"
-                          className="w-20 px-2 py-1.5 border border-[#D9D6C8] rounded-lg text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20 focus:border-[#FF5F03] transition-all"
-                        />
-                      </td>
-                      {/* Diff */}
-                      <td className="px-4 py-3 text-right">
-                        {diff === null ? (
-                          <span className="text-[#9CA3AF] text-xs">—</span>
-                        ) : diff === 0 ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#16A34A]">
-                            <CheckCircle className="w-3.5 h-3.5" />
-                            Sesuai
-                          </span>
-                        ) : (
-                          <span
-                            className={`text-sm font-bold ${
-                              diff > 0 ? "text-[#16A34A]" : "text-[#DC2626]"
-                            }`}
-                          >
-                            {diff > 0 ? `+${diff}` : diff}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Footer summary */}
-        {enteredCount > 0 && (
-          <div className="px-4 py-3 bg-[#EDEADE] border-t border-[#D9D6C8] flex items-center justify-between">
-            <p className="text-xs text-[#072C2C]/60">
-              {enteredCount} dari {products.length} produk telah diinput
-            </p>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#16A34A] hover:bg-[#15803D] text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
-            >
-              {saving ? (
-                <>
-                  <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  Menyimpan...
-                </>
-              ) : (
-                <>
-                  <Save className="w-3.5 h-3.5" />
-                  Simpan Opname ({enteredCount})
-                </>
-              )}
-            </button>
-          </div>
+      {/* Product Cards */}
+      <div className="space-y-2">
+        {filtered.length === 0 && (
+          <div className="text-center py-12 text-sm text-[#9CA3AF]">Tidak ada produk ditemukan</div>
         )}
+        {filtered.map(product => {
+          const row = opname[product.id];
+          if (!row) return null;
+          const diff = row.actualStock !== "" ? Number(row.actualStock) - row.systemStock : null;
+          const isExpanded = expandedId === product.id;
+
+          return (
+            <div
+              key={product.id}
+              className={`bg-white border rounded-xl overflow-hidden transition-all ${
+                row.status === "match" ? "border-[#16A34A]/30 bg-[#F0FDF4]/30" :
+                row.status === "diff" ? "border-[#DC2626]/30 bg-[#FEF2F2]/30" :
+                "border-[#E5E3DC]"
+              }`}
+            >
+              <div className="flex items-center gap-3 px-4 py-3">
+                {/* Status dot */}
+                <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                  row.status === "match" ? "bg-[#16A34A]" :
+                  row.status === "diff" ? "bg-[#DC2626]" :
+                  "bg-[#D9D6C8]"
+                }`} />
+
+                {/* Product info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[#072C2C] truncate">{product.name}</p>
+                  <p className="text-[10px] text-[#9CA3AF]">{product.category} · Stok sistem: <strong className="text-[#072C2C]">{product.stock} {product.unit}</strong></p>
+                </div>
+
+                {/* Action buttons or result */}
+                {row.status === "pending" ? (
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => handleMatch(product.id)}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-[#16A34A] text-white text-[11px] font-bold rounded-lg cursor-pointer hover:bg-[#15803D] transition-all hover:scale-[1.02] active:scale-[0.97]"
+                    >
+                      <Check className="w-3.5 h-3.5" />Cocok
+                    </button>
+                    <button
+                      onClick={() => handleOpenDiff(product.id)}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-[#FF5F03] text-white text-[11px] font-bold rounded-lg cursor-pointer hover:bg-[#e05500] transition-all hover:scale-[1.02] active:scale-[0.97]"
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5" />Selisih
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {row.status === "match" && (
+                      <span className="flex items-center gap-1 text-[11px] font-bold text-[#16A34A]">
+                        <CheckCircle className="w-4 h-4" />Cocok
+                      </span>
+                    )}
+                    {row.status === "diff" && diff !== null && (
+                      <span className={`text-sm font-bold font-mono ${diff > 0 ? "text-[#16A34A]" : "text-[#DC2626]"}`}>
+                        {diff > 0 ? `+${diff}` : diff}
+                      </span>
+                    )}
+                    <button
+                      onClick={() => {
+                        setOpname(prev => ({ ...prev, [product.id]: { ...prev[product.id], actualStock: "", status: "pending" } }));
+                        setExpandedId(null);
+                      }}
+                      className="p-1.5 text-[#9CA3AF] hover:text-[#DC2626] cursor-pointer rounded-md hover:bg-red-50 transition-colors"
+                      title="Reset"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Expanded diff input */}
+              {isExpanded && row.status === "pending" && (
+                <div className="px-4 pb-4 pt-1 border-t border-[#F0EEE8]">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <label className="text-[10px] font-semibold text-[#9CA3AF] uppercase mb-1 block">Stok Aktual ({product.unit})</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={row.actualStock}
+                        onChange={e => handleActualChange(product.id, e.target.value)}
+                        autoFocus
+                        placeholder={String(product.stock)}
+                        className="w-full px-4 py-3 text-lg font-bold font-mono text-[#072C2C] border-2 border-[#FF5F03]/30 rounded-xl focus:outline-none focus:border-[#FF5F03] focus:ring-2 focus:ring-[#FF5F03]/20 text-center"
+                      />
+                    </div>
+                    {row.actualStock !== "" && (
+                      <div className="text-center flex-shrink-0">
+                        <p className="text-[9px] text-[#9CA3AF] uppercase font-semibold">Selisih</p>
+                        <p className={`text-lg font-black font-mono ${
+                          Number(row.actualStock) - product.stock === 0 ? "text-[#16A34A]" :
+                          Number(row.actualStock) - product.stock > 0 ? "text-[#16A34A]" : "text-[#DC2626]"
+                        }`}>
+                          {Number(row.actualStock) - product.stock >= 0 ? "+" : ""}{Number(row.actualStock) - product.stock}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleConfirmDiff(product.id)}
+                    disabled={row.actualStock === ""}
+                    className="mt-3 w-full py-2.5 bg-[#FF5F03] text-white text-sm font-bold rounded-xl cursor-pointer hover:bg-[#e05500] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Konfirmasi
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* Info box */}
-      <div className="bg-[#FFF8F5] border border-[#FFD9C5] rounded-xl p-4 text-xs text-[#CC4400] space-y-1">
-        <p className="font-bold text-[#FF5F03] mb-1.5">📋 Cara penggunaan Stock Opname</p>
-        <p>1. Input jumlah stok aktual yang ada di toko pada kolom "Stok Aktual"</p>
-        <p>2. Kolom "Selisih" akan otomatis menampilkan perbedaan dengan stok sistem</p>
-        <p>3. Klik <strong>Simpan Opname</strong> untuk memperbarui stok dan mencatat riwayat penyesuaian</p>
-      </div>
+      {/* Bottom save bar (mobile) */}
+      {checkedCount > 0 && (
+        <div className="md:hidden fixed bottom-16 left-0 right-0 z-40 px-4 pb-2">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#16A34A] text-white text-sm font-bold rounded-xl shadow-xl cursor-pointer disabled:opacity-50"
+          >
+            {saving ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
+            {saving ? "Menyimpan..." : `Simpan Opname (${checkedCount} produk)`}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
