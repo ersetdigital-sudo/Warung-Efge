@@ -153,9 +153,9 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
           )}
         </div>
 
-        {/* Nav items — rapat ke atas, tidak flex-1 */}
+        {/* Nav items — rapat ke atas, bisa scroll jika menu banyak */}
         <nav className={cn(
-          "flex-shrink-0 overflow-x-hidden transition-all duration-[220ms]",
+          "overflow-y-auto overflow-x-hidden transition-all duration-[220ms] flex-1",
           collapsed ? "px-1.5 py-1" : "px-2 py-1"
         )}>
           {visibleMenuItems.map((item) => {
@@ -197,10 +197,7 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
           })}
         </nav>
 
-        {/* Spacer — dorong bagian bawah ke ujung */}
-        <div className="flex-1" />
-
-        {/* Keluar + Tutup Sidebar — nempel di bawah */}
+        {/* Keluar + Tutup Sidebar — nempel langsung setelah menu */}
         <div className={cn(
           "flex-shrink-0 border-t border-white/10 transition-all duration-[220ms]",
           collapsed ? "p-1.5 space-y-0.5" : "px-2 py-1.5 space-y-0.5"
