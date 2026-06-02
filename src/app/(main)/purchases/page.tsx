@@ -156,7 +156,8 @@ export default function PurchasesPage() {
       .single();
 
     if (purchaseError || !purchase) {
-      showToast("Gagal membuat pembelian", "error");
+      console.error("PURCHASE ERROR:", JSON.stringify(purchaseError, null, 2));
+      showToast(`Gagal membuat pembelian: ${purchaseError?.message || purchaseError?.code || "unknown error"}`, "error");
       setSaving(false);
       return;
     }
