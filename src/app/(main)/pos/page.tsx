@@ -41,7 +41,8 @@ export default function POSPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [discountType, setDiscountType] = useState<"rp" | "persen">("rp");
   const [discountInput, setDiscountInput] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "transfer" | "qris" | "edc">("cash");
+  const [showDiscount, setShowDiscount] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "transfer" | "qris" | "edc" | "bon">("cash");
   const [amountPaid, setAmountPaid] = useState("");
   const [isDebt, setIsDebt] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
@@ -240,13 +241,12 @@ export default function POSPage() {
     setLastReceiptData({
       items: cart.map(item => ({ name: item.name, quantity: item.quantity, unit: item.unit, price: item.price, subtotal: item.subtotal })),
       subtotal, discount: calculatedDiscount, total,
-      method: paymentMethod === "cash" ? "Tunai" : paymentMethod === "transfer" ? "Transfer" : paymentMethod === "edc" ? "EDC" : "QRIS",
-      paid: Number(amountPaid) || 0, change: change > 0 ? change : 0, trxId,
+      method: paymentMethod === "cash" ? "Tunai" : paymentMethod === "transfer" ? "Transfer" : paymentMethod === "edc" ? "EDC" : paymentMethod === "bon" ? "Bon/Hutang" : "QRIS",
     });
     setShowReceipt(true); setShowCart(false);
   };
 
-  const handleNewTransaction = () => { const c = trxId; setCart([]); setDiscountInput(""); setAmountPaid(""); setIsDebt(false); setShowReceipt(false); setPaymentMethod("cash"); setTrxId(`TRX-${String(Math.floor(Math.random() * 9000) + 1000)}`); setSuccessToast(c); setTimeout(() => setSuccessToast(""), 3000); };
+  const handleNewTransaction = () => { const c = trxId; setCart([]); setDiscountInput(""); setShowDiscount(false); setAmountPaid(""); setIsDebt(false); setShowReceipt(false); setPaymentMethod("cash"); setTrxId(`TRX-${String(Math.floor(Math.random() * 9000) + 1000)}`); setSuccessToast(c); setTimeout(() => setSuccessToast(""), 3000); };
 
   const [printToast, setPrintToast] = useState<{ msg: string; color: string } | null>(null);
   const [lastReceiptData, setLastReceiptData] = useState<any>(null);
@@ -257,7 +257,7 @@ export default function POSPage() {
       const data = lastReceiptData || {
         items: cart.map(item => ({ name: item.name, quantity: item.quantity, unit: item.unit, price: item.price, subtotal: item.subtotal })),
         subtotal, discount: calculatedDiscount, total,
-        method: paymentMethod === "cash" ? "Tunai" : paymentMethod === "transfer" ? "Transfer" : paymentMethod === "edc" ? "EDC" : "QRIS",
+        method: paymentMethod === "cash" ? "Tunai" : paymentMethod === "transfer" ? "Transfer" : paymentMethod === "edc" ? "EDC" : paymentMethod === "bon" ? "Bon/Hutang" : "QRIS",
         paid: Number(amountPaid) || 0, change: change > 0 ? change : 0, trxId,
       };
       generateReceiptPDF({
@@ -285,7 +285,7 @@ export default function POSPage() {
     }
   };
 
-  const canPay = cart.length > 0 && (isDebt || paymentMethod !== "cash" || Number(amountPaid) >= total);
+  const canPay = cart.length > 0 && (isDebt || paymentMethod === "bon" || paymentMethod !== "cash" || Number(amountPaid) >= total);
   const [now, setNow] = useState(new Date());
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
   const formatRupiah = (num: number) => num > 0 ? `Rp ${num.toLocaleString("id-ID")}` : "Rp 0";
@@ -519,28 +519,72 @@ export default function POSPage() {
               {/* Payment Method */}
               <div>
                 <p className="text-xs font-semibold text-[#072C2C]/60 mb-2">Metode Pembayaran</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {([["cash", Banknote, "Tunai"], ["qris", QrCode, "QRIS"], ["transfer", CreditCard, "Transfer"], ["edc", Smartphone, "EDC"]] as const).map(([method, Icon, label]) => (
-                    <button key={method} onClick={() => setPaymentMethod(method)} className={`flex items-center gap-2 px-3 py-3 rounded-lg text-sm font-medium cursor-pointer transition-all ${paymentMethod === method ? "bg-[#072C2C] text-white" : "bg-[#F5F4F0] border border-[#072C2C]/10 text-[#072C2C]/70"}`}>
-                      <Icon className="w-4 h-4" />{label}
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    ["cash", Banknote, "Tunai"],
+                    ["qris", QrCode, "QRIS"],
+                    ["transfer", CreditCard, "Transfer"],
+                    ["edc", Smartphone, "EDC"],
+                    ["bon", null, "Bon/Hutang"],
+                  ] as const).map(([method, Icon, label]) => (
+                    <button
+                      key={method}
+                      onClick={() => setPaymentMethod(method)}
+                      className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all border-2 ${
+                        paymentMethod === method
+                          ? method === "bon"
+                            ? "bg-red-50 border-red-400 text-red-600"
+                            : "bg-[#072C2C] border-[#072C2C] text-white"
+                          : "bg-[#F5F4F0] border-transparent text-[#072C2C]/60 hover:border-[#072C2C]/20"
+                      }`}
+                    >
+                      {method === "bon" ? "📋" : Icon && <Icon className="w-3.5 h-3.5" />}
+                      {label}
                     </button>
                   ))}
                 </div>
+                {paymentMethod === "bon" && (
+                  <div className="mt-2 flex items-start gap-2 p-2.5 bg-red-50 rounded-xl border border-red-100">
+                    <span className="text-red-500 text-sm">⚠️</span>
+                    <p className="text-xs text-red-600">Transaksi akan dicatat sebagai <strong>hutang pelanggan</strong>. Pastikan nama pelanggan sudah ada di menu Pelanggan.</p>
+                  </div>
+                )}
               </div>
 
-              {/* Discount */}
+              {/* Diskon — collapsible */}
               <div>
-                <p className="text-xs font-semibold text-[#072C2C]/60 mb-2">Diskon</p>
-                <div className="flex items-center gap-2">
-                  <input type="text" inputMode="numeric" value={discountInput} onChange={(e) => setDiscountInput(e.target.value.replace(/\D/g, ""))} placeholder="0" className="flex-1 px-3 py-2.5 text-sm border border-[#072C2C]/10 rounded-lg text-right focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
-                  <select value={discountType} onChange={(e) => setDiscountType(e.target.value as "rp" | "persen")} className="px-3 py-2.5 text-sm border border-[#072C2C]/10 rounded-lg bg-white cursor-pointer"><option value="rp">Rp</option><option value="persen">%</option></select>
-                </div>
-                {calculatedDiscount > 0 && <p className="text-xs text-[#DC2626] mt-1">Diskon: -{formatCurrency(calculatedDiscount)}</p>}
+                <button
+                  type="button"
+                  onClick={() => { setShowDiscount(v => !v); if (showDiscount) setDiscountInput(""); }}
+                  className="flex items-center justify-between w-full group"
+                >
+                  <span className="text-xs font-semibold text-[#072C2C]/60">Diskon</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-all ${showDiscount ? "bg-[#FF5F03]/10 text-[#FF5F03]" : "bg-[#F0EEE8] text-[#072C2C]/50 group-hover:text-[#072C2C]"}`}>
+                    {showDiscount ? (calculatedDiscount > 0 ? `-${formatCurrency(calculatedDiscount)}` : "Tutup") : "+ Tambah Diskon"}
+                  </span>
+                </button>
+                {showDiscount && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <input
+                      type="text" inputMode="numeric"
+                      value={discountInput}
+                      onChange={e => setDiscountInput(e.target.value.replace(/\D/g, ""))}
+                      placeholder="0"
+                      className="flex-1 px-3 py-2.5 text-sm border border-[#072C2C]/10 rounded-xl text-right focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30"
+                    />
+                    <select value={discountType} onChange={e => setDiscountType(e.target.value as "rp" | "persen")} className="px-3 py-2.5 text-sm border border-[#072C2C]/10 rounded-xl bg-white cursor-pointer">
+                      <option value="rp">Rp</option>
+                      <option value="persen">%</option>
+                    </select>
+                  </div>
+                )}
+                {!showDiscount && calculatedDiscount > 0 && (
+                  <p className="text-xs text-[#DC2626] mt-1">Diskon aktif: -{formatCurrency(calculatedDiscount)}</p>
+                )}
               </div>
 
               {/* Cash input */}
-              {paymentMethod === "cash" && (
-                <div>
+              {paymentMethod === "cash" && (                <div>
                   <p className="text-xs font-semibold text-[#072C2C]/60 mb-2">Uang Diterima</p>
                   <input type="text" inputMode="numeric" value={displayAmountPaid} onChange={(e) => handleAmountInput(e.target.value)} placeholder="Rp 0" className="w-full px-3 py-3 text-base font-bold border border-[#072C2C]/10 rounded-lg text-right focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
                   {/* Saran nominal */}
