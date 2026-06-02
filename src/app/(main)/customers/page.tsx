@@ -475,12 +475,12 @@ export default function CustomersPage() {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === tab ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/40 hover:text-[#072C2C]/70"}`}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === tab ? "bg-[#FF5F03] text-white shadow-sm" : "text-[#072C2C]/40 hover:text-[#072C2C]/70"}`}
           >
             <Icon className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">{label}</span>
             <span className="sm:hidden">{tab === "pelanggan" ? "Semua" : tab === "piutang" ? "Piutang" : "Riwayat"}</span>
-            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === tab ? (tab === "piutang" ? "bg-red-500 text-white" : tab === "riwayat" ? "bg-green-500 text-white" : "bg-[#072C2C] text-white") : "bg-[#072C2C]/10 text-[#072C2C]/40"}`}>{count}</span>
+            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === tab ? "bg-white/30 text-white" : "bg-[#072C2C]/10 text-[#072C2C]/40"}`}>{count}</span>
           </button>
         ))}
       </div>

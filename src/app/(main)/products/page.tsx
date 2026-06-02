@@ -119,10 +119,10 @@ export default function ProductsPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-[#EDEADE] p-1 rounded-lg w-fit">
-        <button onClick={() => setActiveTab("katalog")} className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all ${activeTab === "katalog" ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/60 hover:text-[#072C2C]"}`}>
+        <button onClick={() => setActiveTab("katalog")} className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all ${activeTab === "katalog" ? "bg-[#FF5F03] text-white shadow-sm" : "text-[#072C2C]/60 hover:text-[#072C2C]"}`}>
           <Package className="w-4 h-4" />Katalog
         </button>
-        <button onClick={() => setActiveTab("stok")} className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all ${activeTab === "stok" ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/60 hover:text-[#072C2C]"}`}>
+        <button onClick={() => setActiveTab("stok")} className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all ${activeTab === "stok" ? "bg-[#FF5F03] text-white shadow-sm" : "text-[#072C2C]/60 hover:text-[#072C2C]"}`}>
           <Boxes className="w-4 h-4" />Stok & Mutasi
         </button>
       </div>
