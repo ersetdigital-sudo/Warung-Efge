@@ -149,7 +149,23 @@ export default function StockOpnamePage() {
       
       if (savedCount > 0) {
         showToast(`${savedCount} produk berhasil disimpan`, "success");
-        loadProducts();
+        // Update local state — jangan reload semua, cukup sync systemStock
+        setProducts(prev => prev.map(p => {
+          const row = opname[p.id];
+          if (row && row.status !== "pending") {
+            return { ...p, stock: Number(row.actualStock) };
+          }
+          return p;
+        }));
+        // Update opname rows — yang sudah disimpan, update systemStock dan tetap status match/diff
+        setOpname(prev => {
+          const next = { ...prev };
+          for (const [id, row] of checkedRows) {
+            const actual = Number(row.actualStock);
+            next[id] = { systemStock: actual, actualStock: String(actual), status: "match" };
+          }
+          return next;
+        });
       } else {
         showToast("Gagal menyimpan — cek console untuk detail", "error");
       }
