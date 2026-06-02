@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Camera, X, Check, ScanBarcode } from "lucide-react";
-import Button from "@/components/ui/Button";
 import { getProductById, updateProduct, getProductUnits, saveProductUnits, getCategories } from "@/lib/db";
 
 interface UnitLevel { level: number; active: boolean; name: string; conversion: string; stock: string; buyPrice: string; sellPrice: string; }
@@ -14,6 +13,8 @@ export default function EditProductPage() {
   const productId = params.id as string;
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [name, setName] = useState("");
   const [sku, setSku] = useState("");
@@ -114,20 +115,52 @@ export default function EditProductPage() {
 
   const handleSubmit = async () => {
     if (!name.trim()) { alert("Nama produk wajib diisi!"); return; }
-    const updates: Record<string, unknown> = { name: name.trim(), sku: sku.trim() || product.sku, barcode: barcode.trim() || null, category: category || product.category, stock: Number(stock) || 0, min_stock: Number(minStock) || 0, unit: unitValue || product.unit, cost_price: Number(buyPrice) || 0, selling_price: Number(sellPrice) || 0, expiry_date: expiryDate || null };
-    const success = await updateProduct(productId, updates);
-    if (!success) { alert("Gagal menyimpan."); return; }
-    if (multiLevel) {
-      const activeUnits = units.filter(u => u.active && u.name.trim());
-      await saveProductUnits(productId, activeUnits.map(u => ({ level: u.level, name: u.name.trim(), conversion: u.conversion ? Number(u.conversion) : null, stock: Number(u.stock) || 0, buy_price: Number(u.buyPrice) || 0, sell_price: Number(u.sellPrice) || 0 })));
-    } else {
-      // Multi satuan off → hapus semua product_units
-      await saveProductUnits(productId, []);
+
+    setSaving(true);
+    setSaveStatus("saving");
+
+    try {
+      const updates: Record<string, unknown> = { name: name.trim(), sku: sku.trim() || product.sku, barcode: barcode.trim() || null, category: category || product.category, stock: Number(stock) || 0, min_stock: Number(minStock) || 0, unit: unitValue || product.unit, cost_price: Number(buyPrice) || 0, selling_price: Number(sellPrice) || 0, expiry_date: expiryDate || null };
+      const success = await updateProduct(productId, updates);
+      if (!success) { setSaveStatus("error"); setTimeout(() => { setSaveStatus("idle"); setSaving(false); }, 2000); return; }
+      if (multiLevel) {
+        const activeUnits = units.filter(u => u.active && u.name.trim());
+        await saveProductUnits(productId, activeUnits.map(u => ({ level: u.level, name: u.name.trim(), conversion: u.conversion ? Number(u.conversion) : null, stock: Number(u.stock) || 0, buy_price: Number(u.buyPrice) || 0, sell_price: Number(u.sellPrice) || 0 })));
+      } else {
+        // Multi satuan off → hapus semua product_units
+        await saveProductUnits(productId, []);
+      }
+      setSaveStatus("success");
+      setTimeout(() => router.push("/products"), 1000);
+    } catch {
+      setSaveStatus("error");
+      setTimeout(() => { setSaveStatus("idle"); setSaving(false); }, 2000);
     }
-    router.push("/products");
   };
 
-  if (loading) return <div className="p-8 text-center text-[#072C2C]/50">Memuat...</div>;
+  if (loading) return (
+    <div className="min-h-[calc(100vh-4rem)]">
+      <div className="bg-white border-b border-[#072C2C]/5 px-4 lg:px-8 py-3">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <div className="h-5 w-20 bg-[#EDEADE] rounded animate-pulse" />
+          <div className="h-5 w-24 bg-[#EDEADE] rounded animate-pulse" />
+          <div className="h-9 w-20 bg-[#EDEADE] rounded-xl animate-pulse" />
+        </div>
+      </div>
+      <div className="px-4 lg:px-8 py-6 lg:py-10 max-w-5xl mx-auto w-full space-y-6">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="bg-white border border-[#072C2C]/8 rounded-2xl p-5 lg:p-6 shadow-sm space-y-4">
+            <div className="h-4 w-32 bg-[#EDEADE] rounded animate-pulse" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="h-10 bg-[#EDEADE] rounded-xl animate-pulse lg:col-span-2" />
+              <div className="h-10 bg-[#EDEADE] rounded-xl animate-pulse" />
+              <div className="h-10 bg-[#EDEADE] rounded-xl animate-pulse" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
   if (!product) return <div className="p-8 text-center text-[#072C2C]/50">Produk tidak ditemukan</div>;
   const margin = Number(buyPrice) && Number(sellPrice) ? Math.round((Number(sellPrice) - Number(buyPrice)) / Number(sellPrice) * 100) : null;
 
@@ -135,25 +168,39 @@ export default function EditProductPage() {
     <div className="min-h-[calc(100vh-4rem)]">
       <div className="bg-white border-b border-[#072C2C]/5 px-4 lg:px-8 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <button onClick={() => router.push("/products")} className="flex items-center gap-1.5 text-sm text-[#072C2C]/60 hover:text-[#072C2C] cursor-pointer"><ArrowLeft className="w-4 h-4" />Kembali</button>
+          <button onClick={() => router.push("/products")} className="flex items-center gap-1.5 text-sm text-[#072C2C]/60 hover:text-[#072C2C] cursor-pointer transition-all duration-150 ease-in-out hover:scale-[1.02] active:scale-[0.97]"><ArrowLeft className="w-4 h-4" />Kembali</button>
           <h1 className="text-sm lg:text-base font-bold text-[#072C2C]">Edit Produk</h1>
-          <Button onClick={handleSubmit}>Simpan</Button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl cursor-pointer transition-all duration-150 ease-in-out hover:scale-[1.02] active:scale-[0.97] disabled:cursor-not-allowed ${
+              saveStatus === "success" ? "bg-[#16a34a] text-white" :
+              saveStatus === "error" ? "bg-[#dc2626] text-white" :
+              saveStatus === "saving" ? "bg-[#e05503] text-white opacity-85" :
+              "bg-[#FF5F03] text-white hover:bg-[#e05503]"
+            }`}
+          >
+            {saveStatus === "saving" && <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" strokeLinecap="round" /></svg>}
+            {saveStatus === "success" && <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+            {saveStatus === "error" && <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>}
+            {saveStatus === "idle" ? "Simpan" : saveStatus === "saving" ? "Menyimpan..." : saveStatus === "success" ? "Tersimpan!" : "Gagal, coba lagi"}
+          </button>
         </div>
       </div>
-      <div className="px-4 lg:px-8 py-6 lg:py-10 max-w-5xl mx-auto w-full space-y-6">
+      <div className="px-4 lg:px-8 py-6 lg:py-10 max-w-5xl mx-auto w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-200">
         {/* Info */}
         <div className="bg-white border border-[#072C2C]/8 rounded-2xl p-5 lg:p-6 shadow-sm">
           <h3 className="text-sm font-bold text-[#072C2C] mb-4">Informasi Produk</h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="lg:col-span-2"><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Nama Produk</label><input value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
-            <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Barcode</label><div className="flex gap-2"><input value={barcode} onChange={(e) => setBarcode(e.target.value)} className="flex-1 px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /><button type="button" onClick={openScanner} className="px-4 py-3 bg-[#072C2C] text-white rounded-xl cursor-pointer"><ScanBarcode className="w-4 h-4" /></button></div></div>
+            <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Barcode</label><div className="flex gap-2"><input value={barcode} onChange={(e) => setBarcode(e.target.value)} className="flex-1 px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /><button type="button" onClick={openScanner} className="px-4 py-3 bg-[#072C2C] text-white rounded-xl cursor-pointer transition-all duration-150 ease-in-out hover:scale-[1.02] active:scale-[0.97]"><ScanBarcode className="w-4 h-4" /></button></div></div>
             <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Kategori</label><select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm cursor-pointer"><option value="">Pilih</option>{categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}</select></div>
             <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">SKU</label><input value={sku} onChange={(e) => setSku(e.target.value)} className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
           </div>
         </div>
         {/* Harga Simple */}
         {!multiLevel && (
-        <div className="bg-white border border-[#072C2C]/8 rounded-2xl p-5 lg:p-6 shadow-sm">
+        <div className="bg-white border border-[#072C2C]/8 rounded-2xl p-5 lg:p-6 shadow-sm" style={{ animationDelay: "50ms", animationFillMode: "both" }}>
           <h3 className="text-sm font-bold text-[#072C2C] mb-4">Harga & Stok</h3>
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
               <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Satuan</label><input value={unitValue} onChange={(e) => setUnitValue(e.target.value)} className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
@@ -189,10 +236,10 @@ export default function EditProductPage() {
           })() : <p className="text-xs text-[#9CA3AF] mt-1.5">Kosongkan jika tidak ada tanggal kadaluarsa</p>}
         </div>
         {/* Multi toggle */}
-        <div className="bg-white border border-[#072C2C]/8 rounded-2xl p-5 lg:p-6 shadow-sm">
+        <div className="bg-white border border-[#072C2C]/8 rounded-2xl p-5 lg:p-6 shadow-sm" style={{ animationDelay: "100ms", animationFillMode: "both" }}>
           <div className="flex items-center justify-between">
             <div><p className="text-sm font-bold text-[#072C2C]">Multi Satuan</p><p className="text-xs text-[#072C2C]/50 mt-0.5">Aktifkan jika produk dijual dalam beberapa satuan</p></div>
-            <button onClick={() => setMultiLevel(!multiLevel)} className="cursor-pointer"><div className={`w-12 h-7 rounded-full relative transition-colors ${multiLevel ? "bg-[#FF5F03]" : "bg-[#072C2C]/15"}`}><div className={`absolute top-[3px] w-[22px] h-[22px] rounded-full bg-white shadow-md transition-all ${multiLevel ? "left-[23px]" : "left-[3px]"}`} /></div></button>
+            <button onClick={() => setMultiLevel(!multiLevel)} className="cursor-pointer transition-all duration-150 ease-in-out hover:scale-[1.02] active:scale-[0.97]"><div className={`w-12 h-7 rounded-full relative transition-colors ${multiLevel ? "bg-[#FF5F03]" : "bg-[#072C2C]/15"}`}><div className={`absolute top-[3px] w-[22px] h-[22px] rounded-full bg-white shadow-md transition-all ${multiLevel ? "left-[23px]" : "left-[3px]"}`} /></div></button>
           </div>
         </div>
         {/* Multi units */}
@@ -206,7 +253,7 @@ export default function EditProductPage() {
                 <div key={u.level} className={`border border-[#072C2C]/8 rounded-xl p-4 border-l-[3px] ${colors[idx]} ${!u.active ? "opacity-40" : ""}`}>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-bold text-[#072C2C]">{labels[idx]}</span>
-                    <button onClick={() => toggleUnit(u.level)} className="flex items-center gap-2 cursor-pointer"><span className="text-[10px] text-[#072C2C]/40">{u.active ? "Aktif" : "Off"}</span><div className={`w-9 h-5 rounded-full relative ${u.active ? "bg-[#16A34A]" : "bg-[#072C2C]/15"}`}><div className={`absolute top-[2px] w-4 h-4 rounded-full bg-white shadow transition-all ${u.active ? "left-[18px]" : "left-[2px]"}`} /></div></button>
+                    <button onClick={() => toggleUnit(u.level)} className="flex items-center gap-2 cursor-pointer transition-all duration-150 ease-in-out hover:scale-[1.02] active:scale-[0.97]"><span className="text-[10px] text-[#072C2C]/40">{u.active ? "Aktif" : "Off"}</span><div className={`w-9 h-5 rounded-full relative ${u.active ? "bg-[#16A34A]" : "bg-[#072C2C]/15"}`}><div className={`absolute top-[2px] w-4 h-4 rounded-full bg-white shadow transition-all ${u.active ? "left-[18px]" : "left-[2px]"}`} /></div></button>
                   </div>
                   {u.active && (
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

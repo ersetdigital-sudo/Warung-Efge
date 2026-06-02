@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ScanBarcode, X, Plus } from "lucide-react";
-import Button from "@/components/ui/Button";
 import { addProduct, saveProductUnits, getCategories } from "@/lib/db";
 
 interface UnitLevel { level: number; active: boolean; name: string; conversion: string; stock: string; buyPrice: string; sellPrice: string; }
@@ -15,6 +14,8 @@ export default function AddProductPage() {
   const [barcode, setBarcode] = useState("");
   const [category, setCategory] = useState("");
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
 
   useEffect(() => {
     getCategories().then(setCategories);
@@ -72,43 +73,53 @@ export default function AddProductPage() {
   const handleSubmit = async () => {
     if (!name.trim()) { alert("Nama produk wajib diisi!"); return; }
 
-    if (!multiLevel) {
-      // Simple mode: 1 satuan saja
-      if (!unit.trim()) { alert("Satuan wajib diisi! (cth: Pcs, Bungkus, Botol)"); return; }
-      const product = await addProduct({
-        name: name.trim(),
-        sku: sku.trim() || `SKU-${Date.now().toString(36).toUpperCase()}`,
-        barcode: barcode.trim() || null,
-        category: category || "Lain-lain",
-        selling_price: Number(sellPrice) || 0,
-        cost_price: Number(buyPrice) || 0,
-        stock: Number(stock) || 0,
-        unit: unit.trim(),
-        expiry_date: expiryDate || null,
-      });
-      if (!product) { alert("Gagal menyimpan produk"); return; }
-      // Save single unit level
-      await saveProductUnits(product.id, [{ level: 1, name: unit.trim(), conversion: null, stock: Number(stock) || 0, buy_price: Number(buyPrice) || 0, sell_price: Number(sellPrice) || 0 }]);
-      router.push("/products");
-    } else {
-      // Multi-level mode
-      const activeUnits = units.filter(u => u.active && u.name.trim());
-      if (activeUnits.length === 0) { alert("Minimal 1 satuan harus diisi!"); return; }
-      const baseUnit = activeUnits[activeUnits.length - 1];
-      const product = await addProduct({
-        name: name.trim(),
-        sku: sku.trim() || `SKU-${Date.now().toString(36).toUpperCase()}`,
-        barcode: barcode.trim() || null,
-        category: category || "Lain-lain",
-        selling_price: Number(baseUnit.sellPrice) || 0,
-        cost_price: Number(baseUnit.buyPrice) || 0,
-        stock: Number(baseUnit.stock) || 0,
-        unit: baseUnit.name,
-      });
-      if (!product) { alert("Gagal menyimpan produk"); return; }
-      const unitRows = activeUnits.map(u => ({ level: u.level, name: u.name.trim(), conversion: u.conversion ? Number(u.conversion) : null, stock: Number(u.stock) || 0, buy_price: Number(u.buyPrice) || 0, sell_price: Number(u.sellPrice) || 0 }));
-      await saveProductUnits(product.id, unitRows);
-      router.push("/products");
+    setSaving(true);
+    setSaveStatus("saving");
+
+    try {
+      if (!multiLevel) {
+        // Simple mode: 1 satuan saja
+        if (!unit.trim()) { alert("Satuan wajib diisi! (cth: Pcs, Bungkus, Botol)"); setSaveStatus("idle"); setSaving(false); return; }
+        const product = await addProduct({
+          name: name.trim(),
+          sku: sku.trim() || `SKU-${Date.now().toString(36).toUpperCase()}`,
+          barcode: barcode.trim() || null,
+          category: category || "Lain-lain",
+          selling_price: Number(sellPrice) || 0,
+          cost_price: Number(buyPrice) || 0,
+          stock: Number(stock) || 0,
+          unit: unit.trim(),
+          expiry_date: expiryDate || null,
+        });
+        if (!product) { setSaveStatus("error"); setTimeout(() => { setSaveStatus("idle"); setSaving(false); }, 2000); return; }
+        // Save single unit level
+        await saveProductUnits(product.id, [{ level: 1, name: unit.trim(), conversion: null, stock: Number(stock) || 0, buy_price: Number(buyPrice) || 0, sell_price: Number(sellPrice) || 0 }]);
+        setSaveStatus("success");
+        setTimeout(() => router.push("/products"), 1000);
+      } else {
+        // Multi-level mode
+        const activeUnits = units.filter(u => u.active && u.name.trim());
+        if (activeUnits.length === 0) { alert("Minimal 1 satuan harus diisi!"); setSaveStatus("idle"); setSaving(false); return; }
+        const baseUnit = activeUnits[activeUnits.length - 1];
+        const product = await addProduct({
+          name: name.trim(),
+          sku: sku.trim() || `SKU-${Date.now().toString(36).toUpperCase()}`,
+          barcode: barcode.trim() || null,
+          category: category || "Lain-lain",
+          selling_price: Number(baseUnit.sellPrice) || 0,
+          cost_price: Number(baseUnit.buyPrice) || 0,
+          stock: Number(baseUnit.stock) || 0,
+          unit: baseUnit.name,
+        });
+        if (!product) { setSaveStatus("error"); setTimeout(() => { setSaveStatus("idle"); setSaving(false); }, 2000); return; }
+        const unitRows = activeUnits.map(u => ({ level: u.level, name: u.name.trim(), conversion: u.conversion ? Number(u.conversion) : null, stock: Number(u.stock) || 0, buy_price: Number(u.buyPrice) || 0, sell_price: Number(u.sellPrice) || 0 }));
+        await saveProductUnits(product.id, unitRows);
+        setSaveStatus("success");
+        setTimeout(() => router.push("/products"), 1000);
+      }
+    } catch {
+      setSaveStatus("error");
+      setTimeout(() => { setSaveStatus("idle"); setSaving(false); }, 2000);
     }
   };
 
@@ -119,7 +130,7 @@ export default function AddProductPage() {
       {/* Header - not sticky */}
       <div className="bg-white border-b border-[#072C2C]/5 px-4 lg:px-8 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <button onClick={() => router.push("/products")} className="flex items-center gap-1.5 text-sm text-[#072C2C]/60 hover:text-[#072C2C] cursor-pointer transition-colors"><ArrowLeft className="w-4 h-4" />Kembali</button>
+          <button onClick={() => router.push("/products")} className="flex items-center gap-1.5 text-sm text-[#072C2C]/60 hover:text-[#072C2C] cursor-pointer transition-all duration-150 ease-in-out hover:scale-[1.02] active:scale-[0.97]"><ArrowLeft className="w-4 h-4" />Kembali</button>
           <h1 className="text-sm lg:text-base font-bold text-[#072C2C]">Tambah Produk</h1>
           <div className="w-[70px]" />
         </div>
@@ -140,7 +151,7 @@ export default function AddProductPage() {
                 <label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Barcode</label>
                 <div className="flex gap-2">
                   <input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Scan atau ketik" className="flex-1 px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" />
-                  <button type="button" onClick={openScanner} className="flex items-center gap-1.5 px-4 py-3 bg-[#072C2C] text-white rounded-xl text-xs font-medium cursor-pointer hover:bg-[#0a3d3d] transition-colors"><ScanBarcode className="w-4 h-4" /></button>
+                  <button type="button" onClick={openScanner} className="flex items-center gap-1.5 px-4 py-3 bg-[#072C2C] text-white rounded-xl text-xs font-medium cursor-pointer hover:bg-[#0a3d3d] transition-all duration-150 ease-in-out hover:scale-[1.02] active:scale-[0.97]"><ScanBarcode className="w-4 h-4" /></button>
                 </div>
                 {barcode && <p className="text-[10px] text-[#16A34A] mt-1.5 font-mono font-medium">✓ {barcode}</p>}
               </div>
@@ -244,7 +255,7 @@ export default function AddProductPage() {
                 <p className="text-sm font-bold text-[#072C2C]">Multi Satuan</p>
                 <p className="text-xs text-[#072C2C]/50 mt-0.5">Aktifkan jika produk dijual dalam beberapa satuan (cth: Slop → Bungkus → Batang)</p>
               </div>
-              <button onClick={() => setMultiLevel(!multiLevel)} className="cursor-pointer">
+              <button onClick={() => setMultiLevel(!multiLevel)} className="cursor-pointer transition-all duration-150 ease-in-out hover:scale-[1.02] active:scale-[0.97]">
                 <div className={`w-12 h-7 rounded-full relative transition-colors ${multiLevel ? "bg-[#FF5F03]" : "bg-[#072C2C]/15"}`}>
                   <div className={`absolute top-[3px] w-[22px] h-[22px] rounded-full bg-white shadow-md transition-all ${multiLevel ? "left-[23px]" : "left-[3px]"}`} />
                 </div>
@@ -274,7 +285,7 @@ export default function AddProductPage() {
                           <div className={`w-2.5 h-2.5 rounded-full ${dotColors[idx]}`} />
                           <span className="text-xs font-bold text-[#072C2C]">{labels[idx]}</span>
                         </div>
-                        <button onClick={() => toggleUnit(u.level)} className="flex items-center gap-2 cursor-pointer">
+                        <button onClick={() => toggleUnit(u.level)} className="flex items-center gap-2 cursor-pointer transition-all duration-150 ease-in-out hover:scale-[1.02] active:scale-[0.97]">
                           <span className="text-[10px] text-[#072C2C]/40">{u.active ? "Aktif" : "Nonaktif"}</span>
                           <div className={`w-9 h-5 rounded-full relative transition-colors ${u.active ? "bg-[#16A34A]" : "bg-[#072C2C]/15"}`}>
                             <div className={`absolute top-[2px] w-[16px] h-[16px] rounded-full bg-white shadow transition-all ${u.active ? "left-[18px]" : "left-[2px]"}`} />
@@ -324,8 +335,22 @@ export default function AddProductPage() {
 
           {/* Save button at bottom */}
           <div className="flex items-center justify-end gap-3 pt-4 pb-8">
-            <button onClick={() => router.push("/products")} className="px-5 py-3 text-sm font-medium text-[#072C2C]/60 hover:text-[#072C2C] cursor-pointer transition-colors">Batal</button>
-            <Button onClick={handleSubmit}>Simpan Produk</Button>
+            <button onClick={() => router.push("/products")} className="px-5 py-3 text-sm font-medium text-[#072C2C]/60 hover:text-[#072C2C] cursor-pointer transition-all duration-150 ease-in-out hover:scale-[1.02] active:scale-[0.97]">Batal</button>
+            <button
+              onClick={handleSubmit}
+              disabled={saving}
+              className={`flex items-center gap-2 px-5 py-3 text-sm font-bold rounded-xl cursor-pointer transition-all duration-150 ease-in-out hover:scale-[1.02] active:scale-[0.97] disabled:cursor-not-allowed ${
+                saveStatus === "success" ? "bg-[#16a34a] text-white" :
+                saveStatus === "error" ? "bg-[#dc2626] text-white" :
+                saveStatus === "saving" ? "bg-[#e05503] text-white opacity-85" :
+                "bg-[#FF5F03] text-white hover:bg-[#e05503]"
+              }`}
+            >
+              {saveStatus === "saving" && <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4 31.4" strokeLinecap="round" /></svg>}
+              {saveStatus === "success" && <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+              {saveStatus === "error" && <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>}
+              {saveStatus === "idle" ? "Simpan Produk" : saveStatus === "saving" ? "Menyimpan..." : saveStatus === "success" ? "Tersimpan!" : "Gagal, coba lagi"}
+            </button>
           </div>
 
         </div>
