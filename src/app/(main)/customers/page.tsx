@@ -1,61 +1,108 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Phone, MapPin, DollarSign, Check, User, Receipt, History, Users, AlertCircle } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
-import Modal from "@/components/ui/Modal";
-import DataTable from "@/components/ui/DataTable";
+import { useState, useEffect, useMemo } from "react";
+import {
+  Plus, Edit, Trash2, Phone, MapPin, DollarSign, Check,
+  AlertCircle, Users, Clock, TrendingDown, ChevronRight,
+  X, Search, ArrowLeft, FileText, CreditCard
+} from "lucide-react";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 import { getCustomers, updateCustomerDebt, addDebtPayment, getDebtPayments } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 
+// ─── Types ───────────────────────────────────────────────────────
+type Tab = "pelanggan" | "piutang" | "riwayat";
+type Customer = { id: string; name: string; phone: string; address?: string; debt: number; created_at?: string };
+type Payment = { id: string; customer_id: string; amount: number; method: string; note: string; created_at: string; customers?: { name: string } };
+
+// ─── Helpers ─────────────────────────────────────────────────────
+function debtAgeDays(payments: Payment[], customerId: string): number {
+  const debts = payments.filter(p => p.customer_id === customerId && p.amount < 0);
+  if (!debts.length) return 0;
+  const oldest = debts[debts.length - 1];
+  return Math.floor((Date.now() - new Date(oldest.created_at).getTime()) / 86400000);
+}
+
+function AgeBadge({ days }: { days: number }) {
+  if (days === 0) return <span className="text-[10px] text-[#9CA3AF]">—</span>;
+  if (days <= 7) return <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-600">{days}h</span>;
+  if (days <= 30) return <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600">{days}h</span>;
+  return <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-600">{days}h ⚠️</span>;
+}
+
+// ─── Main Component ───────────────────────────────────────────────
 export default function CustomersPage() {
-  const [activeTab, setActiveTab] = useState<"pelanggan" | "riwayat">("pelanggan");
-  const [customerList, setCustomerList] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<Tab>("pelanggan");
+  const [customerList, setCustomerList] = useState<Customer[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [search, setSearch] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+
+  // Modals
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState<any | null>(null);
-  const [viewingCustomer, setViewingCustomer] = useState<any | null>(null);
-  const [showPayDebt, setShowPayDebt] = useState<any | null>(null);
-  const [showAddDebt, setShowAddDebt] = useState<any | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [showAddDebt, setShowAddDebt] = useState<Customer | null>(null);
+  const [showPayDebt, setShowPayDebt] = useState<Customer | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
+
+  // Form states
+  const [formData, setFormData] = useState({ name: "", phone: "", address: "" });
+  const [addDebtAmount, setAddDebtAmount] = useState("");
+  const [addDebtNote, setAddDebtNote] = useState("");
   const [payAmount, setPayAmount] = useState("");
   const [payMethod, setPayMethod] = useState("cash");
   const [payNote, setPayNote] = useState("");
-  const [addDebtAmount, setAddDebtAmount] = useState("");
-  const [addDebtNote, setAddDebtNote] = useState("");
-  const [toast, setToast] = useState("");
-  const [toastType, setToastType] = useState<"success" | "error">("success");
-  const [payments, setPayments] = useState<any[]>([]);
-  const [formData, setFormData] = useState({ name: "", phone: "", address: "" });
+
+  // Toast
+  const [toast, setToast] = useState({ msg: "", type: "success" as "success" | "error" });
+
+  const showToast = (msg: string, type: "success" | "error" = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast({ msg: "", type: "success" }), 3000);
+  };
 
   useEffect(() => { loadData(); }, []);
 
-  const showToast = (msg: string, type: "success" | "error" = "success") => {
-    setToast(msg); setToastType(type);
-    setTimeout(() => setToast(""), 3000);
-  };
-
   const loadData = async () => {
     const [custs, pays] = await Promise.all([getCustomers(), getDebtPayments()]);
-    setCustomerList(custs);
-    setPayments(pays);
+    setCustomerList(custs as Customer[]);
+    setPayments(pays as Payment[]);
   };
 
-  const totalDebt = customerList.reduce((s, c) => s + (c.debt || 0), 0);
+  // ─── Computed ────────────────────────────────────────────────────
+  const activeDebtors = useMemo(() => customerList.filter(c => c.debt > 0), [customerList]);
+  const totalDebt = useMemo(() => customerList.reduce((s, c) => s + (c.debt || 0), 0), [customerList]);
+  const overdueCount = useMemo(() => activeDebtors.filter(c => debtAgeDays(payments, c.id) > 30).length, [activeDebtors, payments]);
+  const paymentHistory = useMemo(() => payments.filter(p => p.amount > 0), [payments]);
 
-  // ===== CRUD PELANGGAN =====
+  const filteredCustomers = useMemo(() => {
+    if (!search) return customerList;
+    return customerList.filter(c =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.phone?.includes(search)
+    );
+  }, [customerList, search]);
+
+  const filteredDebtors = useMemo(() => {
+    if (!search) return activeDebtors;
+    return activeDebtors.filter(c =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.phone?.includes(search)
+    );
+  }, [activeDebtors, search]);
+
+  // ─── Handlers ─────────────────────────────────────────────────
   const handleSaveCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.phone) { showToast("Nama dan telepon wajib diisi", "error"); return; }
     if (editingCustomer) {
       const { error } = await supabase.from("customers").update({ name: formData.name, phone: formData.phone, address: formData.address }).eq("id", editingCustomer.id);
-      if (error) { showToast("Gagal mengupdate pelanggan", "error"); return; }
-      showToast("Pelanggan berhasil diperbarui");
+      if (error) { showToast("Gagal update", "error"); return; }
+      showToast("Pelanggan diperbarui");
     } else {
       const { error } = await supabase.from("customers").insert({ name: formData.name, phone: formData.phone, address: formData.address, debt: 0 });
-      if (error) { showToast("Gagal menambah pelanggan", "error"); return; }
-      showToast("Pelanggan berhasil ditambahkan");
+      if (error) { showToast("Gagal tambah pelanggan", "error"); return; }
+      showToast("Pelanggan ditambahkan");
     }
     await loadData();
     setShowAddModal(false); setEditingCustomer(null); setFormData({ name: "", phone: "", address: "" });
@@ -64,348 +111,571 @@ export default function CustomersPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     await supabase.from("debt_payments").delete().eq("customer_id", deleteTarget.id);
-    const { error } = await supabase.from("customers").delete().eq("id", deleteTarget.id);
-    if (error) { showToast("Gagal menghapus pelanggan", "error"); return; }
+    await supabase.from("customers").delete().eq("id", deleteTarget.id);
     await loadData();
     setDeleteTarget(null);
-    showToast("Pelanggan berhasil dihapus");
+    if (selectedCustomer?.id === deleteTarget.id) setSelectedCustomer(null);
+    showToast("Pelanggan dihapus");
   };
 
-  // ===== CATAT HUTANG BARU =====
   const handleAddDebt = async () => {
     if (!showAddDebt) return;
     const amount = Number(addDebtAmount);
-    if (!amount || amount <= 0) { showToast("Masukkan jumlah hutang yang valid", "error"); return; }
-    const newDebt = (showAddDebt.debt || 0) + amount;
-    const { error } = await supabase.from("customers").update({ debt: newDebt }).eq("id", showAddDebt.id);
-    if (error) { showToast("Gagal mencatat hutang", "error"); return; }
-    // Catat ke debt_payments sebagai hutang baru (amount negatif = hutang, positif = bayar)
-    await supabase.from("debt_payments").insert({
-      customer_id: showAddDebt.id,
-      amount: -amount,
-      method: "hutang",
-      note: addDebtNote || "Hutang baru",
-    });
+    if (!amount || amount <= 0) { showToast("Masukkan jumlah yang valid", "error"); return; }
+    await supabase.from("customers").update({ debt: (showAddDebt.debt || 0) + amount }).eq("id", showAddDebt.id);
+    await supabase.from("debt_payments").insert({ customer_id: showAddDebt.id, amount: -amount, method: "hutang", note: addDebtNote || "Piutang baru" });
     await loadData();
     setShowAddDebt(null); setAddDebtAmount(""); setAddDebtNote("");
-    showToast(`Hutang Rp ${amount.toLocaleString("id-ID")} berhasil dicatat`);
+    showToast(`Piutang ${formatCurrency(amount)} dicatat`);
   };
 
-  // ===== BAYAR HUTANG =====
   const handlePayDebt = async () => {
     if (!showPayDebt) return;
     const amount = Number(payAmount);
-    if (!amount || amount <= 0) { showToast("Masukkan jumlah bayar yang valid", "error"); return; }
-    if (amount > showPayDebt.debt) { showToast("Jumlah bayar melebihi sisa hutang", "error"); return; }
-    const newDebt = showPayDebt.debt - amount;
-    const success = await updateCustomerDebt(showPayDebt.id, newDebt);
-    if (!success) { showToast("Gagal menyimpan pembayaran", "error"); return; }
+    if (!amount || amount <= 0) { showToast("Masukkan jumlah yang valid", "error"); return; }
+    if (amount > showPayDebt.debt) { showToast("Melebihi sisa piutang", "error"); return; }
+    await updateCustomerDebt(showPayDebt.id, showPayDebt.debt - amount);
     await addDebtPayment({ customer_id: showPayDebt.id, amount, method: payMethod, note: payNote || (amount >= showPayDebt.debt ? "Pelunasan" : "Cicilan") });
     await loadData();
     setShowPayDebt(null); setPayAmount(""); setPayMethod("cash"); setPayNote("");
-    showToast(amount >= showPayDebt.debt ? "Hutang lunas ✓" : "Pembayaran berhasil ✓");
+    showToast(amount >= showPayDebt.debt ? "Piutang lunas! ✓" : "Pembayaran berhasil");
   };
 
-  // ===== COLUMNS DESKTOP =====
-  const columns = [
-    { key: "name", label: "Nama", sortable: true, render: (item: any) => <button onClick={() => setViewingCustomer(item)} className="font-medium text-gray-900 hover:text-blue-600 cursor-pointer">{item.name}</button> },
-    { key: "phone", label: "Telepon", render: (item: any) => <div className="flex items-center gap-1.5 text-sm text-gray-600"><Phone className="w-3.5 h-3.5" />{item.phone}</div> },
-    { key: "address", label: "Alamat", render: (item: any) => <span className="text-sm text-gray-600 truncate max-w-[160px] block">{item.address || "-"}</span> },
-    { key: "debt", label: "Hutang", sortable: true, render: (item: any) => (
-      <span className={`font-bold ${item.debt > 0 ? "text-red-600" : "text-green-600"}`}>
-        {item.debt > 0 ? formatCurrency(item.debt) : "Lunas"}
-      </span>
-    )},
-    { key: "actions", label: "Aksi", render: (item: any) => (
-      <div className="flex items-center gap-1">
-        <button onClick={() => { setShowAddDebt(item); setAddDebtAmount(""); setAddDebtNote(""); }} className="text-xs px-2 py-1 bg-orange-50 text-orange-600 rounded-md hover:bg-orange-100 font-medium cursor-pointer whitespace-nowrap">+ Hutang</button>
-        {item.debt > 0 && <button onClick={() => { setShowPayDebt(item); setPayAmount(""); setPayNote(""); }} className="text-xs px-2 py-1 bg-green-50 text-green-700 rounded-md hover:bg-green-100 font-medium cursor-pointer">Bayar</button>}
-        <button onClick={() => { setEditingCustomer(item); setFormData({ name: item.name, phone: item.phone, address: item.address || "" }); }} className="p-1.5 rounded-md hover:bg-blue-50 text-blue-600 cursor-pointer"><Edit className="w-4 h-4" /></button>
-        <button onClick={() => setDeleteTarget(item)} className="p-1.5 rounded-md hover:bg-red-50 text-red-500 cursor-pointer"><Trash2 className="w-4 h-4" /></button>
+  // ─── Detail View ───────────────────────────────────────────────
+  if (selectedCustomer) {
+    const cust = customerList.find(c => c.id === selectedCustomer.id) || selectedCustomer;
+    const custHistory = payments.filter(p => p.customer_id === cust.id);
+    const custPayments = custHistory.filter(p => p.amount > 0);
+    const custDebts = custHistory.filter(p => p.amount < 0);
+    const totalPaid = custPayments.reduce((s, p) => s + p.amount, 0);
+    const ageDays = debtAgeDays(payments, cust.id);
+
+    return (
+      <div className="max-w-2xl space-y-4 pb-20 md:pb-0">
+        {/* Back */}
+        <button onClick={() => setSelectedCustomer(null)} className="flex items-center gap-2 text-sm font-semibold text-[#072C2C]/60 hover:text-[#072C2C] cursor-pointer transition-colors">
+          <ArrowLeft className="w-4 h-4" />Kembali ke Pelanggan & Piutang
+        </button>
+
+        {/* Header card */}
+        <div className="bg-[#072C2C] rounded-2xl p-5 text-white">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-xl font-black">{cust.name.charAt(0).toUpperCase()}</span>
+              </div>
+              <div>
+                <p className="text-lg font-bold leading-tight">{cust.name}</p>
+                <p className="text-white/60 text-sm">📞 {cust.phone}</p>
+                {cust.address && <p className="text-white/50 text-xs mt-0.5">📍 {cust.address}</p>}
+              </div>
+            </div>
+            <button onClick={() => { setEditingCustomer(cust); setFormData({ name: cust.name, phone: cust.phone, address: cust.address || "" }); }} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 cursor-pointer">
+              <Edit className="w-4 h-4 text-white" />
+            </button>
+          </div>
+          {/* Debt summary */}
+          <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-white/10">
+            <div>
+              <p className="text-white/50 text-[10px] uppercase tracking-wider">Piutang Aktif</p>
+              <p className={`text-lg font-black mt-0.5 ${cust.debt > 0 ? "text-red-300" : "text-green-400"}`}>{cust.debt > 0 ? formatCurrency(cust.debt) : "Lunas"}</p>
+            </div>
+            <div>
+              <p className="text-white/50 text-[10px] uppercase tracking-wider">Sudah Bayar</p>
+              <p className="text-lg font-black text-green-400 mt-0.5">{formatCurrency(totalPaid)}</p>
+            </div>
+            <div>
+              <p className="text-white/50 text-[10px] uppercase tracking-wider">Umur Piutang</p>
+              <p className={`text-lg font-black mt-0.5 ${ageDays > 30 ? "text-red-300" : ageDays > 7 ? "text-amber-300" : "text-white"}`}>{ageDays > 0 ? `${ageDays} hari` : "—"}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={() => { setShowAddDebt(cust); setAddDebtAmount(""); setAddDebtNote(""); }} className="flex items-center justify-center gap-2 py-3 bg-white border-2 border-[#FF5F03] text-[#FF5F03] font-bold text-sm rounded-2xl cursor-pointer hover:bg-[#FFF8F5] transition-colors">
+            <Plus className="w-4 h-4" />Tambah Piutang
+          </button>
+          {cust.debt > 0 ? (
+            <button onClick={() => { setShowPayDebt(cust); setPayAmount(""); setPayNote(""); }} className="flex items-center justify-center gap-2 py-3 bg-[#16A34A] text-white font-bold text-sm rounded-2xl cursor-pointer hover:bg-[#15803d] transition-colors">
+              <DollarSign className="w-4 h-4" />Catat Pembayaran
+            </button>
+          ) : (
+            <button onClick={() => setDeleteTarget(cust)} className="flex items-center justify-center gap-2 py-3 bg-white border-2 border-red-200 text-red-500 font-bold text-sm rounded-2xl cursor-pointer hover:bg-red-50 transition-colors">
+              <Trash2 className="w-4 h-4" />Hapus Pelanggan
+            </button>
+          )}
+        </div>
+
+        {/* Riwayat piutang */}
+        {custDebts.length > 0 && (
+          <div className="bg-white border border-[#EBEBEB] rounded-2xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-[#F5F5F5] flex items-center gap-2">
+              <FileText className="w-4 h-4 text-red-400" />
+              <p className="text-sm font-bold text-[#072C2C]">Riwayat Piutang</p>
+              <span className="ml-auto text-[10px] font-bold bg-red-50 text-red-500 px-2 py-0.5 rounded-full">{custDebts.length} transaksi</span>
+            </div>
+            <div className="divide-y divide-[#F5F5F5]">
+              {custDebts.map(p => (
+                <div key={p.id} className="px-4 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-red-600">-{formatCurrency(Math.abs(p.amount))}</p>
+                    <p className="text-[11px] text-[#9CA3AF]">{p.note}</p>
+                  </div>
+                  <p className="text-[11px] text-[#9CA3AF]">{formatDate(p.created_at)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Riwayat pembayaran */}
+        {custPayments.length > 0 && (
+          <div className="bg-white border border-[#EBEBEB] rounded-2xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-[#F5F5F5] flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-green-500" />
+              <p className="text-sm font-bold text-[#072C2C]">Riwayat Pembayaran</p>
+              <span className="ml-auto text-[10px] font-bold bg-green-50 text-green-600 px-2 py-0.5 rounded-full">{custPayments.length} kali bayar</span>
+            </div>
+            <div className="divide-y divide-[#F5F5F5]">
+              {custPayments.map(p => (
+                <div key={p.id} className="px-4 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-green-600">+{formatCurrency(p.amount)}</p>
+                    <p className="text-[11px] text-[#9CA3AF]">{p.note} · {p.method === "cash" ? "Tunai" : "Transfer"}</p>
+                  </div>
+                  <p className="text-[11px] text-[#9CA3AF]">{formatDate(p.created_at)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {custHistory.length === 0 && (
+          <div className="bg-white border border-[#EBEBEB] rounded-2xl p-8 text-center">
+            <p className="text-sm text-[#9CA3AF]">Belum ada riwayat transaksi</p>
+          </div>
+        )}
+
+        {/* Modals (edit, add debt, pay debt, delete) */}
+        {renderModals()}
       </div>
-    )},
-  ];
+    );
+  }
 
-  // ===== RIWAYAT: pisahkan hutang baru vs bayar =====
-  const allHistory = payments; // includes both debt records (amount < 0) and payments (amount > 0)
+  // ─── Modals (shared) ─────────────────────────────────────────
+  function renderModals() {
+    return (
+      <>
+        {/* Add / Edit Customer */}
+        {(showAddModal || !!editingCustomer) && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="fixed inset-0 bg-black/50" onClick={() => { setShowAddModal(false); setEditingCustomer(null); }} />
+            <div className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl p-5 sm:p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-[#072C2C]">{editingCustomer ? "Edit Pelanggan" : "Tambah Pelanggan"}</h3>
+                <button onClick={() => { setShowAddModal(false); setEditingCustomer(null); }} className="p-1.5 rounded-xl hover:bg-[#F0EEE8] cursor-pointer"><X className="w-4 h-4 text-[#072C2C]/50" /></button>
+              </div>
+              <form onSubmit={handleSaveCustomer} className="space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-[#072C2C]/60 mb-1 block">Nama Lengkap *</label>
+                  <input value={formData.name} onChange={e => setFormData(f => ({ ...f, name: e.target.value }))} placeholder="Nama pelanggan" required className="w-full px-3 py-2.5 border border-[#E5E3DC] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[#072C2C]/60 mb-1 block">No. Telepon *</label>
+                  <input value={formData.phone} onChange={e => setFormData(f => ({ ...f, phone: e.target.value }))} placeholder="08xx-xxxx-xxxx" required className="w-full px-3 py-2.5 border border-[#E5E3DC] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[#072C2C]/60 mb-1 block">Alamat</label>
+                  <input value={formData.address} onChange={e => setFormData(f => ({ ...f, address: e.target.value }))} placeholder="Alamat (opsional)" className="w-full px-3 py-2.5 border border-[#E5E3DC] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
+                </div>
+                <div className="flex gap-3 pt-1">
+                  <button type="button" onClick={() => { setShowAddModal(false); setEditingCustomer(null); }} className="flex-1 py-2.5 border border-[#E5E3DC] rounded-xl text-sm font-semibold text-[#072C2C]/60 cursor-pointer hover:bg-[#F8F7F4]">Batal</button>
+                  <button type="submit" className="flex-1 py-2.5 bg-[#FF5F03] text-white rounded-xl text-sm font-bold cursor-pointer hover:bg-[#e05500]">{editingCustomer ? "Simpan" : "Tambah"}</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
+        {/* Add Debt */}
+        {showAddDebt && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="fixed inset-0 bg-black/50" onClick={() => setShowAddDebt(null)} />
+            <div className="relative bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-[#072C2C]">Tambah Piutang</h3>
+                <button onClick={() => setShowAddDebt(null)} className="p-1.5 rounded-xl hover:bg-[#F0EEE8] cursor-pointer"><X className="w-4 h-4 text-[#072C2C]/50" /></button>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-[#FFF8F5] border border-orange-100 rounded-xl">
+                <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center font-black text-orange-600">{showAddDebt.name.charAt(0)}</div>
+                <div>
+                  <p className="text-sm font-bold text-[#072C2C]">{showAddDebt.name}</p>
+                  <p className="text-xs text-[#9CA3AF]">Piutang saat ini: <span className="font-bold text-red-500">{formatCurrency(showAddDebt.debt)}</span></p>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#072C2C]/60 mb-1 block">Jumlah Piutang</label>
+                <input type="text" inputMode="numeric" value={addDebtAmount ? `Rp ${Number(addDebtAmount).toLocaleString("id-ID")}` : ""} onChange={e => setAddDebtAmount(e.target.value.replace(/\D/g, ""))} placeholder="Rp 0" className="w-full px-4 py-3 text-xl font-black text-[#072C2C] border border-[#E5E3DC] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 text-right" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#072C2C]/60 mb-1 block">Keterangan</label>
+                <input value={addDebtNote} onChange={e => setAddDebtNote(e.target.value)} placeholder="Contoh: Beli beras 5kg" className="w-full px-3 py-2.5 border border-[#E5E3DC] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
+              </div>
+              {Number(addDebtAmount) > 0 && (
+                <div className="bg-red-50 rounded-xl p-3 border border-red-100 space-y-1 text-sm">
+                  <div className="flex justify-between"><span className="text-[#072C2C]/60">Piutang saat ini</span><span className="font-semibold text-red-500">{formatCurrency(showAddDebt.debt)}</span></div>
+                  <div className="flex justify-between"><span className="text-[#072C2C]/60">Tambah</span><span className="font-semibold text-red-500">+{formatCurrency(Number(addDebtAmount))}</span></div>
+                  <div className="flex justify-between pt-1 border-t border-red-100"><span className="font-bold text-[#072C2C]">Total piutang</span><span className="font-black text-red-600">{formatCurrency(showAddDebt.debt + Number(addDebtAmount))}</span></div>
+                </div>
+              )}
+              <div className="flex gap-3">
+                <button onClick={() => setShowAddDebt(null)} className="flex-1 py-2.5 border border-[#E5E3DC] rounded-xl text-sm font-semibold text-[#072C2C]/60 cursor-pointer hover:bg-[#F8F7F4]">Batal</button>
+                <button onClick={handleAddDebt} className="flex-1 py-2.5 bg-[#FF5F03] text-white rounded-xl text-sm font-bold cursor-pointer hover:bg-[#e05500] flex items-center justify-center gap-2">
+                  <Plus className="w-4 h-4" />Tambah Piutang
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Pay Debt */}
+        {showPayDebt && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="fixed inset-0 bg-black/50" onClick={() => setShowPayDebt(null)} />
+            <div className="relative bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-[#072C2C]">Catat Pembayaran</h3>
+                <button onClick={() => setShowPayDebt(null)} className="p-1.5 rounded-xl hover:bg-[#F0EEE8] cursor-pointer"><X className="w-4 h-4 text-[#072C2C]/50" /></button>
+              </div>
+              <div className="bg-red-50 rounded-xl p-4 text-center border border-red-100">
+                <p className="text-xs text-red-400 font-semibold">{showPayDebt.name} — Sisa Piutang</p>
+                <p className="text-3xl font-black text-red-600 mt-1">{formatCurrency(showPayDebt.debt)}</p>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#072C2C]/60 mb-1 block">Jumlah Bayar</label>
+                <input type="text" inputMode="numeric" value={payAmount ? `Rp ${Number(payAmount).toLocaleString("id-ID")}` : ""} onChange={e => setPayAmount(e.target.value.replace(/\D/g, ""))} placeholder="Rp 0" className="w-full px-4 py-3 text-xl font-black text-[#072C2C] border border-[#E5E3DC] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#16A34A]/30 text-right" />
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  <button type="button" onClick={() => setPayAmount(String(showPayDebt.debt))} className="py-2 text-xs font-bold bg-green-50 text-green-700 rounded-xl border border-green-200 cursor-pointer">Lunas</button>
+                  <button type="button" onClick={() => setPayAmount(String(Math.round(showPayDebt.debt / 2)))} className="py-2 text-xs font-semibold bg-[#F8F7F4] text-[#072C2C]/70 rounded-xl border border-[#E5E3DC] cursor-pointer">Setengah</button>
+                  <button type="button" onClick={() => setPayAmount(String(Math.min(50000, showPayDebt.debt)))} className="py-2 text-xs font-semibold bg-[#F8F7F4] text-[#072C2C]/70 rounded-xl border border-[#E5E3DC] cursor-pointer">50rb</button>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#072C2C]/60 mb-1 block">Metode</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[["cash", "💵 Tunai"], ["transfer", "🏦 Transfer"]].map(([m, label]) => (
+                    <button key={m} type="button" onClick={() => setPayMethod(m)} className={`py-2.5 text-sm font-bold rounded-xl cursor-pointer transition-all ${payMethod === m ? "bg-[#072C2C] text-white" : "bg-[#F8F7F4] text-[#072C2C]/60 border border-[#E5E3DC]"}`}>{label}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#072C2C]/60 mb-1 block">Catatan</label>
+                <input value={payNote} onChange={e => setPayNote(e.target.value)} placeholder="Opsional" className="w-full px-3 py-2.5 border border-[#E5E3DC] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#16A34A]/30" />
+              </div>
+              {Number(payAmount) > 0 && Number(payAmount) <= showPayDebt.debt && (
+                <div className="bg-green-50 rounded-xl p-3 border border-green-100 space-y-1 text-sm">
+                  <div className="flex justify-between"><span className="text-[#072C2C]/60">Pembayaran</span><span className="font-bold text-green-600">{formatCurrency(Number(payAmount))}</span></div>
+                  <div className="flex justify-between"><span className="text-[#072C2C]/60">Sisa piutang</span><span className="font-bold text-[#072C2C]">{formatCurrency(showPayDebt.debt - Number(payAmount))}</span></div>
+                </div>
+              )}
+              <div className="flex gap-3">
+                <button onClick={() => setShowPayDebt(null)} className="flex-1 py-2.5 border border-[#E5E3DC] rounded-xl text-sm font-semibold text-[#072C2C]/60 cursor-pointer hover:bg-[#F8F7F4]">Batal</button>
+                <button onClick={handlePayDebt} className="flex-1 py-2.5 bg-[#16A34A] text-white rounded-xl text-sm font-bold cursor-pointer hover:bg-[#15803d] flex items-center justify-center gap-2">
+                  <Check className="w-4 h-4" />Bayar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirm */}
+        {deleteTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/60" onClick={() => setDeleteTarget(null)} />
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center space-y-4">
+              <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto"><Trash2 className="w-7 h-7 text-red-500" /></div>
+              <div>
+                <h3 className="text-base font-bold text-[#072C2C]">Hapus Pelanggan?</h3>
+                <p className="text-sm text-[#9CA3AF] mt-1"><strong className="text-[#072C2C]">{deleteTarget.name}</strong> dan seluruh riwayat piutangnya akan dihapus permanen.</p>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setDeleteTarget(null)} className="flex-1 py-2.5 border border-[#E5E3DC] rounded-xl text-sm font-semibold cursor-pointer hover:bg-[#F8F7F4]">Batal</button>
+                <button onClick={handleDelete} className="flex-1 py-2.5 bg-[#DC2626] text-white rounded-xl text-sm font-bold cursor-pointer hover:bg-[#b91c1c]">Hapus</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  // ─── Main List View ───────────────────────────────────────────
   return (
-    <div className="space-y-6 pb-20 md:pb-0">
+    <div className="space-y-5 pb-20 md:pb-0">
       {/* Toast */}
-      {toast && (
+      {toast.msg && (
         <div className="fixed z-[9999] top-4 right-4 animate-in slide-in-from-top fade-in duration-200">
-          <div className={`px-4 py-2.5 rounded-xl shadow-xl text-sm font-medium text-white flex items-center gap-2 ${toastType === "success" ? "bg-[#16A34A]" : "bg-[#DC2626]"}`}>
-            {toastType === "success" ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-            {toast}
+          <div className={`px-4 py-2.5 rounded-xl shadow-xl text-sm font-bold text-white flex items-center gap-2 ${toast.type === "success" ? "bg-[#16A34A]" : "bg-[#DC2626]"}`}>
+            {toast.type === "success" ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            {toast.msg}
           </div>
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Page header */}
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Pelanggan</h1>
-          <p className="text-[10px] text-[#9CA3AF] font-light mt-0.5">Kelola data pelanggan dan hutang</p>
+          <h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Pelanggan & Piutang</h1>
+          <p className="text-[11px] text-[#9CA3AF] mt-0.5">Kelola pelanggan dan pantau piutang warung</p>
         </div>
-        <Button onClick={() => { setShowAddModal(true); setFormData({ name: "", phone: "", address: "" }); }}>
-          <Plus className="w-4 h-4" />Tambah Pelanggan
-        </Button>
+        <button onClick={() => { setShowAddModal(true); setFormData({ name: "", phone: "", address: "" }); }} className="flex items-center gap-2 px-4 py-2.5 bg-[#FF5F03] text-white text-sm font-bold rounded-xl cursor-pointer hover:bg-[#e05500] transition-colors flex-shrink-0">
+          <Plus className="w-4 h-4" />Tambah
+        </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        <div className="bg-white rounded-2xl p-3.5 border border-[#EBEBEB] shadow-sm">
-          <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Total</p>
-          <p className="font-[Oswald] text-2xl font-bold text-[#072C2C] mt-0.5">{customerList.length}</p>
-          <p className="text-[10px] text-[#9CA3AF]">pelanggan</p>
-        </div>
-        <div className="bg-white rounded-2xl p-3.5 border border-[#EBEBEB] shadow-sm">
-          <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Hutang</p>
-          <p className="font-[Oswald] text-2xl font-bold text-amber-500 mt-0.5">{customerList.filter(c => c.debt > 0).length}</p>
-          <p className="text-[10px] text-[#9CA3AF]">pelanggan</p>
-        </div>
-        <div className="bg-white rounded-2xl p-3.5 border border-[#EBEBEB] shadow-sm">
-          <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Total Hutang</p>
-          <p className="font-[Oswald] text-xl font-bold text-red-500 mt-0.5 leading-tight">{formatCurrency(totalDebt)}</p>
-          <p className="text-[10px] text-[#9CA3AF]">keseluruhan</p>
-        </div>
-        <div className="bg-white rounded-2xl p-3.5 border border-[#EBEBEB] shadow-sm">
-          <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Lunas</p>
-          <p className="font-[Oswald] text-2xl font-bold text-green-500 mt-0.5">{customerList.filter(c => c.debt === 0).length}</p>
-          <p className="text-[10px] text-[#9CA3AF]">pelanggan</p>
-        </div>
+      {/* Dashboard KPI */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: "Total Pelanggan", value: customerList.length, color: "text-[#072C2C]", bg: "bg-[#072C2C]", icon: Users },
+          { label: "Piutang Aktif", value: activeDebtors.length, color: "text-amber-600", bg: "bg-amber-500", icon: AlertCircle },
+          { label: "Total Piutang", value: formatCurrency(totalDebt), color: "text-red-600", bg: "bg-red-500", icon: TrendingDown, large: true },
+          { label: "Menunggak >30 Hari", value: overdueCount, color: "text-red-600", bg: "bg-red-600", icon: Clock },
+        ].map(({ label, value, color, bg, icon: Icon, large }) => (
+          <div key={label} className="bg-white border border-[#EBEBEB] rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider leading-tight">{label}</p>
+              <div className={`w-7 h-7 rounded-xl ${bg} flex items-center justify-center opacity-90`}>
+                <Icon className="w-3.5 h-3.5 text-white" />
+              </div>
+            </div>
+            <p className={`font-[Oswald] font-bold ${color} ${large ? "text-xl leading-tight" : "text-2xl"}`}>{value}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Tabs — modern pill style */}
+      {/* Search bar */}
+      <div className="relative">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Cari nama atau nomor telepon..."
+          className="w-full pl-10 pr-4 py-2.5 border border-[#E5E3DC] rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#072C2C]/10 focus:border-[#072C2C]/30"
+        />
+      </div>
+
+      {/* Tabs */}
       <div className="flex gap-0 bg-[#F0EEE8] p-1 rounded-2xl">
-        <button
-          onClick={() => setActiveTab("pelanggan")}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === "pelanggan" ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/40"}`}
-        >
-          <Users className="w-3.5 h-3.5" />Pelanggan
-          <span className={`ml-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-bold ${activeTab === "pelanggan" ? "bg-[#072C2C] text-white" : "bg-[#072C2C]/10 text-[#072C2C]/50"}`}>{customerList.length}</span>
-        </button>
-        <button
-          onClick={() => setActiveTab("riwayat")}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === "riwayat" ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/40"}`}
-        >
-          <History className="w-3.5 h-3.5" />Riwayat
-          {allHistory.length > 0 && <span className={`ml-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-bold ${activeTab === "riwayat" ? "bg-[#FF5F03] text-white" : "bg-[#FF5F03]/10 text-[#FF5F03]"}`}>{allHistory.length}</span>}
-        </button>
+        {([
+          ["pelanggan", Users, "Semua Pelanggan", customerList.length],
+          ["piutang", AlertCircle, "Piutang Aktif", activeDebtors.length],
+          ["riwayat", CreditCard, "Riwayat Bayar", paymentHistory.length],
+        ] as const).map(([tab, Icon, label, count]) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === tab ? "bg-white text-[#072C2C] shadow-sm" : "text-[#072C2C]/40 hover:text-[#072C2C]/70"}`}
+          >
+            <Icon className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{label}</span>
+            <span className="sm:hidden">{tab === "pelanggan" ? "Semua" : tab === "piutang" ? "Piutang" : "Riwayat"}</span>
+            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === tab ? (tab === "piutang" ? "bg-red-500 text-white" : tab === "riwayat" ? "bg-green-500 text-white" : "bg-[#072C2C] text-white") : "bg-[#072C2C]/10 text-[#072C2C]/40"}`}>{count}</span>
+          </button>
+        ))}
       </div>
 
-      {/* TAB: Daftar Pelanggan */}
+      {/* ── TAB: Semua Pelanggan ─────────────────────────────── */}
       {activeTab === "pelanggan" && (
         <>
-          <div className="hidden md:block">
-            <Card><CardContent>
-              <DataTable columns={columns} data={customerList} searchPlaceholder="Cari pelanggan..." searchKeys={["name", "phone", "address"]} />
-            </CardContent></Card>
+          {/* Desktop table */}
+          <div className="hidden md:block bg-white border border-[#EBEBEB] rounded-2xl overflow-hidden shadow-sm">
+            {filteredCustomers.length === 0 ? (
+              <div className="p-12 text-center text-[#9CA3AF] text-sm">Tidak ada pelanggan ditemukan</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-[#F8F7F4] border-b border-[#EBEBEB]">
+                  <tr>{["Pelanggan", "Telepon", "Alamat", "Piutang", "Status", "Aksi"].map(h => <th key={h} className="px-4 py-3 text-left text-xs font-bold text-[#9CA3AF] uppercase tracking-wider">{h}</th>)}</tr>
+                </thead>
+                <tbody className="divide-y divide-[#F5F5F5]">
+                  {filteredCustomers.map(item => (
+                    <tr key={item.id} className="hover:bg-[#FAFAF8] transition-colors">
+                      <td className="px-4 py-3">
+                        <button onClick={() => setSelectedCustomer(item)} className="flex items-center gap-2.5 group cursor-pointer">
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0 ${item.debt > 0 ? "bg-red-50 text-red-500" : "bg-green-50 text-green-600"}`}>{item.name.charAt(0)}</div>
+                          <span className="font-semibold text-[#072C2C] group-hover:text-[#FF5F03] transition-colors">{item.name}</span>
+                          <ChevronRight className="w-3.5 h-3.5 text-[#9CA3AF] opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-[#9CA3AF]">{item.phone}</td>
+                      <td className="px-4 py-3 text-[#9CA3AF] max-w-[150px] truncate">{item.address || "—"}</td>
+                      <td className="px-4 py-3 font-bold">{item.debt > 0 ? <span className="text-red-600">{formatCurrency(item.debt)}</span> : <span className="text-green-600">Lunas</span>}</td>
+                      <td className="px-4 py-3">
+                        {item.debt > 0
+                          ? <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-red-50 text-red-600">Ada Piutang</span>
+                          : <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-green-50 text-green-600">✓ Lunas</span>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => { setShowAddDebt(item); setAddDebtAmount(""); setAddDebtNote(""); }} className="text-[11px] px-2.5 py-1 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 font-bold cursor-pointer">+ Piutang</button>
+                          {item.debt > 0 && <button onClick={() => { setShowPayDebt(item); setPayAmount(""); setPayNote(""); }} className="text-[11px] px-2.5 py-1 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 font-bold cursor-pointer">Bayar</button>}
+                          <button onClick={() => { setEditingCustomer(item); setFormData({ name: item.name, phone: item.phone, address: item.address || "" }); }} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500 cursor-pointer"><Edit className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => setDeleteTarget(item)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
-          <div className="md:hidden space-y-3">
-            {customerList.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="w-16 h-16 bg-[#F0EEE8] rounded-2xl flex items-center justify-center mx-auto mb-3">
-                  <Users className="w-8 h-8 text-[#072C2C]/20" />
-                </div>
-                <p className="text-sm font-medium text-[#072C2C]/40">Belum ada pelanggan</p>
-                <button onClick={() => { setShowAddModal(true); setFormData({ name: "", phone: "", address: "" }); }} className="mt-3 text-xs font-bold text-[#FF5F03] flex items-center gap-1 mx-auto">
-                  <Plus className="w-3.5 h-3.5" />Tambah pelanggan pertama
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-2.5">
+            {filteredCustomers.length === 0 ? (
+              <div className="text-center py-12 text-[#9CA3AF] text-sm">Tidak ada pelanggan</div>
+            ) : filteredCustomers.map(item => (
+              <div key={item.id} className="bg-white border border-[#EBEBEB] rounded-2xl overflow-hidden shadow-sm">
+                <div className={`h-1 ${item.debt > 0 ? "bg-gradient-to-r from-red-400 to-orange-400" : "bg-gradient-to-r from-green-400 to-emerald-400"}`} />
+                <button onClick={() => setSelectedCustomer(item)} className="w-full p-4 flex items-center gap-3 text-left cursor-pointer hover:bg-[#FAFAF8] transition-colors">
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-lg flex-shrink-0 ${item.debt > 0 ? "bg-red-50 text-red-500" : "bg-green-50 text-green-600"}`}>{item.name.charAt(0)}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-[#072C2C] text-sm">{item.name}</p>
+                    <p className="text-xs text-[#9CA3AF]">📞 {item.phone}</p>
+                    {item.address && <p className="text-[11px] text-[#BBBBBB] truncate">📍 {item.address}</p>}
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    {item.debt > 0 ? (
+                      <><p className="text-sm font-black text-red-600">{formatCurrency(item.debt)}</p><p className="text-[10px] text-red-400">piutang aktif</p></>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 bg-green-50 border border-green-100 px-2 py-1 rounded-xl text-[11px] font-bold text-green-600"><Check className="w-3 h-3" />Lunas</span>
+                    )}
+                    <ChevronRight className="w-4 h-4 text-[#BBBBBB] ml-auto mt-1" />
+                  </div>
                 </button>
               </div>
-            ) : customerList.map((item) => {
-              const custPayments = payments.filter(p => p.customer_id === item.id && p.amount > 0);
-              const custDebts = payments.filter(p => p.customer_id === item.id && p.amount < 0);
-              const hasDebt = item.debt > 0;
-              const totalPaid = custPayments.reduce((s, p) => s + p.amount, 0);
-              const totalBorrowed = Math.abs(custDebts.reduce((s, p) => s + p.amount, 0));
-              const lastPay = custPayments[0];
-              // Progress bayar: totalPaid / (totalPaid + debt)
-              const progressPct = totalPaid + item.debt > 0
-                ? Math.round((totalPaid / (totalPaid + item.debt)) * 100)
-                : 100;
-
-              return (
-                <div key={item.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#EBEBEB]">
-                  {/* Color strip */}
-                  <div className={`h-1 ${hasDebt ? "bg-gradient-to-r from-red-400 via-orange-400 to-amber-300" : "bg-gradient-to-r from-green-400 to-emerald-400"}`} />
-
-                  {/* Main card body */}
-                  <div className="p-4 pb-3">
-                    <div className="flex items-start gap-3">
-                      {/* Avatar */}
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm ${hasDebt ? "bg-gradient-to-br from-red-100 to-orange-50" : "bg-gradient-to-br from-green-100 to-emerald-50"}`}>
-                        <span className={`text-lg font-black ${hasDebt ? "text-red-500" : "text-green-600"}`}>
-                          {item.name.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-
-                      {/* Info kiri */}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-[#072C2C] text-[15px] leading-tight">{item.name}</p>
-                        <p className="text-xs text-[#9CA3AF] mt-0.5">📞 {item.phone}</p>
-                        {item.address && (
-                          <p className="text-[11px] text-[#BBBBBB] mt-0.5 truncate">📍 {item.address}</p>
-                        )}
-                      </div>
-
-                      {/* Debt info kanan */}
-                      <div className="text-right flex-shrink-0">
-                        {hasDebt ? (
-                          <>
-                            <p className="text-sm font-black text-red-600">{formatCurrency(item.debt)}</p>
-                            <p className="text-[10px] text-red-400 font-semibold">sisa hutang</p>
-                          </>
-                        ) : (
-                          <div className="flex items-center gap-1 bg-green-50 border border-green-100 px-2 py-1 rounded-xl">
-                            <Check className="w-3 h-3 text-green-500" />
-                            <span className="text-[11px] font-bold text-green-600">Lunas</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Stats row */}
-                    <div className="grid grid-cols-3 gap-2 mt-3">
-                      <div className="bg-[#F8F7F4] rounded-xl p-2 text-center">
-                        <p className="text-[11px] font-black text-[#072C2C]">{custPayments.length}x</p>
-                        <p className="text-[9px] text-[#9CA3AF] font-medium">Bayar</p>
-                      </div>
-                      <div className="bg-[#F8F7F4] rounded-xl p-2 text-center">
-                        <p className="text-[11px] font-black text-green-600 truncate">{totalPaid > 0 ? formatCurrency(totalPaid) : "—"}</p>
-                        <p className="text-[9px] text-[#9CA3AF] font-medium">Sudah Bayar</p>
-                      </div>
-                      <div className="bg-[#F8F7F4] rounded-xl p-2 text-center">
-                        <p className="text-[11px] font-black text-[#072C2C]">{custDebts.length}x</p>
-                        <p className="text-[9px] text-[#9CA3AF] font-medium">Bon</p>
-                      </div>
-                    </div>
-
-                    {/* Progress bar (hanya kalau ada hutang) */}
-                    {hasDebt && (totalPaid > 0 || totalBorrowed > 0) && (
-                      <div className="mt-3">
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="text-[10px] text-[#9CA3AF]">Progress pelunasan</p>
-                          <p className="text-[10px] font-bold text-[#072C2C]">{progressPct}%</p>
-                        </div>
-                        <div className="w-full h-1.5 bg-[#F0EEE8] rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full transition-all"
-                            style={{ width: `${progressPct}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Last payment info */}
-                    {lastPay && (
-                      <div className="mt-3 flex items-center gap-2 px-2.5 py-2 bg-green-50 rounded-xl border border-green-100">
-                        <div className="w-5 h-5 rounded-full bg-green-200 flex items-center justify-center flex-shrink-0">
-                          <Check className="w-3 h-3 text-green-700" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[11px] text-green-800 font-bold truncate">
-                            Terakhir bayar +{formatCurrency(lastPay.amount)}
-                          </p>
-                          <p className="text-[10px] text-green-600 truncate">{lastPay.note} · {formatDate(lastPay.created_at)}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Action bar */}
-                  <div className="border-t border-[#F5F5F5] grid grid-cols-4">
-                    <button
-                      onClick={() => { setShowAddDebt(item); setAddDebtAmount(""); setAddDebtNote(""); }}
-                      className="py-3 flex flex-col items-center gap-0.5 hover:bg-orange-50 active:bg-orange-100 transition-colors cursor-pointer group"
-                    >
-                      <div className="w-6 h-6 rounded-lg bg-orange-100 group-hover:bg-orange-200 flex items-center justify-center transition-colors">
-                        <Plus className="w-3.5 h-3.5 text-orange-600" />
-                      </div>
-                      <span className="text-[10px] font-semibold text-orange-600">Hutang</span>
-                    </button>
-                    <button
-                      onClick={() => hasDebt ? (setShowPayDebt(item), setPayAmount(""), setPayNote("")) : setViewingCustomer(item)}
-                      className={`py-3 flex flex-col items-center gap-0.5 transition-colors cursor-pointer group ${hasDebt ? "hover:bg-green-50 active:bg-green-100" : "hover:bg-[#F8F7F4]"}`}
-                    >
-                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${hasDebt ? "bg-green-100 group-hover:bg-green-200" : "bg-[#F0EEE8]"}`}>
-                        {hasDebt ? <DollarSign className="w-3.5 h-3.5 text-green-600" /> : <Receipt className="w-3.5 h-3.5 text-[#072C2C]/40" />}
-                      </div>
-                      <span className={`text-[10px] font-semibold ${hasDebt ? "text-green-600" : "text-[#072C2C]/40"}`}>{hasDebt ? "Bayar" : "Detail"}</span>
-                    </button>
-                    <button
-                      onClick={() => { setEditingCustomer(item); setFormData({ name: item.name, phone: item.phone, address: item.address || "" }); }}
-                      className="py-3 flex flex-col items-center gap-0.5 hover:bg-blue-50 active:bg-blue-100 transition-colors cursor-pointer group"
-                    >
-                      <div className="w-6 h-6 rounded-lg bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center transition-colors">
-                        <Edit className="w-3.5 h-3.5 text-blue-600" />
-                      </div>
-                      <span className="text-[10px] font-semibold text-blue-600">Edit</span>
-                    </button>
-                    <button
-                      onClick={() => setDeleteTarget(item)}
-                      className="py-3 flex flex-col items-center gap-0.5 hover:bg-red-50 active:bg-red-100 transition-colors cursor-pointer group"
-                    >
-                      <div className="w-6 h-6 rounded-lg bg-red-100 group-hover:bg-red-200 flex items-center justify-center transition-colors">
-                        <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                      </div>
-                      <span className="text-[10px] font-semibold text-red-500">Hapus</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+            ))}
           </div>
         </>
       )}
 
-      {/* TAB: Riwayat Hutang */}
-      {activeTab === "riwayat" && (
-        <div className="space-y-3">
-          {allHistory.length === 0 ? (
-            <div className="bg-white border border-[#E5E3DC] rounded-2xl p-10 text-center">
-              <div className="w-14 h-14 bg-[#F0EEE8] rounded-full flex items-center justify-center mx-auto mb-3">
-                <History className="w-7 h-7 text-[#072C2C]/30" />
-              </div>
-              <p className="text-sm font-medium text-[#072C2C]/50">Belum ada riwayat hutang</p>
-              <p className="text-xs text-[#9CA3AF] mt-1">Catat hutang atau pembayaran di tab Daftar Pelanggan</p>
+      {/* ── TAB: Piutang Aktif ───────────────────────────────── */}
+      {activeTab === "piutang" && (
+        <>
+          {filteredDebtors.length === 0 ? (
+            <div className="bg-white border border-[#EBEBEB] rounded-2xl p-12 text-center">
+              <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-3"><Check className="w-7 h-7 text-green-500" /></div>
+              <p className="text-sm font-bold text-[#072C2C]">{search ? "Tidak ditemukan" : "Semua Piutang Lunas! 🎉"}</p>
+              <p className="text-xs text-[#9CA3AF] mt-1">{search ? "Coba kata kunci lain" : "Tidak ada piutang aktif saat ini"}</p>
             </div>
           ) : (
             <>
               {/* Desktop */}
-              <div className="hidden md:block bg-white border border-[#E5E3DC] rounded-2xl overflow-hidden shadow-sm">
+              <div className="hidden md:block bg-white border border-[#EBEBEB] rounded-2xl overflow-hidden shadow-sm">
                 <table className="w-full text-sm">
-                  <thead className="bg-[#F8F7F4] border-b border-[#E5E3DC]">
-                    <tr>
-                      {["Pelanggan", "Jenis", "Jumlah", "Metode", "Catatan", "Tanggal"].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-[#072C2C]/60 uppercase tracking-wider">{h}</th>
-                      ))}
-                    </tr>
+                  <thead className="bg-[#F8F7F4] border-b border-[#EBEBEB]">
+                    <tr>{["Pelanggan", "Jumlah Piutang", "Umur Piutang", "Status", "Aksi"].map(h => <th key={h} className="px-4 py-3 text-left text-xs font-bold text-[#9CA3AF] uppercase tracking-wider">{h}</th>)}</tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F0EEE8]">
-                    {allHistory.map(p => {
-                      const custName = p.customers?.name || customerList.find(c => c.id === p.customer_id)?.name || "—";
-                      const isDebt = p.amount < 0;
+                  <tbody className="divide-y divide-[#F5F5F5]">
+                    {filteredDebtors.sort((a, b) => b.debt - a.debt).map(item => {
+                      const age = debtAgeDays(payments, item.id);
                       return (
-                        <tr key={p.id} className="hover:bg-[#FAFAF8] transition-colors">
+                        <tr key={item.id} className="hover:bg-[#FAFAF8]">
+                          <td className="px-4 py-3">
+                            <button onClick={() => setSelectedCustomer(item)} className="flex items-center gap-2 group cursor-pointer">
+                              <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center font-black text-sm text-red-500 flex-shrink-0">{item.name.charAt(0)}</div>
+                              <div>
+                                <p className="font-semibold text-[#072C2C] group-hover:text-[#FF5F03]">{item.name}</p>
+                                <p className="text-[11px] text-[#9CA3AF]">{item.phone}</p>
+                              </div>
+                            </button>
+                          </td>
+                          <td className="px-4 py-3 font-black text-red-600 text-base">{formatCurrency(item.debt)}</td>
+                          <td className="px-4 py-3"><AgeBadge days={age} /></td>
+                          <td className="px-4 py-3">
+                            {age > 30 ? <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-red-50 text-red-600">⚠️ Menunggak</span>
+                              : age > 7 ? <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-600">Perlu Ditagih</span>
+                              : <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-600">Baru</span>}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1">
+                              <button onClick={() => { setShowAddDebt(item); setAddDebtAmount(""); setAddDebtNote(""); }} className="text-[11px] px-2.5 py-1 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 font-bold cursor-pointer whitespace-nowrap">+ Piutang</button>
+                              <button onClick={() => { setShowPayDebt(item); setPayAmount(""); setPayNote(""); }} className="text-[11px] px-2.5 py-1 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 font-bold cursor-pointer whitespace-nowrap">Bayar</button>
+                              <button onClick={() => setSelectedCustomer(item)} className="text-[11px] px-2.5 py-1 bg-[#F0EEE8] text-[#072C2C]/60 rounded-lg hover:bg-[#E8E5DC] font-bold cursor-pointer">Riwayat</button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile piutang cards */}
+              <div className="md:hidden space-y-2.5">
+                {filteredDebtors.sort((a, b) => b.debt - a.debt).map(item => {
+                  const age = debtAgeDays(payments, item.id);
+                  return (
+                    <div key={item.id} className="bg-white border border-[#EBEBEB] rounded-2xl overflow-hidden shadow-sm">
+                      <div className={`h-1 ${age > 30 ? "bg-red-500" : age > 7 ? "bg-amber-400" : "bg-blue-400"}`} />
+                      <div className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <button onClick={() => setSelectedCustomer(item)} className="flex items-center gap-3 flex-1 text-left cursor-pointer">
+                            <div className="w-11 h-11 rounded-2xl bg-red-50 flex items-center justify-center font-black text-lg text-red-500 flex-shrink-0">{item.name.charAt(0)}</div>
+                            <div>
+                              <p className="font-bold text-[#072C2C] text-sm">{item.name}</p>
+                              <p className="text-xs text-[#9CA3AF]">📞 {item.phone}</p>
+                            </div>
+                          </button>
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-base font-black text-red-600">{formatCurrency(item.debt)}</p>
+                            <AgeBadge days={age} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="border-t border-[#F5F5F5] grid grid-cols-3">
+                        {[
+                          { label: "+ Piutang", color: "text-orange-600 hover:bg-orange-50", action: () => { setShowAddDebt(item); setAddDebtAmount(""); setAddDebtNote(""); } },
+                          { label: "Bayar", color: "text-green-600 hover:bg-green-50", action: () => { setShowPayDebt(item); setPayAmount(""); setPayNote(""); } },
+                          { label: "Riwayat", color: "text-[#072C2C]/50 hover:bg-[#F8F7F4]", action: () => setSelectedCustomer(item) },
+                        ].map(({ label, color, action }) => (
+                          <button key={label} onClick={action} className={`py-3 text-[11px] font-bold ${color} transition-colors cursor-pointer`}>{label}</button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {/* ── TAB: Riwayat Pembayaran ──────────────────────────── */}
+      {activeTab === "riwayat" && (
+        <>
+          {paymentHistory.length === 0 ? (
+            <div className="bg-white border border-[#EBEBEB] rounded-2xl p-12 text-center">
+              <p className="text-sm text-[#9CA3AF]">Belum ada riwayat pembayaran piutang</p>
+            </div>
+          ) : (
+            <>
+              {/* Desktop */}
+              <div className="hidden md:block bg-white border border-[#EBEBEB] rounded-2xl overflow-hidden shadow-sm">
+                <table className="w-full text-sm">
+                  <thead className="bg-[#F8F7F4] border-b border-[#EBEBEB]">
+                    <tr>{["Tanggal", "Pelanggan", "Nominal", "Metode", "Catatan"].map(h => <th key={h} className="px-4 py-3 text-left text-xs font-bold text-[#9CA3AF] uppercase tracking-wider">{h}</th>)}</tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F5F5F5]">
+                    {paymentHistory.map(p => {
+                      const custName = p.customers?.name || customerList.find(c => c.id === p.customer_id)?.name || "—";
+                      return (
+                        <tr key={p.id} className="hover:bg-[#FAFAF8]">
+                          <td className="px-4 py-3 text-[#9CA3AF] text-xs whitespace-nowrap">{formatDateTime(p.created_at)}</td>
                           <td className="px-4 py-3 font-semibold text-[#072C2C]">{custName}</td>
-                          <td className="px-4 py-3">
-                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${isDebt ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}>
-                              {isDebt ? "📋 Hutang" : "✅ Bayar"}
-                            </span>
-                          </td>
-                          <td className={`px-4 py-3 font-bold ${isDebt ? "text-red-600" : "text-[#16A34A]"}`}>
-                            {isDebt ? `-${formatCurrency(Math.abs(p.amount))}` : `+${formatCurrency(p.amount)}`}
-                          </td>
-                          <td className="px-4 py-3">
-                            {isDebt ? <span className="text-[11px] text-[#9CA3AF]">—</span> :
-                              <span className={`text-xs font-medium px-2 py-0.5 rounded-lg ${p.method === "cash" ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-700"}`}>
-                                {p.method === "cash" ? "💵 Tunai" : "🏦 Transfer"}
-                              </span>
-                            }
-                          </td>
+                          <td className="px-4 py-3 font-black text-green-600">+{formatCurrency(p.amount)}</td>
+                          <td className="px-4 py-3"><span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${p.method === "cash" ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"}`}>{p.method === "cash" ? "💵 Tunai" : "🏦 Transfer"}</span></td>
                           <td className="px-4 py-3 text-[#9CA3AF] text-xs">{p.note || "—"}</td>
-                          <td className="px-4 py-3 text-[#9CA3AF] text-xs">{formatDateTime(p.created_at)}</td>
                         </tr>
                       );
                     })}
@@ -414,36 +684,21 @@ export default function CustomersPage() {
               </div>
               {/* Mobile */}
               <div className="md:hidden space-y-2.5">
-                {allHistory.map(p => {
+                {paymentHistory.map(p => {
                   const custName = p.customers?.name || customerList.find(c => c.id === p.customer_id)?.name || "—";
-                  const isDebt = p.amount < 0;
                   return (
-                    <div key={p.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#EBEBEB]">
-                      <div className={`h-0.5 ${isDebt ? "bg-gradient-to-r from-red-400 to-orange-300" : "bg-gradient-to-r from-green-400 to-emerald-400"}`} />
-                      <div className="p-3.5 flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDebt ? "bg-red-50" : "bg-green-50"}`}>
-                          {isDebt
-                            ? <AlertCircle className="w-5 h-5 text-red-400" />
-                            : <Check className="w-5 h-5 text-green-500" />}
+                    <div key={p.id} className="bg-white border border-[#EBEBEB] rounded-2xl p-4 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-green-50 flex items-center justify-center flex-shrink-0"><Check className="w-5 h-5 text-green-500" /></div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-bold text-[#072C2C] text-sm truncate">{custName}</p>
+                          <p className="font-black text-green-600 text-sm flex-shrink-0">+{formatCurrency(p.amount)}</p>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="font-bold text-[#072C2C] text-sm truncate">{custName}</p>
-                            <p className={`text-sm font-black flex-shrink-0 ${isDebt ? "text-red-500" : "text-green-600"}`}>
-                              {isDebt ? `-${formatCurrency(Math.abs(p.amount))}` : `+${formatCurrency(p.amount)}`}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${isDebt ? "bg-red-50 text-red-500" : "bg-green-50 text-green-600"}`}>
-                              {isDebt ? "Hutang" : "Bayar"}
-                            </span>
-                            {!isDebt && (
-                              <span className="text-[10px] text-[#9CA3AF]">{p.method === "cash" ? "💵 Tunai" : "🏦 Transfer"}</span>
-                            )}
-                            {p.note && <span className="text-[10px] text-[#9CA3AF] truncate">· {p.note}</span>}
-                          </div>
-                          <p className="text-[10px] text-[#BBBBBB] mt-0.5">{formatDateTime(p.created_at)}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${p.method === "cash" ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"}`}>{p.method === "cash" ? "Tunai" : "Transfer"}</span>
+                          {p.note && <span className="text-[10px] text-[#9CA3AF] truncate">· {p.note}</span>}
                         </div>
+                        <p className="text-[10px] text-[#BBBBBB] mt-0.5">{formatDateTime(p.created_at)}</p>
                       </div>
                     </div>
                   );
@@ -451,187 +706,10 @@ export default function CustomersPage() {
               </div>
             </>
           )}
-        </div>
+        </>
       )}
 
-      {/* Modal: Tambah / Edit Pelanggan */}
-      <Modal isOpen={showAddModal || !!editingCustomer} onClose={() => { setShowAddModal(false); setEditingCustomer(null); setFormData({ name: "", phone: "", address: "" }); }} title={editingCustomer ? "Edit Pelanggan" : "Tambah Pelanggan"} size="md">
-        <form onSubmit={handleSaveCustomer} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-[#072C2C]/70 mb-1.5">Nama Lengkap <span className="text-red-500">*</span></label>
-            <input type="text" value={formData.name} onChange={e => setFormData(f => ({ ...f, name: e.target.value }))} placeholder="Nama pelanggan" required className="w-full px-3 py-2.5 border border-[#E5E3DC] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-[#072C2C]/70 mb-1.5">No. Telepon <span className="text-red-500">*</span></label>
-            <input type="text" value={formData.phone} onChange={e => setFormData(f => ({ ...f, phone: e.target.value }))} placeholder="08xx-xxxx-xxxx" required className="w-full px-3 py-2.5 border border-[#E5E3DC] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03]" />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-[#072C2C]/70 mb-1.5">Alamat</label>
-            <textarea value={formData.address} onChange={e => setFormData(f => ({ ...f, address: e.target.value }))} placeholder="Alamat (opsional)" rows={2} className="w-full px-3 py-2.5 border border-[#E5E3DC] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03] resize-none" />
-          </div>
-          <div className="flex justify-end gap-3 pt-2 border-t border-[#F0EEE8]">
-            <Button variant="secondary" onClick={() => { setShowAddModal(false); setEditingCustomer(null); }} type="button">Batal</Button>
-            <Button type="submit">{editingCustomer ? "Simpan" : "Tambah"}</Button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Modal: Catat Hutang Baru */}
-      <Modal isOpen={!!showAddDebt} onClose={() => setShowAddDebt(null)} title="Catat Hutang Baru" size="sm">
-        {showAddDebt && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 p-3 bg-[#FFF8F5] border border-orange-100 rounded-xl">
-              <div className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-                <User className="w-4 h-4 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-[#072C2C]">{showAddDebt.name}</p>
-                <p className="text-xs text-[#9CA3AF]">Hutang saat ini: <span className="font-semibold text-red-600">{formatCurrency(showAddDebt.debt || 0)}</span></p>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Jumlah Hutang Baru</label>
-              <input
-                type="text" inputMode="numeric"
-                value={addDebtAmount ? `Rp ${Number(addDebtAmount).toLocaleString("id-ID")}` : ""}
-                onChange={e => setAddDebtAmount(e.target.value.replace(/\D/g, ""))}
-                placeholder="Rp 0"
-                className="w-full px-4 py-3 text-lg font-bold text-[#072C2C] border border-[#D9D6C8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 text-right"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Keterangan</label>
-              <input type="text" value={addDebtNote} onChange={e => setAddDebtNote(e.target.value)} placeholder="Contoh: Beli beras 5kg" className="w-full px-3 py-2.5 border border-[#D9D6C8] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
-            </div>
-            {Number(addDebtAmount) > 0 && (
-              <div className="bg-red-50 rounded-xl p-3 border border-red-100">
-                <div className="flex justify-between text-sm"><span className="text-[#072C2C]/60">Hutang sekarang</span><span className="font-semibold text-red-600">{formatCurrency(showAddDebt.debt || 0)}</span></div>
-                <div className="flex justify-between text-sm mt-1"><span className="text-[#072C2C]/60">Tambah hutang</span><span className="font-semibold text-red-600">+{formatCurrency(Number(addDebtAmount))}</span></div>
-                <div className="flex justify-between text-sm mt-1 pt-1 border-t border-red-100"><span className="font-bold text-[#072C2C]">Total hutang</span><span className="font-bold text-red-600">{formatCurrency((showAddDebt.debt || 0) + Number(addDebtAmount))}</span></div>
-              </div>
-            )}
-            <div className="flex gap-3 pt-1">
-              <Button variant="secondary" onClick={() => setShowAddDebt(null)} className="flex-1" type="button">Batal</Button>
-              <button onClick={handleAddDebt} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#FF5F03] text-white font-bold text-sm rounded-xl cursor-pointer hover:bg-[#e05500]">
-                <Plus className="w-4 h-4" />Catat Hutang
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* Modal: Bayar Hutang */}
-      <Modal isOpen={!!showPayDebt} onClose={() => setShowPayDebt(null)} title="Bayar Hutang" size="sm">
-        {showPayDebt && (
-          <div className="space-y-4">
-            <div className="bg-[#FEF2F2] rounded-xl p-4 text-center">
-              <p className="text-xs text-[#DC2626]/70 font-medium">Sisa Hutang — {showPayDebt.name}</p>
-              <p className="text-2xl font-bold text-[#DC2626] mt-1">{formatCurrency(showPayDebt.debt)}</p>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Jumlah Bayar</label>
-              <input type="text" inputMode="numeric" value={payAmount ? `Rp ${Number(payAmount).toLocaleString("id-ID")}` : ""} onChange={e => setPayAmount(e.target.value.replace(/\D/g, ""))} placeholder="Rp 0" className="w-full px-4 py-3 text-lg font-bold text-[#072C2C] border border-[#D9D6C8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 text-right" />
-              <div className="grid grid-cols-3 gap-2 mt-2">
-                <button type="button" onClick={() => setPayAmount(String(showPayDebt.debt))} className="py-2 text-xs font-bold bg-[#FF5F03]/10 text-[#FF5F03] rounded-lg border border-[#FF5F03]/30 cursor-pointer">Lunas</button>
-                <button type="button" onClick={() => setPayAmount(String(Math.round(showPayDebt.debt / 2)))} className="py-2 text-xs font-medium bg-[#EDEADE] text-[#072C2C] rounded-lg border border-[#D9D6C8] cursor-pointer">½</button>
-                <button type="button" onClick={() => setPayAmount(String(Math.min(50000, showPayDebt.debt)))} className="py-2 text-xs font-medium bg-[#EDEADE] text-[#072C2C] rounded-lg border border-[#D9D6C8] cursor-pointer">50rb</button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Metode</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button type="button" onClick={() => setPayMethod("cash")} className={`py-2.5 text-sm font-medium rounded-xl cursor-pointer transition-all ${payMethod === "cash" ? "bg-[#072C2C] text-white" : "bg-[#EDEADE] text-[#072C2C]/70 border border-[#D9D6C8]"}`}>💵 Tunai</button>
-                <button type="button" onClick={() => setPayMethod("transfer")} className={`py-2.5 text-sm font-medium rounded-xl cursor-pointer transition-all ${payMethod === "transfer" ? "bg-[#072C2C] text-white" : "bg-[#EDEADE] text-[#072C2C]/70 border border-[#D9D6C8]"}`}>🏦 Transfer</button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[#072C2C]/70 mb-1">Catatan</label>
-              <input type="text" value={payNote} onChange={e => setPayNote(e.target.value)} placeholder="Opsional" className="w-full px-3 py-2 border border-[#D9D6C8] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30" />
-            </div>
-            {Number(payAmount) > 0 && Number(payAmount) <= showPayDebt.debt && (
-              <div className="bg-[#F0FDF4] rounded-xl p-3 border border-[#16A34A]/10">
-                <div className="flex justify-between text-sm"><span className="text-[#072C2C]/60">Bayar</span><span className="font-bold text-[#16A34A]">{formatCurrency(Number(payAmount))}</span></div>
-                <div className="flex justify-between text-sm mt-1"><span className="text-[#072C2C]/60">Sisa hutang</span><span className="font-bold text-[#072C2C]">{formatCurrency(showPayDebt.debt - Number(payAmount))}</span></div>
-              </div>
-            )}
-            <div className="flex gap-3 pt-1">
-              <Button variant="secondary" onClick={() => setShowPayDebt(null)} className="flex-1" type="button">Batal</Button>
-              <button onClick={handlePayDebt} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#16A34A] text-white font-bold text-sm rounded-xl cursor-pointer hover:bg-[#15803d]">
-                <DollarSign className="w-4 h-4" />Bayar
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* Modal: Detail Pelanggan */}
-      <Modal isOpen={!!viewingCustomer} onClose={() => setViewingCustomer(null)} title="Detail Pelanggan" size="lg">
-        {viewingCustomer && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[#F8F7F4] rounded-xl p-3"><p className="text-[10px] text-[#9CA3AF] uppercase tracking-wider">Telepon</p><p className="text-sm font-semibold text-[#072C2C] mt-0.5">{viewingCustomer.phone}</p></div>
-              <div className="bg-[#F8F7F4] rounded-xl p-3"><p className="text-[10px] text-[#9CA3AF] uppercase tracking-wider">Total Hutang</p><p className={`text-sm font-bold mt-0.5 ${viewingCustomer.debt > 0 ? "text-red-600" : "text-green-600"}`}>{viewingCustomer.debt > 0 ? formatCurrency(viewingCustomer.debt) : "Lunas"}</p></div>
-              {viewingCustomer.address && <div className="col-span-2 bg-[#F8F7F4] rounded-xl p-3"><p className="text-[10px] text-[#9CA3AF] uppercase tracking-wider">Alamat</p><p className="text-sm font-medium text-[#072C2C] mt-0.5">{viewingCustomer.address}</p></div>}
-            </div>
-            {(() => {
-              const custHistory = payments.filter(p => p.customer_id === viewingCustomer.id);
-              if (!custHistory.length) return <p className="text-sm text-[#9CA3AF] text-center py-4">Belum ada riwayat</p>;
-              return (
-                <div>
-                  <p className="text-xs font-bold text-[#072C2C]/70 mb-2 uppercase tracking-wider">Riwayat Hutang & Pembayaran</p>
-                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                    {custHistory.map(p => {
-                      const isDebt = p.amount < 0;
-                      return (
-                        <div key={p.id} className={`flex items-center justify-between p-3 rounded-xl border ${isDebt ? "bg-red-50 border-red-100" : "bg-[#F0FDF4] border-[#16A34A]/10"}`}>
-                          <div className="flex items-center gap-2">
-                            <div className={`w-7 h-7 rounded-full flex items-center justify-center ${isDebt ? "bg-red-100" : "bg-green-100"}`}>
-                              {isDebt ? <AlertCircle className="w-3.5 h-3.5 text-red-500" /> : <Check className="w-3.5 h-3.5 text-green-600" />}
-                            </div>
-                            <div>
-                              <p className={`text-xs font-bold ${isDebt ? "text-red-600" : "text-[#16A34A]"}`}>{isDebt ? `-${formatCurrency(Math.abs(p.amount))}` : `+${formatCurrency(p.amount)}`}</p>
-                              <p className="text-[10px] text-[#9CA3AF]">{p.note}</p>
-                            </div>
-                          </div>
-                          <p className="text-[10px] text-[#9CA3AF]">{formatDateTime(p.created_at)}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
-            <div className="flex gap-3 pt-2 border-t border-[#F0EEE8]">
-              <button onClick={() => { setViewingCustomer(null); setShowAddDebt(viewingCustomer); setAddDebtAmount(""); setAddDebtNote(""); }} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-orange-50 text-orange-600 font-bold text-sm rounded-xl cursor-pointer hover:bg-orange-100">
-                <Plus className="w-4 h-4" />Catat Hutang
-              </button>
-              {viewingCustomer.debt > 0 && (
-                <button onClick={() => { setViewingCustomer(null); setShowPayDebt(viewingCustomer); setPayAmount(""); setPayNote(""); }} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#16A34A] text-white font-bold text-sm rounded-xl cursor-pointer hover:bg-[#15803d]">
-                  <DollarSign className="w-4 h-4" />Bayar
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* Konfirmasi Hapus */}
-      {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/60" onClick={() => setDeleteTarget(null)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
-            <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><Trash2 className="w-7 h-7 text-[#DC2626]" /></div>
-            <h3 className="text-lg font-bold text-[#072C2C] mb-1">Hapus Pelanggan?</h3>
-            <p className="text-sm text-[#072C2C]/60 mb-5"><strong>{deleteTarget.name}</strong> dan seluruh riwayat hutangnya akan dihapus permanen.</p>
-            <div className="flex gap-3">
-              <button onClick={() => setDeleteTarget(null)} className="flex-1 px-4 py-2.5 bg-[#4B5563] text-white font-medium text-sm rounded-xl cursor-pointer">Batal</button>
-              <button onClick={handleDelete} className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#DC2626] text-white font-bold text-sm rounded-xl cursor-pointer">
-                <Trash2 className="w-4 h-4" />Hapus
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {renderModals()}
     </div>
   );
 }
