@@ -276,48 +276,58 @@ export default function CustomersPage() {
           ) : (
             <>
               {/* Desktop table */}
-              <div className="hidden md:block bg-white border border-[#E5E3DC] rounded-2xl overflow-hidden">
+              <div className="hidden md:block bg-white border border-[#E5E3DC] rounded-2xl overflow-hidden shadow-sm">
                 <table className="w-full text-sm">
                   <thead className="bg-[#F8F7F4] border-b border-[#E5E3DC]">
                     <tr>
-                      {["Pelanggan", "Jumlah", "Metode", "Catatan", "Tanggal"].map(h => (
+                      {["Pelanggan", "Jumlah Bayar", "Metode", "Catatan", "Tanggal & Waktu"].map(h => (
                         <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-[#072C2C]/60 uppercase tracking-wider">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F0EEE8]">
-                    {payments.map(p => (
-                      <tr key={p.id} className="hover:bg-[#FAFAF8]">
-                        <td className="px-4 py-3 font-medium text-[#072C2C]">{p.customers?.name || "—"}</td>
-                        <td className="px-4 py-3 font-bold text-[#16A34A]">+{formatCurrency(p.amount)}</td>
-                        <td className="px-4 py-3 text-[#072C2C]/70">{p.method === "cash" ? "💵 Tunai" : "🏦 Transfer"}</td>
-                        <td className="px-4 py-3 text-[#9CA3AF]">{p.note || "—"}</td>
-                        <td className="px-4 py-3 text-[#9CA3AF] text-xs">{formatDateTime(p.created_at)}</td>
-                      </tr>
-                    ))}
+                    {payments.map(p => {
+                      const custName = p.customers?.name || customerList.find(c => c.id === p.customer_id)?.name || "—";
+                      return (
+                        <tr key={p.id} className="hover:bg-[#FAFAF8] transition-colors">
+                          <td className="px-4 py-3 font-semibold text-[#072C2C]">{custName}</td>
+                          <td className="px-4 py-3 font-bold text-[#16A34A]">+{formatCurrency(p.amount)}</td>
+                          <td className="px-4 py-3">
+                            <span className={`text-xs font-medium px-2.5 py-1 rounded-lg ${p.method === "cash" ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-700"}`}>
+                              {p.method === "cash" ? "💵 Tunai" : "🏦 Transfer"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-[#9CA3AF] text-xs">{p.note || "—"}</td>
+                          <td className="px-4 py-3 text-[#9CA3AF] text-xs">{formatDateTime(p.created_at)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
               {/* Mobile cards riwayat */}
               <div className="md:hidden space-y-2.5">
-                {payments.map(p => (
-                  <div key={p.id} className="bg-white border border-[#E5E3DC] rounded-2xl p-4 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#F0FDF4] flex items-center justify-center flex-shrink-0">
-                      <Check className="w-5 h-5 text-[#16A34A]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="font-bold text-[#072C2C] text-sm truncate">{p.customers?.name || "—"}</p>
-                        <p className="font-bold text-[#16A34A] text-sm ml-2">+{formatCurrency(p.amount)}</p>
+                {payments.map(p => {
+                  const custName = p.customers?.name || customerList.find(c => c.id === p.customer_id)?.name || "—";
+                  return (
+                    <div key={p.id} className="bg-white border border-[#E5E3DC] rounded-2xl p-4 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#F0FDF4] flex items-center justify-center flex-shrink-0">
+                        <Check className="w-5 h-5 text-[#16A34A]" />
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[10px] text-[#9CA3AF]">{p.method === "cash" ? "💵 Tunai" : "🏦 Transfer"}</span>
-                        {p.note && <span className="text-[10px] text-[#9CA3AF]">· {p.note}</span>}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="font-bold text-[#072C2C] text-sm truncate">{custName}</p>
+                          <p className="font-bold text-[#16A34A] text-sm ml-2">+{formatCurrency(p.amount)}</p>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] text-[#9CA3AF]">{p.method === "cash" ? "💵 Tunai" : "🏦 Transfer"}</span>
+                          {p.note && <span className="text-[10px] text-[#9CA3AF]">· {p.note}</span>}
+                        </div>
+                        <p className="text-[10px] text-[#9CA3AF] mt-0.5">{formatDateTime(p.created_at)}</p>
                       </div>
-                      <p className="text-[10px] text-[#9CA3AF] mt-0.5">{formatDateTime(p.created_at)}</p>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </>
           )}

@@ -80,7 +80,7 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
       )}
 
       {/* Mobile bottom nav - 4 menu only */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#D9D6C8] flex items-center justify-around px-2 shadow-[0_-2px_10px_rgba(0,0,0,0.06)]" style={{ height: "64px", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#D9D6C8] flex items-center justify-around shadow-[0_-2px_10px_rgba(0,0,0,0.06)]" style={{ height: "72px", paddingBottom: "env(safe-area-inset-bottom, 0px)", paddingTop: "4px" }}>
         {[
           { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
           { href: "/pos", icon: ShoppingCart, label: "Kasir" },
@@ -92,9 +92,9 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
         }).map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
           return (
-            <Link key={item.href} href={item.href} className={cn("flex flex-col items-center justify-center gap-0.5 min-w-[56px] min-h-[44px] rounded-lg transition-all active:scale-90 active:opacity-70", isActive ? "text-[#FF5F03]" : "text-[#9CA3AF]")}>
-              <item.icon className="w-5 h-5" strokeWidth={isActive ? 2.2 : 1.5} />
-              <span className={cn("text-[10px]", isActive ? "font-semibold" : "font-medium")}>{item.label}</span>
+            <Link key={item.href} href={item.href} className={cn("flex flex-col items-center justify-center gap-1 flex-1 py-2 min-h-[56px] rounded-lg transition-all active:scale-90 active:opacity-70", isActive ? "text-[#FF5F03]" : "text-[#9CA3AF]")}>
+              <item.icon className="w-6 h-6" strokeWidth={isActive ? 2.2 : 1.7} />
+              <span className={cn("text-[11px]", isActive ? "font-bold" : "font-medium")}>{item.label}</span>
             </Link>
           );
         })}

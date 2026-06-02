@@ -58,10 +58,18 @@ export async function addDebtPayment(payment: { customer_id: string; amount: num
 }
 
 export async function getDebtPayments(customerId?: string) {
+  // Try with join first, fallback to plain query
   let query = supabase.from("debt_payments").select("*, customers(name)").order("created_at", { ascending: false });
   if (customerId) query = query.eq("customer_id", customerId);
   const { data, error } = await query;
-  if (error) { console.error("getDebtPayments error:", error); return []; }
+  if (error) {
+    console.error("getDebtPayments error:", error);
+    // Fallback: plain query without join
+    let q2 = supabase.from("debt_payments").select("*").order("created_at", { ascending: false });
+    if (customerId) q2 = q2.eq("customer_id", customerId);
+    const { data: d2 } = await q2;
+    return d2 || [];
+  }
   return data || [];
 }
 
