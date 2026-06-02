@@ -364,7 +364,7 @@ export default function ReportsPage() {
             <div className="bg-white border border-[#D9D6C8] rounded-md p-3 border-l-[3px] border-l-[#8B5CF6]"><div className="flex items-center justify-between mb-1"><p className="text-[10px] font-medium text-[#9CA3AF] uppercase">Mau Kadaluarsa</p><AlertTriangle className="w-4 h-4 text-[#8B5CF6]" /></div><p className="font-[Oswald] text-[20px] font-semibold text-[#8B5CF6]">{expiredSoon}</p><p className="text-[9px] text-[#9CA3AF]">dalam 30 hari</p></div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-3">
+          <div className="space-y-3">
             <Card>
               <div className="px-4 py-3 border-b border-[#D9D6C8]"><p className="font-[Oswald] text-xs font-semibold text-[#072C2C] uppercase tracking-wider">Status Stok Semua Produk</p></div>
               <div className="overflow-x-auto">
@@ -391,24 +391,6 @@ export default function ReportsPage() {
                     })}
                   </tbody>
                 </table>
-              </div>
-            </Card>
-            {/* Stok distribution */}
-            <Card>
-              <div className="px-4 py-3 border-b border-[#D9D6C8]"><p className="font-[Oswald] text-xs font-semibold text-[#072C2C] uppercase tracking-wider">Distribusi Stok</p></div>
-              <div className="p-4 h-[140px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart><Pie data={[{ name: "Aman", value: stokAman, color: "#16A34A" }, { name: "Menipis", value: stokMenipis, color: "#D97706" }, { name: "Habis", value: stokHabis, color: "#DC2626" }]} cx="50%" cy="50%" innerRadius={40} outerRadius={55} paddingAngle={3} dataKey="value" strokeWidth={3} stroke="#fff">{[{ color: "#16A34A" }, { color: "#D97706" }, { color: "#DC2626" }].map((e, i) => <Cell key={i} fill={e.color} />)}</Pie></PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="px-4 pb-3 space-y-2">
-                {[{ name: "Aman", value: stokAman, color: "#16A34A" }, { name: "Menipis", value: stokMenipis, color: "#D97706" }, { name: "Habis", value: stokHabis, color: "#DC2626" }].map(s => (
-                  <div key={s.name} className="flex items-center gap-2 text-[11px]">
-                    <span className="w-2 h-2 rounded-sm" style={{ background: s.color }} />
-                    <span className="text-[#4B5563] flex-1">{s.name}</span>
-                    <span className="font-mono font-bold">{s.value}</span>
-                  </div>
-                ))}
               </div>
             </Card>
           </div>
