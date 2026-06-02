@@ -92,22 +92,6 @@ export default function UsersPage() {
     showToast(user.is_active ? `${user.name} dinonaktifkan` : `${user.name} diaktifkan`);
   };
 
-  const handleChangePassword = async () => {
-    if (!showChangePassword || !newPassword) return;
-    if (newPassword.length < 6) { setPwdError("Password minimal 6 karakter"); return; }
-    setPwdLoading(true); setPwdError("");
-    const res = await fetch("/api/users", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: showChangePassword.id, password: newPassword }),
-    });
-    const data = await res.json();
-    setPwdLoading(false);
-    if (!res.ok) { setPwdError(data.error || "Gagal mengubah password"); return; }
-    setShowChangePassword(null); setNewPassword(""); setShowPwd(false);
-    showToast(`Password ${showChangePassword.name} berhasil diubah`);
-  };
-
   const roleLabels: Record<string, string> = { owner: "Owner", admin: "Admin", cashier: "Kasir" };
   const roleColors: Record<string, string> = { owner: "bg-[#DC2626]/10 text-[#DC2626] border-[#fecaca]", admin: "bg-[#FF5F03]/10 text-[#FF5F03] border-[#FF5F03]/30", cashier: "bg-[#072C2C]/10 text-[#072C2C] border-[#072C2C]/20" };
 
