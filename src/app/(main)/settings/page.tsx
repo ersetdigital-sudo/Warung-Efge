@@ -144,7 +144,7 @@ export default function SettingsPage() {
     );
 
   return (
-    <div className="max-w-3xl space-y-6 pb-8">
+    <div className="max-w-5xl mx-auto space-y-6 pb-20 md:pb-8 px-4 md:px-0">
       {/* Toast */}
       {toast && (
         <div className="fixed z-[9999] top-4 right-4 flex items-center gap-2 px-4 py-3 rounded-xl shadow-2xl text-sm font-medium text-white bg-[#16A34A] animate-in slide-in-from-top-2">
@@ -177,9 +177,9 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-        {/* Left: Form */}
-        <div className="lg:col-span-3 space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6">
+        {/* Left Column */}
+        <div className="space-y-4">
 
           {/* Identitas Toko */}
           <div className="bg-white border border-[#E5E3DC] rounded-2xl overflow-hidden shadow-sm">
@@ -448,11 +448,11 @@ export default function SettingsPage() {
                     </p>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <button
                       onClick={handleSaveWa}
                       disabled={waSaving}
-                      className="flex items-center gap-1.5 px-4 py-2.5 bg-[#16A34A] hover:bg-[#15803d] text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#16A34A] hover:bg-[#15803d] text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50"
                     >
                       {waSaving ? (
                         <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -464,7 +464,7 @@ export default function SettingsPage() {
                     <button
                       onClick={handleTestWa}
                       disabled={waTesting || !waNumbers.trim()}
-                      className="flex items-center gap-1.5 px-4 py-2.5 border-2 border-[#16A34A] text-[#16A34A] text-sm font-bold rounded-xl hover:bg-green-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 border-2 border-[#16A34A] text-[#16A34A] text-sm font-bold rounded-xl hover:bg-green-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {waTesting ? (
                         <div className="w-4 h-4 border-2 border-[#16A34A]/40 border-t-[#16A34A] rounded-full animate-spin" />
@@ -489,8 +489,8 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Right: Preview + Info */}
-        <div className="lg:col-span-2 space-y-4">
+        {/* Right Column — sticky on desktop */}
+        <div className="lg:sticky lg:top-6 lg:self-start space-y-4">
           {/* Struk Preview */}
           <div className="bg-white border border-[#E5E3DC] rounded-2xl overflow-hidden shadow-sm">
             <div className="px-4 py-3.5 border-b border-[#E5E3DC] flex items-center gap-2">
