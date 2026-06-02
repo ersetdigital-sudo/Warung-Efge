@@ -152,3 +152,17 @@ export async function deleteExpense(id: string) {
   const { error } = await supabase.from("expenses").delete().eq("id", id);
   return !error;
 }
+
+// ============ STORE SETTINGS ============
+export async function getStoreSettings(): Promise<Record<string, string>> {
+  const { data } = await supabase.from("store_settings").select("key, value");
+  if (!data) return {};
+  return Object.fromEntries(data.map((r: any) => [r.key, r.value || ""]));
+}
+
+export async function updateStoreSetting(key: string, value: string) {
+  const { error } = await supabase
+    .from("store_settings")
+    .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: "key" });
+  return !error;
+}
