@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { TrendingUp, Download, Plus, Trash2, Wallet, Receipt, Calculator, AlertTriangle, Package, Users, ShoppingCart, BarChart3, DollarSign, Boxes } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -9,7 +9,7 @@ import { getProducts, getTransactions, getExpenses, addExpense, updateExpense, d
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 type TabType = "penjualan" | "produk" | "kasir" | "stok" | "keuangan";
-type DateFilter = "today" | "7days" | "30days" | "month" | "custom";
+type DateFilter = "today" | "7days" | "30days" | "month" | "3months" | "6months" | "1year" | "custom";
 
 export default function ReportsPage() {
   const [tab, setTab] = useState<TabType>("penjualan");
@@ -25,6 +25,8 @@ export default function ReportsPage() {
   const [dateFilter, setDateFilter] = useState<DateFilter>("30days");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
+  const [showDateDropdown, setShowDateDropdown] = useState(false);
+  const dateDropdownRef = useRef<HTMLDivElement>(null);
 
   const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
 
@@ -52,6 +54,15 @@ export default function ReportsPage() {
       } else if (dateFilter === "month") {
         const start = new Date(now.getFullYear(), now.getMonth(), 1);
         return d >= start;
+      } else if (dateFilter === "3months") {
+        const start = new Date(now); start.setMonth(now.getMonth() - 3); start.setHours(0, 0, 0, 0);
+        return d >= start;
+      } else if (dateFilter === "6months") {
+        const start = new Date(now); start.setMonth(now.getMonth() - 6); start.setHours(0, 0, 0, 0);
+        return d >= start;
+      } else if (dateFilter === "1year") {
+        const start = new Date(now); start.setFullYear(now.getFullYear() - 1); start.setHours(0, 0, 0, 0);
+        return d >= start;
       } else if (dateFilter === "custom") {
         const from = customFrom ? new Date(customFrom) : new Date(0);
         const to = customTo ? new Date(customTo + "T23:59:59") : new Date();
@@ -60,6 +71,33 @@ export default function ReportsPage() {
       return true;
     });
   }, [transactions, dateFilter, customFrom, customTo]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dateDropdownRef.current && !dateDropdownRef.current.contains(e.target as Node)) {
+        setShowDateDropdown(false);
+      }
+    };
+    if (showDateDropdown) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showDateDropdown]);
+
+  const dateFilterLabel = (): string => {
+    if (dateFilter === "today") return "Hari Ini";
+    if (dateFilter === "7days") return "7 Hari Terakhir";
+    if (dateFilter === "30days") return "30 Hari Terakhir";
+    if (dateFilter === "month") return "Bulan Ini";
+    if (dateFilter === "3months") return "3 Bulan Terakhir";
+    if (dateFilter === "6months") return "6 Bulan Terakhir";
+    if (dateFilter === "1year") return "1 Tahun Terakhir";
+    if (dateFilter === "custom" && customFrom && customTo) {
+      const f = new Date(customFrom).toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" });
+      const t = new Date(customTo).toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" });
+      return `${f} — ${t}`;
+    }
+    return "Pilih Periode";
+  };
 
   // === PENJUALAN DATA ===
   const totalSales = filteredTransactions.reduce((s, t) => s + (t.total || 0), 0);
@@ -133,11 +171,78 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      {/* Header + Date Filter Dropdown */}
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-[#072C2C] font-[Oswald] uppercase tracking-wide">Laporan</h1>
           <p className="text-[10px] text-[#9CA3AF]">Analisis penjualan, produk, kasir & stok</p>
+        </div>
+        {/* Date Filter Button + Dropdown */}
+        <div className="relative" ref={dateDropdownRef}>
+          <button
+            onClick={() => setShowDateDropdown(v => !v)}
+            className="flex items-center gap-2 px-3.5 py-2 bg-white border border-[#D9D6C8] rounded-lg shadow-sm hover:border-[#FF5F03]/50 transition-all cursor-pointer"
+          >
+            <svg className="w-4 h-4 text-[#FF5F03]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <span className="text-[11px] font-semibold text-[#072C2C] whitespace-nowrap">{dateFilterLabel()}</span>
+            <svg className={`w-3.5 h-3.5 text-[#9CA3AF] transition-transform ${showDateDropdown ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+
+          {/* Dropdown */}
+          {showDateDropdown && (
+            <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-[#E5E3DC] rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+              {/* Presets */}
+              <div className="py-1.5">
+                {([
+                  { id: "today", label: "Hari Ini" },
+                  { id: "7days", label: "7 Hari Terakhir" },
+                  { id: "30days", label: "30 Hari Terakhir" },
+                  { id: "month", label: "Bulan Ini" },
+                  { id: "3months", label: "3 Bulan Terakhir" },
+                  { id: "6months", label: "6 Bulan Terakhir" },
+                  { id: "1year", label: "1 Tahun Terakhir" },
+                ] as { id: DateFilter; label: string }[]).map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => { setDateFilter(f.id); setShowDateDropdown(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-[12px] font-medium cursor-pointer transition-colors ${dateFilter === f.id ? "bg-[#FF5F03]/10 text-[#FF5F03] font-bold border-l-[3px] border-l-[#FF5F03]" : "text-[#072C2C] hover:bg-[#FAFAF8]"}`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              {/* Divider + Custom Range */}
+              <div className="border-t border-[#F0EEE8] px-4 py-3 space-y-2.5">
+                <p className="text-[9px] font-semibold text-[#9CA3AF] uppercase tracking-wider">Custom Range</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={customFrom}
+                    onChange={e => setCustomFrom(e.target.value)}
+                    className="flex-1 px-2.5 py-2 border border-[#E5E3DC] rounded-lg text-[11px] text-[#072C2C] focus:outline-none focus:border-[#FF5F03] focus:ring-1 focus:ring-[#FF5F03]/20"
+                  />
+                  <span className="text-[10px] text-[#9CA3AF]">—</span>
+                  <input
+                    type="date"
+                    value={customTo}
+                    onChange={e => setCustomTo(e.target.value)}
+                    className="flex-1 px-2.5 py-2 border border-[#E5E3DC] rounded-lg text-[11px] text-[#072C2C] focus:outline-none focus:border-[#FF5F03] focus:ring-1 focus:ring-[#FF5F03]/20"
+                  />
+                </div>
+                <button
+                  onClick={() => { if (customFrom && customTo) { setDateFilter("custom"); setShowDateDropdown(false); } }}
+                  disabled={!customFrom || !customTo}
+                  className="w-full py-2 bg-[#FF5F03] text-white text-[11px] font-bold rounded-lg hover:bg-[#e05500] transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Terapkan
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -146,43 +251,6 @@ export default function ReportsPage() {
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} className={`px-4 py-1.5 rounded-sm text-[11px] font-medium cursor-pointer transition-all ${tab === t.id ? "bg-[#072C2C] text-white font-semibold" : "text-[#4B5563] hover:text-[#072C2C]"}`}>{t.label}</button>
         ))}
-      </div>
-
-      {/* Date Filter */}
-      <div className="flex flex-wrap items-center gap-2">
-        {([
-          { id: "today", label: "Hari Ini" },
-          { id: "7days", label: "7 Hari" },
-          { id: "30days", label: "30 Hari" },
-          { id: "month", label: "Bulan Ini" },
-          { id: "custom", label: "Custom" },
-        ] as { id: DateFilter; label: string }[]).map(f => (
-          <button
-            key={f.id}
-            onClick={() => setDateFilter(f.id)}
-            className={`px-3 py-1.5 rounded-lg text-[11px] font-medium cursor-pointer transition-all ${dateFilter === f.id ? "bg-[#FF5F03] text-white" : "bg-white border border-[#D9D6C8] text-[#4B5563] hover:border-[#FF5F03]/50"}`}
-          >
-            {f.label}
-          </button>
-        ))}
-        {dateFilter === "custom" && (
-          <div className="flex items-center gap-2">
-            <input
-              type="date"
-              value={customFrom}
-              onChange={e => setCustomFrom(e.target.value)}
-              className="px-2.5 py-1.5 border border-[#D9D6C8] rounded-lg text-[11px] focus:outline-none focus:border-[#FF5F03]"
-            />
-            <span className="text-[10px] text-[#9CA3AF]">—</span>
-            <input
-              type="date"
-              value={customTo}
-              onChange={e => setCustomTo(e.target.value)}
-              className="px-2.5 py-1.5 border border-[#D9D6C8] rounded-lg text-[11px] focus:outline-none focus:border-[#FF5F03]"
-            />
-          </div>
-        )}
-        <span className="text-[10px] text-[#9CA3AF] ml-1">{filteredTransactions.length} transaksi</span>
       </div>
 
       {/* ═══ TAB PENJUALAN ═══ */}
