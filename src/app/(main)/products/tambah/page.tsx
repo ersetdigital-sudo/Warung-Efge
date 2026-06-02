@@ -21,6 +21,7 @@ export default function AddProductPage() {
   const [stock, setStock] = useState("");
   const [buyPrice, setBuyPrice] = useState("");
   const [sellPrice, setSellPrice] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
 
   // Multi-level mode (optional)
   const [multiLevel, setMultiLevel] = useState(false);
@@ -79,6 +80,7 @@ export default function AddProductPage() {
         cost_price: Number(buyPrice) || 0,
         stock: Number(stock) || 0,
         unit: unit.trim(),
+        expiry_date: expiryDate || null,
       });
       if (!product) { alert("Gagal menyimpan produk"); return; }
       // Save single unit level
@@ -179,6 +181,31 @@ export default function AddProductPage() {
                   Margin {margin}% · Untung Rp {(Number(sellPrice) - Number(buyPrice)).toLocaleString("id-ID")} / {unit || "unit"}
                 </div>
               )}
+              {/* Expiry date */}
+              <div className="mt-4">
+                <label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">
+                  Tanggal Kadaluarsa <span className="text-[#072C2C]/30">(opsional)</span>
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="date"
+                    value={expiryDate}
+                    onChange={(e) => setExpiryDate(e.target.value)}
+                    className="w-full lg:w-60 px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20 focus:border-[#FF5F03]"
+                  />
+                  {expiryDate && (
+                    <button type="button" onClick={() => setExpiryDate("")} className="text-xs text-[#9CA3AF] hover:text-[#DC2626] cursor-pointer">
+                      Hapus
+                    </button>
+                  )}
+                </div>
+                {expiryDate && (() => {
+                  const days = Math.ceil((new Date(expiryDate).getTime() - Date.now()) / 86400000);
+                  if (days < 0) return <p className="text-xs font-bold text-[#DC2626] mt-1.5">⚠ Sudah kadaluarsa {Math.abs(days)} hari yang lalu</p>;
+                  if (days <= 30) return <p className="text-xs font-bold text-amber-500 mt-1.5">⚠ Kadaluarsa dalam {days} hari</p>;
+                  return <p className="text-xs text-[#16A34A] font-medium mt-1.5">✓ Masih {days} hari lagi</p>;
+                })()}
+              </div>
             </div>
           )}
 

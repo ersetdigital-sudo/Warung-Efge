@@ -435,23 +435,23 @@ export default function CustomersPage() {
       </div>
 
       {/* Dashboard KPI */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { label: "Total Pelanggan", value: customerList.length, color: "text-[#072C2C]", bg: "bg-[#072C2C]", icon: Users },
-          { label: "Piutang Aktif", value: activeDebtors.length, color: "text-amber-600", bg: "bg-amber-500", icon: AlertCircle },
-          { label: "Total Piutang", value: formatCurrency(totalDebt), color: "text-red-600", bg: "bg-red-500", icon: TrendingDown, large: true },
-          { label: "Menunggak >30 Hari", value: overdueCount, color: "text-red-600", bg: "bg-red-600", icon: Clock },
-        ].map(({ label, value, color, bg, icon: Icon, large }) => (
-          <div key={label} className="bg-white border border-[#EBEBEB] rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider leading-tight">{label}</p>
-              <div className={`w-7 h-7 rounded-xl ${bg} flex items-center justify-center opacity-90`}>
-                <Icon className="w-3.5 h-3.5 text-white" />
-              </div>
-            </div>
-            <p className={`font-[Oswald] font-bold ${color} ${large ? "text-xl leading-tight" : "text-2xl"}`}>{value}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#072C2C]">
+          <p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Pelanggan</p>
+          <p className="font-[Oswald] text-[24px] font-semibold text-[#072C2C] mt-1">{customerList.length}</p>
+        </div>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#FF5F03]">
+          <p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Piutang Aktif</p>
+          <p className="font-[Oswald] text-[24px] font-semibold text-[#FF5F03] mt-1">{activeDebtors.length}</p>
+        </div>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#DC2626]">
+          <p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Total Piutang</p>
+          <p className="font-[Oswald] text-[20px] font-semibold text-[#DC2626] mt-1 leading-tight">{formatCurrency(totalDebt)}</p>
+        </div>
+        <div className="bg-white border border-[#D9D6C8] rounded-md p-3.5 border-l-[3px] border-l-[#D97706]">
+          <p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">Menunggak &gt;30 Hari</p>
+          <p className="font-[Oswald] text-[24px] font-semibold text-[#D97706] mt-1">{overdueCount}</p>
+        </div>
       </div>
 
       {/* Search bar */}

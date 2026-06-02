@@ -22,6 +22,7 @@ export default function EditProductPage() {
   const [stock, setStock] = useState("");
   const [minStock, setMinStock] = useState("");
   const [unitValue, setUnitValue] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
 
   // Multi-level
   const [multiLevel, setMultiLevel] = useState(false);
@@ -56,6 +57,7 @@ export default function EditProductPage() {
       setUnitValue(p.unit || "Pcs");
       setBuyPrice(String(p.cost_price || ""));
       setSellPrice(String(p.selling_price || ""));
+      setExpiryDate(p.expiry_date ? p.expiry_date.slice(0, 10) : "");
 
       // Load product units
       const pu = await getProductUnits(productId);
@@ -108,7 +110,7 @@ export default function EditProductPage() {
 
   const handleSubmit = async () => {
     if (!name.trim()) { alert("Nama produk wajib diisi!"); return; }
-    const updates: Record<string, unknown> = { name: name.trim(), sku: sku.trim() || product.sku, barcode: barcode.trim() || null, category: category || product.category, stock: Number(stock) || 0, min_stock: Number(minStock) || 0, unit: unitValue || product.unit, cost_price: Number(buyPrice) || 0, selling_price: Number(sellPrice) || 0 };
+    const updates: Record<string, unknown> = { name: name.trim(), sku: sku.trim() || product.sku, barcode: barcode.trim() || null, category: category || product.category, stock: Number(stock) || 0, min_stock: Number(minStock) || 0, unit: unitValue || product.unit, cost_price: Number(buyPrice) || 0, selling_price: Number(sellPrice) || 0, expiry_date: expiryDate || null };
     const success = await updateProduct(productId, updates);
     if (!success) { alert("Gagal menyimpan."); return; }
     if (multiLevel) {
@@ -147,17 +149,42 @@ export default function EditProductPage() {
         </div>
         {/* Harga Simple */}
         {!multiLevel && (
-          <div className="bg-white border border-[#072C2C]/8 rounded-2xl p-5 lg:p-6 shadow-sm">
-            <h3 className="text-sm font-bold text-[#072C2C] mb-4">Harga & Stok</h3>
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="bg-white border border-[#072C2C]/8 rounded-2xl p-5 lg:p-6 shadow-sm">
+          <h3 className="text-sm font-bold text-[#072C2C] mb-4">Harga & Stok</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
               <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Satuan</label><input value={unitValue} onChange={(e) => setUnitValue(e.target.value)} className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
               <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Stok</label><input value={stock} onChange={(e) => setStock(e.target.value)} type="number" className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
               <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Min Stok</label><input value={minStock} onChange={(e) => setMinStock(e.target.value)} type="number" className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
               <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Harga Beli</label><input value={buyPrice} onChange={(e) => setBuyPrice(e.target.value)} type="number" className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
               <div><label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Harga Jual</label><input value={sellPrice} onChange={(e) => setSellPrice(e.target.value)} type="number" className="w-full px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20" /></div>
-            </div>
-            {margin !== null && <p className={`mt-3 text-sm font-semibold ${margin >= 20 ? "text-[#16A34A]" : margin >= 10 ? "text-[#D97706]" : "text-[#DC2626]"}`}>Margin {margin}%</p>}
           </div>
+          {/* Expiry date */}
+          <div className="mt-4">
+            <label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">
+              Tanggal Kadaluarsa <span className="text-[#072C2C]/30">(opsional)</span>
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="date"
+                value={expiryDate}
+                onChange={(e) => setExpiryDate(e.target.value)}
+                className="w-full lg:w-60 px-4 py-3 border border-[#072C2C]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20"
+              />
+              {expiryDate && (
+                <button type="button" onClick={() => setExpiryDate("")} className="text-xs text-[#9CA3AF] hover:text-[#DC2626] cursor-pointer">
+                  Hapus
+                </button>
+              )}
+            </div>
+            {expiryDate && (() => {
+              const days = Math.ceil((new Date(expiryDate).getTime() - Date.now()) / 86400000);
+              if (days < 0) return <p className="text-xs font-bold text-[#DC2626] mt-1.5">⚠ Sudah kadaluarsa {Math.abs(days)} hari yang lalu</p>;
+              if (days <= 30) return <p className="text-xs font-bold text-amber-500 mt-1.5">⚠ Kadaluarsa dalam {days} hari</p>;
+              return <p className="text-xs text-[#16A34A] font-medium mt-1.5">✓ Masih {days} hari lagi</p>;
+            })()}
+          </div>
+          {margin !== null && <p className={`mt-3 text-sm font-semibold ${margin >= 20 ? "text-[#16A34A]" : margin >= 10 ? "text-[#D97706]" : "text-[#DC2626]"}`}>Margin {margin}%</p>}
+        </div>
         )}
         {/* Multi toggle */}
         <div className="bg-white border border-[#072C2C]/8 rounded-2xl p-5 lg:p-6 shadow-sm">
