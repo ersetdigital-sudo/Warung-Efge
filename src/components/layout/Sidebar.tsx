@@ -21,6 +21,7 @@ import {
   LogOut,
   Receipt,
   Settings,
+  BookOpen,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -41,6 +42,7 @@ const menuItems = [
   { href: "/reports", icon: BarChart3, label: "Laporan" },
   { href: "/users", icon: UserCircle, label: "Pengguna" },
   { href: "/settings", icon: Settings, label: "Pengaturan" },
+  { href: "/tutorial", icon: BookOpen, label: "Tutorial" },
 ];
 
 function NavTooltip({ label, show }: { label: string; show: boolean }) {
