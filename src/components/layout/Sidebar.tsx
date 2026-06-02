@@ -140,15 +140,15 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
                   href={item.href}
                   onClick={onClose}
                   className={cn(
-                    "flex items-center rounded-lg text-sm font-medium transition-all duration-200 mb-0.5",
-                    collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2",
+                    "flex items-center rounded-lg font-medium transition-all duration-200 mb-0.5",
+                    collapsed ? "justify-center px-2 py-2 text-sm" : "gap-3 px-3 py-2.5 text-sm",
                     isActive
                       ? "bg-[#FF5F03] text-white shadow-lg shadow-[#FF5F03]/20"
                       : "text-white/70 hover:bg-white/10 hover:text-white"
                   )}
                 >
-                  <item.icon className={cn("w-[18px] h-[18px] flex-shrink-0", isActive ? "text-white" : "text-white/50")} />
-                  {!collapsed && <span className="whitespace-nowrap overflow-hidden text-[13px]">{item.label}</span>}
+                  <item.icon className={cn("flex-shrink-0", collapsed ? "w-[18px] h-[18px]" : "w-5 h-5", isActive ? "text-white" : "text-white/50")} />
+                  {!collapsed && <span className="whitespace-nowrap overflow-hidden">{item.label}</span>}
                 </Link>
                 <NavTooltip label={item.label} show={collapsed && hoveredItem === item.href} />
               </div>
@@ -162,21 +162,21 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
             onClick={handleLogout}
             className={cn(
               "flex items-center rounded-lg text-white/60 hover:bg-[#DC2626]/20 hover:text-[#fca5a5] transition-all duration-200 cursor-pointer w-full",
-              collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2"
+              collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2.5"
             )}
           >
-            <LogOut className="w-[18px] h-[18px]" />
-            {!collapsed && <span className="text-[13px] font-medium whitespace-nowrap">Keluar</span>}
+            <LogOut className={collapsed ? "w-[18px] h-[18px]" : "w-5 h-5"} />
+            {!collapsed && <span className="text-sm font-medium whitespace-nowrap">Keluar</span>}
           </button>
           <button
             onClick={onToggleCollapse}
             className={cn(
               "flex items-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white transition-all duration-200 cursor-pointer w-full",
-              collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2"
+              collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2.5"
             )}
           >
-            {collapsed ? <ChevronRight className="w-[18px] h-[18px]" /> : <ChevronLeft className="w-[18px] h-[18px]" />}
-            {!collapsed && <span className="text-[13px] font-medium whitespace-nowrap">Tutup Sidebar</span>}
+            {collapsed ? <ChevronRight className="w-[18px] h-[18px]" /> : <ChevronLeft className="w-5 h-5" />}
+            {!collapsed && <span className="text-sm font-medium whitespace-nowrap">Tutup Sidebar</span>}
           </button>
         </div>
       </aside>
