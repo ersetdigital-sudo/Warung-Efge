@@ -251,8 +251,6 @@ export default function POSPage() {
         note: `Bon transaksi ${trxId}`,
       });
     }
-    const items = cart.map(item => ({ product_id: item.productId, product_name: item.name, quantity: item.quantity, unit: item.unit, price: item.price, subtotal: item.subtotal }));
-    await addTransaction(trxData, items);
     const stockUpdates: Record<string, number> = {};
     for (const item of cart) { stockUpdates[item.productId] = (stockUpdates[item.productId] || 0) + item.quantity * item.stockPerUnit; }
     for (const [productId, reduction] of Object.entries(stockUpdates)) { const product = products.find((p: any) => p.id === productId); if (product && reduction > 0) { await supabase.from("products").update({ stock: Math.max(0, (product.stock || 0) - Math.floor(reduction)) }).eq("id", productId); } }
