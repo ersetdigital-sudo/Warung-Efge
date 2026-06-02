@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import {
   Store, Save, Phone, MapPin, Tag, FileText,
   CheckCircle, Info, Lock, User, ChevronRight,
-  Building2, Receipt
+  Building2, Receipt, Layers, Plus, Trash2, AlertTriangle
 } from "lucide-react";
-import { getStoreSettings, updateStoreSetting } from "@/lib/db";
+import { getStoreSettings, updateStoreSetting, getCategories, addCategory, deleteCategory } from "@/lib/db";
 import { useAuth } from "@/lib/auth";
 
 export default function SettingsPage() {
@@ -23,6 +23,13 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [toast, setToast] = useState("");
 
+  // Category management state
+  const [categoryList, setCategoryList] = useState<{ id: string; name: string }[]>([]);
+  const [catLoading, setCatLoading] = useState(true);
+  const [newCatName, setNewCatName] = useState("");
+  const [catSaving, setCatSaving] = useState(false);
+  const [catToDelete, setCatToDelete] = useState<string | null>(null);
+
   useEffect(() => {
     getStoreSettings().then((data) => {
       setForm({
@@ -34,6 +41,48 @@ export default function SettingsPage() {
       setLoading(false);
     });
   }, []);
+
+  useEffect(() => {
+    getCategories().then((data) => {
+      setCategoryList(data);
+      setCatLoading(false);
+    });
+  }, []);
+
+  const handleAddCategory = async () => {
+    const name = newCatName.trim();
+    if (!name) return;
+    setCatSaving(true);
+    const result = await addCategory(name);
+    if (result) {
+      setCategoryList((prev) => [...prev, result].sort((a, b) => a.name.localeCompare(b.name)));
+      setNewCatName("");
+      setToast("Kategori berhasil ditambahkan!");
+    } else {
+      // Optimistic fallback for environments where categories table may not exist
+      setToast("Kategori ditambahkan (lokal saja – tabel belum ada di Supabase)");
+      setCategoryList((prev) =>
+        [...prev, { id: `local-${Date.now()}`, name }].sort((a, b) =>
+          a.name.localeCompare(b.name)
+        )
+      );
+      setNewCatName("");
+    }
+    setCatSaving(false);
+    setTimeout(() => setToast(""), 3000);
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    const ok = await deleteCategory(id);
+    if (ok || id.startsWith("local-")) {
+      setCategoryList((prev) => prev.filter((c) => c.id !== id));
+      setToast("Kategori dihapus");
+    } else {
+      setToast("Gagal menghapus kategori");
+    }
+    setCatToDelete(null);
+    setTimeout(() => setToast(""), 3000);
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -229,6 +278,101 @@ export default function SettingsPage() {
               )}
             </button>
           )}
+
+          {/* Kategori Produk */}
+          <div className="bg-white border border-[#E5E3DC] rounded-2xl overflow-hidden shadow-sm">
+            <div className="px-5 py-4 bg-gradient-to-r from-[#072C2C] to-[#0a3d3d] flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                <Layers className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">Kategori Produk</h3>
+                <p className="text-[10px] text-white/60">Kelola kategori untuk pengelompokan produk</p>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Add category form */}
+              {isOwner && (
+                <div className="flex gap-2">
+                  <input
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleAddCategory(); }}
+                    placeholder="Nama kategori baru..."
+                    className="flex-1 px-4 py-2.5 border border-[#E5E3DC] rounded-xl text-sm text-[#072C2C] placeholder:text-[#072C2C]/25 focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/30 focus:border-[#FF5F03] transition-all"
+                  />
+                  <button
+                    onClick={handleAddCategory}
+                    disabled={catSaving || !newCatName.trim()}
+                    className="flex items-center gap-1.5 px-4 py-2.5 bg-[#FF5F03] hover:bg-[#e05500] text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    {catSaving ? (
+                      <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <Plus className="w-4 h-4" />
+                    )}
+                    Tambah
+                  </button>
+                </div>
+              )}
+
+              {/* Category list */}
+              {catLoading ? (
+                <div className="flex items-center justify-center py-6">
+                  <div className="w-5 h-5 border-2 border-[#FF5F03] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <div className="divide-y divide-[#F0EEE8] border border-[#E5E3DC] rounded-xl overflow-hidden">
+                  {categoryList.length === 0 ? (
+                    <p className="text-center text-xs text-[#9CA3AF] py-6">Belum ada kategori</p>
+                  ) : (
+                    categoryList.map((cat) => (
+                      <div key={cat.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-[#FAFAF8] transition-colors">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-[#FF5F03]" />
+                          <span className="text-sm text-[#072C2C]">{cat.name}</span>
+                        </div>
+                        {isOwner && (
+                          catToDelete === cat.id ? (
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-[#DC2626]">Hapus?</span>
+                              <button
+                                onClick={() => handleDeleteCategory(cat.id)}
+                                className="text-[10px] font-bold text-white bg-[#DC2626] px-2 py-0.5 rounded hover:bg-[#B91C1C] transition-colors"
+                              >
+                                Ya
+                              </button>
+                              <button
+                                onClick={() => setCatToDelete(null)}
+                                className="text-[10px] font-bold text-[#072C2C]/60 px-2 py-0.5 rounded border border-[#D9D6C8] hover:bg-[#F0EEE8] transition-colors"
+                              >
+                                Batal
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setCatToDelete(cat.id)}
+                              className="p-1.5 text-[#9CA3AF] hover:text-[#DC2626] hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {!isOwner && (
+                <p className="text-[10px] text-[#9CA3AF] flex items-center gap-1 pt-1">
+                  <Lock className="w-3 h-3" />
+                  Hanya Owner / Admin yang dapat mengubah kategori
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Right: Preview + Info */}

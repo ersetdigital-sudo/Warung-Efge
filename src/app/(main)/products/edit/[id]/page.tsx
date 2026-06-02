@@ -4,8 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Camera, X, Check, ScanBarcode } from "lucide-react";
 import Button from "@/components/ui/Button";
-import { categories } from "@/data/mock-data";
-import { getProductById, updateProduct, getProductUnits, saveProductUnits } from "@/lib/db";
+import { getProductById, updateProduct, getProductUnits, saveProductUnits, getCategories } from "@/lib/db";
 
 interface UnitLevel { level: number; active: boolean; name: string; conversion: string; stock: string; buyPrice: string; sellPrice: string; }
 
@@ -15,6 +14,7 @@ export default function EditProductPage() {
   const productId = params.id as string;
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [name, setName] = useState("");
   const [sku, setSku] = useState("");
   const [barcode, setBarcode] = useState("");
@@ -42,6 +42,10 @@ export default function EditProductPage() {
   const scanVideoRef = useRef<HTMLVideoElement>(null);
   const scanReaderRef = useRef<any>(null);
   const scanStreamRef = useRef<MediaStream | null>(null);
+
+  useEffect(() => {
+    getCategories().then(setCategories);
+  }, []);
 
   useEffect(() => {
     const load = async () => {

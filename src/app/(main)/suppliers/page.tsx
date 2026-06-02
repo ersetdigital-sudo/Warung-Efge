@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Phone, MapPin, DollarSign, Check, AlertCircle, X } from "lucide-react";
+import { Plus, Edit, Trash2, Phone, MapPin, DollarSign, Check, AlertCircle, X, History, CreditCard } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import DataTable from "@/components/ui/DataTable";
-import { formatCurrency } from "@/lib/utils";
-import { getSuppliers } from "@/lib/db";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { getSuppliers, addSupplierPayment, getSupplierPayments } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 
 type Supplier = {
@@ -18,6 +18,16 @@ type Supplier = {
   address?: string;
   debt: number;
   created_at?: string;
+};
+
+type SupplierPayment = {
+  id: string;
+  supplier_id: string;
+  amount: number;
+  method: string;
+  note: string;
+  created_at: string;
+  suppliers?: { name: string };
 };
 
 type FormData = { name: string; phone: string; email: string; address: string };
@@ -34,11 +44,24 @@ export default function SuppliersPage() {
   const [formData, setFormData] = useState<FormData>({ name: "", phone: "", email: "", address: "" });
   const [saving, setSaving] = useState(false);
 
+  // History modal
+  const [showHistory, setShowHistory] = useState<Supplier | null>(null);
+  const [supplierPayments, setSupplierPayments] = useState<SupplierPayment[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     const data = await getSuppliers();
     setSuppliers(data as Supplier[]);
+  };
+
+  const openHistory = async (s: Supplier) => {
+    setShowHistory(s);
+    setLoadingHistory(true);
+    const payments = await getSupplierPayments(s.id);
+    setSupplierPayments(payments as SupplierPayment[]);
+    setLoadingHistory(false);
   };
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
@@ -102,6 +125,13 @@ export default function SuppliersPage() {
     const newDebt = showPayDebt.debt - amount;
     const { error } = await supabase.from("suppliers").update({ debt: newDebt }).eq("id", showPayDebt.id);
     if (error) { showToast("Gagal mencatat pembayaran", "error"); return; }
+    // Record payment history
+    await addSupplierPayment({
+      supplier_id: showPayDebt.id,
+      amount,
+      method: "cash",
+      note: "Pembayaran hutang supplier",
+    });
     await loadData();
     setShowPayDebt(null);
     setPayAmount("");
@@ -149,6 +179,9 @@ export default function SuppliersPage() {
       key: "actions", label: "Aksi",
       render: (item: Supplier) => (
         <div className="flex items-center gap-1">
+          <button onClick={() => openHistory(item)} className="p-1.5 rounded-md hover:bg-purple-50 text-purple-600 cursor-pointer" title="Riwayat Pembayaran">
+            <History className="w-4 h-4" />
+          </button>
           <button onClick={() => openEdit(item)} className="p-1.5 rounded-md hover:bg-blue-50 text-blue-600 cursor-pointer" title="Edit">
             <Edit className="w-4 h-4" />
           </button>
@@ -247,6 +280,12 @@ export default function SuppliersPage() {
                       className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-colors ${s.debt > 0 ? "bg-[#16A34A] text-white hover:bg-[#15803d] cursor-pointer" : "bg-[#F0EEE8] text-[#9CA3AF] cursor-not-allowed"}`}
                     >
                       <DollarSign className="w-3.5 h-3.5" />Bayar
+                    </button>
+                    <button
+                      onClick={() => openHistory(s)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-purple-50 text-purple-600 rounded-xl text-xs font-bold hover:bg-purple-100 cursor-pointer"
+                    >
+                      <History className="w-3.5 h-3.5" />Riwayat
                     </button>
                     <button
                       onClick={() => openEdit(s)}
@@ -377,6 +416,55 @@ export default function SuppliersPage() {
               <button onClick={handlePayDebt} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#16A34A] text-white rounded-xl text-sm font-bold cursor-pointer hover:bg-[#15803d]">
                 <DollarSign className="w-4 h-4" />Bayar Hutang
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment History Modal */}
+      {showHistory && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="fixed inset-0 bg-[#072C2C]/60 backdrop-blur-sm" onClick={() => setShowHistory(null)} />
+          <div className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-y-auto max-h-[85vh]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0EEE8]">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-purple-600" />
+                <h3 className="text-base font-bold text-[#072C2C]">Riwayat Pembayaran</h3>
+              </div>
+              <button onClick={() => setShowHistory(null)} className="p-1.5 rounded-xl hover:bg-[#F0EEE8] cursor-pointer">
+                <X className="w-4 h-4 text-[#072C2C]/50" />
+              </button>
+            </div>
+            <div className="px-5 py-3 bg-purple-50 border-b border-purple-100">
+              <p className="text-sm font-bold text-[#072C2C]">{showHistory.name}</p>
+              <p className="text-xs text-[#9CA3AF]">
+                Sisa hutang: <span className={`font-bold ${showHistory.debt > 0 ? "text-red-600" : "text-[#16A34A]"}`}>{showHistory.debt > 0 ? formatCurrency(showHistory.debt) : "Lunas"}</span>
+              </p>
+            </div>
+            <div className="p-5">
+              {loadingHistory ? (
+                <p className="text-center py-8 text-sm text-[#9CA3AF]">Memuat riwayat...</p>
+              ) : supplierPayments.length === 0 ? (
+                <div className="text-center py-8">
+                  <CreditCard className="w-10 h-10 text-[#9CA3AF] mx-auto mb-2 opacity-40" />
+                  <p className="text-sm text-[#9CA3AF]">Belum ada riwayat pembayaran</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {supplierPayments.map(p => (
+                    <div key={p.id} className="flex items-center justify-between p-3 bg-[#FAFAF8] border border-[#E5E3DC] rounded-xl">
+                      <div>
+                        <p className="text-sm font-bold text-[#16A34A]">+{formatCurrency(p.amount)}</p>
+                        <p className="text-[11px] text-[#9CA3AF] mt-0.5">{p.note} · {p.method === "cash" ? "Tunai" : p.method}</p>
+                      </div>
+                      <p className="text-[11px] text-[#9CA3AF]">{formatDate(p.created_at)}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="px-5 pb-5">
+              <button onClick={() => setShowHistory(null)} className="w-full py-2.5 border border-[#E5E3DC] rounded-xl text-sm font-semibold text-[#072C2C]/60 cursor-pointer hover:bg-[#F8F7F4]">Tutup</button>
             </div>
           </div>
         </div>

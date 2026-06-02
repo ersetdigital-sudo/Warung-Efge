@@ -95,6 +95,27 @@ export async function getSuppliers() {
   return data || [];
 }
 
+// ============ SUPPLIER PAYMENTS ============
+export async function addSupplierPayment(payment: { supplier_id: string; amount: number; method: string; note: string }) {
+  const { data, error } = await supabase.from("supplier_payments").insert(payment).select().single();
+  if (error) { console.error("addSupplierPayment error:", error); return null; }
+  return data;
+}
+
+export async function getSupplierPayments(supplierId?: string) {
+  let query = supabase.from("supplier_payments").select("*, suppliers(name)").order("created_at", { ascending: false });
+  if (supplierId) query = query.eq("supplier_id", supplierId);
+  const { data, error } = await query;
+  if (error) {
+    // Fallback: plain query without join
+    let q2 = supabase.from("supplier_payments").select("*").order("created_at", { ascending: false });
+    if (supplierId) q2 = q2.eq("supplier_id", supplierId);
+    const { data: d2 } = await q2;
+    return d2 || [];
+  }
+  return data || [];
+}
+
 // ============ STOCK MOVEMENTS ============
 export async function addStockMovement(movement: Record<string, unknown>) {
   const { error } = await supabase.from("stock_movements").insert(movement);
@@ -160,6 +181,38 @@ export async function updateExpense(id: string, amount: number) {
 export async function deleteExpense(id: string) {
   const { error } = await supabase.from("expenses").delete().eq("id", id);
   return !error;
+}
+
+// ============ CATEGORIES ============
+export async function getCategories(): Promise<{ id: string; name: string }[]> {
+  const { data, error } = await supabase.from("categories").select("id, name").order("name");
+  if (error || !data || data.length === 0) {
+    return [
+      { id: "1", name: "Beras & Tepung" },
+      { id: "2", name: "Minyak & Mentega" },
+      { id: "3", name: "Gula & Garam" },
+      { id: "4", name: "Minuman" },
+      { id: "5", name: "Mie & Pasta" },
+      { id: "6", name: "Bumbu & Rempah" },
+      { id: "7", name: "Sabun & Detergen" },
+      { id: "8", name: "Snack & Makanan Ringan" },
+      { id: "9", name: "Rokok" },
+      { id: "10", name: "Lain-lain" },
+    ];
+  }
+  return data;
+}
+
+export async function addCategory(name: string): Promise<{ id: string; name: string } | null> {
+  const { data, error } = await supabase.from("categories").insert({ name }).select("id, name").single();
+  if (error) { console.error("addCategory error:", error); return null; }
+  return data;
+}
+
+export async function deleteCategory(id: string): Promise<boolean> {
+  const { error } = await supabase.from("categories").delete().eq("id", id);
+  if (error) { console.error("deleteCategory error:", error); return false; }
+  return true;
 }
 
 // ============ STORE SETTINGS ============

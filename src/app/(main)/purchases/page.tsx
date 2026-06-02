@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Eye, Trash2, Check, AlertCircle, X, PackagePlus } from "lucide-react";
+import { Plus, Eye, Trash2, Check, AlertCircle, X, PackagePlus, DollarSign } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
@@ -63,6 +63,10 @@ export default function PurchasesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Purchase | null>(null);
   const [toast, setToast] = useState<Toast>({ msg: "", type: "success" });
   const [saving, setSaving] = useState(false);
+
+  // Purchase payment modal
+  const [showPayPurchase, setShowPayPurchase] = useState<Purchase | null>(null);
+  const [purchasePayAmount, setPurchasePayAmount] = useState("");
 
   // Form state
   const [supplierId, setSupplierId] = useState("");
@@ -211,6 +215,37 @@ export default function PurchasesPage() {
     showToast("Pembelian berhasil dihapus");
   };
 
+  const handlePayPurchase = async () => {
+    if (!showPayPurchase) return;
+    const amount = Number(purchasePayAmount);
+    const remaining = showPayPurchase.total_amount - showPayPurchase.paid_amount;
+    if (!amount || amount <= 0) { showToast("Masukkan jumlah bayar yang valid", "error"); return; }
+    if (amount > remaining) { showToast("Jumlah bayar melebihi sisa hutang", "error"); return; }
+    const newPaid = showPayPurchase.paid_amount + amount;
+    const newStatus: "paid" | "partial" = newPaid >= showPayPurchase.total_amount ? "paid" : "partial";
+    const { error } = await supabase
+      .from("purchases")
+      .update({ paid_amount: newPaid, status: newStatus })
+      .eq("id", showPayPurchase.id);
+    if (error) { showToast("Gagal mencatat pembayaran", "error"); return; }
+    // Reduce supplier debt
+    if (showPayPurchase.supplier_id) {
+      const supplier = suppliers.find(s => s.id === showPayPurchase.supplier_id);
+      if (supplier) {
+        const newDebt = Math.max(0, (supplier.debt || 0) - amount);
+        await supabase.from("suppliers").update({ debt: newDebt }).eq("id", showPayPurchase.supplier_id);
+      }
+    }
+    await loadData();
+    // Update viewingPurchase if it's the same
+    if (viewingPurchase?.id === showPayPurchase.id) {
+      setViewingPurchase(prev => prev ? { ...prev, paid_amount: newPaid, status: newStatus } : prev);
+    }
+    setShowPayPurchase(null);
+    setPurchasePayAmount("");
+    showToast(newStatus === "paid" ? "Pembelian lunas! ✓" : "Pembayaran berhasil dicatat");
+  };
+
   const totalValue = purchases.reduce((s, p) => s + (p.total_amount || 0), 0);
   const unpaidCount = purchases.filter(p => p.status !== "paid").length;
 
@@ -251,6 +286,11 @@ export default function PurchasesPage() {
           <button onClick={() => setViewingPurchase(item)} className="p-1.5 rounded-md hover:bg-blue-50 text-blue-600 cursor-pointer" title="Detail">
             <Eye className="w-4 h-4" />
           </button>
+          {item.status !== "paid" && (
+            <button onClick={() => { setShowPayPurchase(item); setPurchasePayAmount(""); }} className="p-1.5 rounded-md hover:bg-green-50 text-green-600 cursor-pointer" title="Bayar">
+              <DollarSign className="w-4 h-4" />
+            </button>
+          )}
           <button onClick={() => setDeleteTarget(item)} className="p-1.5 rounded-md hover:bg-red-50 text-red-600 cursor-pointer" title="Hapus">
             <Trash2 className="w-4 h-4" />
           </button>
@@ -329,6 +369,14 @@ export default function PurchasesPage() {
                     >
                       <Eye className="w-3.5 h-3.5" />Detail
                     </button>
+                    {p.status !== "paid" && (
+                      <button
+                        onClick={() => { setShowPayPurchase(p); setPurchasePayAmount(""); }}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-50 text-green-600 rounded-xl text-xs font-bold hover:bg-green-100 cursor-pointer"
+                      >
+                        <DollarSign className="w-3.5 h-3.5" />Bayar
+                      </button>
+                    )}
                     <button
                       onClick={() => setDeleteTarget(p)}
                       className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100 cursor-pointer"
@@ -568,7 +616,80 @@ export default function PurchasesPage() {
                   </div>
                 </div>
               )}
+              {viewingPurchase.status !== "paid" && (
+                <button
+                  onClick={() => { setShowPayPurchase(viewingPurchase); setPurchasePayAmount(""); setViewingPurchase(null); }}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#16A34A] text-white rounded-xl text-sm font-bold cursor-pointer hover:bg-[#15803d]"
+                >
+                  <DollarSign className="w-4 h-4" />Bayar Hutang Pembelian
+                </button>
+              )}
               <button onClick={() => setViewingPurchase(null)} className="w-full py-2.5 border border-[#E5E3DC] rounded-xl text-sm font-semibold text-[#072C2C]/60 cursor-pointer hover:bg-[#F8F7F4]">Tutup</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Purchase Payment Modal */}
+      {showPayPurchase && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="fixed inset-0 bg-[#072C2C]/60 backdrop-blur-sm" onClick={() => setShowPayPurchase(null)} />
+          <div className="relative bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-[#072C2C]">Bayar Hutang Pembelian</h3>
+              <button onClick={() => setShowPayPurchase(null)} className="p-1.5 rounded-xl hover:bg-[#F0EEE8] cursor-pointer">
+                <X className="w-4 h-4 text-[#072C2C]/50" />
+              </button>
+            </div>
+            <div className="bg-red-50 rounded-2xl p-4 border border-red-100 space-y-1.5">
+              <p className="text-xs text-red-400 font-semibold text-center">{showPayPurchase.purchase_number} — {showPayPurchase.supplier_name}</p>
+              <div className="flex justify-between text-sm">
+                <span className="text-[#072C2C]/60">Total Pembelian</span>
+                <span className="font-semibold text-[#072C2C]">{formatCurrency(showPayPurchase.total_amount)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-[#072C2C]/60">Sudah Dibayar</span>
+                <span className="font-semibold text-[#16A34A]">{formatCurrency(showPayPurchase.paid_amount)}</span>
+              </div>
+              <div className="flex justify-between text-sm pt-1 border-t border-red-100">
+                <span className="font-bold text-[#072C2C]">Sisa Hutang</span>
+                <span className="text-2xl font-black text-red-600">{formatCurrency(showPayPurchase.total_amount - showPayPurchase.paid_amount)}</span>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-[#072C2C]/60 mb-1 block">Jumlah Bayar</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={purchasePayAmount ? `Rp ${Number(purchasePayAmount).toLocaleString("id-ID")}` : ""}
+                onChange={e => setPurchasePayAmount(e.target.value.replace(/\D/g, ""))}
+                placeholder="Rp 0"
+                className="w-full px-4 py-3 text-xl font-black text-[#072C2C] border border-[#E5E3DC] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#16A34A]/30 text-right"
+              />
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setPurchasePayAmount(String(showPayPurchase.total_amount - showPayPurchase.paid_amount))}
+                  className="py-2 text-xs font-bold bg-green-50 text-green-700 rounded-xl border border-green-200 cursor-pointer"
+                >Lunas</button>
+                <button
+                  type="button"
+                  onClick={() => setPurchasePayAmount(String(Math.round((showPayPurchase.total_amount - showPayPurchase.paid_amount) / 2)))}
+                  className="py-2 text-xs font-semibold bg-[#F8F7F4] text-[#072C2C]/70 rounded-xl border border-[#E5E3DC] cursor-pointer"
+                >Setengah</button>
+              </div>
+            </div>
+            {Number(purchasePayAmount) > 0 && Number(purchasePayAmount) <= (showPayPurchase.total_amount - showPayPurchase.paid_amount) && (
+              <div className="bg-green-50 rounded-xl p-3 border border-green-100 space-y-1 text-sm">
+                <div className="flex justify-between"><span className="text-[#072C2C]/60">Pembayaran</span><span className="font-bold text-[#16A34A]">{formatCurrency(Number(purchasePayAmount))}</span></div>
+                <div className="flex justify-between"><span className="text-[#072C2C]/60">Sisa hutang</span><span className="font-bold text-[#072C2C]">{formatCurrency(showPayPurchase.total_amount - showPayPurchase.paid_amount - Number(purchasePayAmount))}</span></div>
+              </div>
+            )}
+            <div className="flex gap-3">
+              <button onClick={() => setShowPayPurchase(null)} className="flex-1 py-2.5 border border-[#E5E3DC] rounded-xl text-sm font-semibold text-[#072C2C]/60 cursor-pointer hover:bg-[#F8F7F4]">Batal</button>
+              <button onClick={handlePayPurchase} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#16A34A] text-white rounded-xl text-sm font-bold cursor-pointer hover:bg-[#15803d]">
+                <DollarSign className="w-4 h-4" />Bayar
+              </button>
             </div>
           </div>
         </div>

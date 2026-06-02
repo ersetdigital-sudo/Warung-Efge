@@ -4,8 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ScanBarcode, X, Plus } from "lucide-react";
 import Button from "@/components/ui/Button";
-import { categories } from "@/data/mock-data";
-import { addProduct, saveProductUnits } from "@/lib/db";
+import { addProduct, saveProductUnits, getCategories } from "@/lib/db";
 
 interface UnitLevel { level: number; active: boolean; name: string; conversion: string; stock: string; buyPrice: string; sellPrice: string; }
 
@@ -15,6 +14,11 @@ export default function AddProductPage() {
   const [sku, setSku] = useState("");
   const [barcode, setBarcode] = useState("");
   const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    getCategories().then(setCategories);
+  }, []);
 
   // Simple mode (default): 1 satuan
   const [unit, setUnit] = useState("");
