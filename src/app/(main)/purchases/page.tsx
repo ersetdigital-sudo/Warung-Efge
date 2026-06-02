@@ -150,7 +150,6 @@ export default function PurchasesPage() {
         total_amount: totalAmount,
         paid_amount: 0,
         status: "unpaid",
-        purchase_date: purchaseDate,
       })
       .select()
       .single();
