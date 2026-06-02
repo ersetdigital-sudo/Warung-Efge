@@ -1,17 +1,25 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Shield, ShieldCheck, User as UserIcon } from "lucide-react";
+import { Plus, Edit, Trash2, Shield, ShieldCheck, User as UserIcon, KeyRound, Eye, EyeOff } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import { formatDate } from "@/lib/utils";
 import { getUsers } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 
 export default function UsersPage() {
+  const { role } = useAuth();
+  const isOwner = role === "owner";
   const [users, setUsers] = useState<any[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState<any>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
+  const [pwdLoading, setPwdLoading] = useState(false);
+  const [pwdError, setPwdError] = useState("");
   const [toast, setToast] = useState("");
   const [toastType, setToastType] = useState<"success" | "error">("success");
 
@@ -62,10 +70,42 @@ export default function UsersPage() {
     else { showToast("Gagal menghapus", "error"); }
   };
 
+  const handleChangePassword = async () => {
+    if (!showChangePassword || !newPassword) return;
+    if (newPassword.length < 6) { setPwdError("Password minimal 6 karakter"); return; }
+    setPwdError(""); setPwdLoading(true);
+    const res = await fetch("/api/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: showChangePassword.id, password: newPassword }),
+    });
+    const data = await res.json();
+    setPwdLoading(false);
+    if (!res.ok) { setPwdError(data.error || "Gagal mengubah password"); return; }
+    setShowChangePassword(null); setNewPassword(""); setShowPwd(false);
+    showToast(`Password ${showChangePassword.name} berhasil diubah`);
+  };
+
   const handleToggleActive = async (user: any) => {
     await supabase.from("users").update({ is_active: !user.is_active }).eq("id", user.id);
     await loadUsers();
     showToast(user.is_active ? `${user.name} dinonaktifkan` : `${user.name} diaktifkan`);
+  };
+
+  const handleChangePassword = async () => {
+    if (!showChangePassword || !newPassword) return;
+    if (newPassword.length < 6) { setPwdError("Password minimal 6 karakter"); return; }
+    setPwdLoading(true); setPwdError("");
+    const res = await fetch("/api/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: showChangePassword.id, password: newPassword }),
+    });
+    const data = await res.json();
+    setPwdLoading(false);
+    if (!res.ok) { setPwdError(data.error || "Gagal mengubah password"); return; }
+    setShowChangePassword(null); setNewPassword(""); setShowPwd(false);
+    showToast(`Password ${showChangePassword.name} berhasil diubah`);
   };
 
   const roleLabels: Record<string, string> = { owner: "Owner", admin: "Admin", cashier: "Kasir" };
@@ -115,7 +155,12 @@ export default function UsersPage() {
                   <td className="px-4 py-3"><span className={`text-[10px] font-bold px-2 py-1 rounded border ${roleColors[u.role] || roleColors.cashier}`}>{roleLabels[u.role] || u.role}</span></td>
                   <td className="px-4 py-3"><button onClick={() => handleToggleActive(u)} className="cursor-pointer"><Badge variant={u.is_active ? "success" : "default"}>{u.is_active ? "Aktif" : "Nonaktif"}</Badge></button></td>
                   <td className="px-4 py-3 text-[#9CA3AF] text-xs">{u.created_at ? formatDate(u.created_at) : "—"}</td>
-                  <td className="px-4 py-3">{u.role !== "owner" && <button onClick={() => handleDelete(u)} className="p-1.5 rounded-md hover:bg-[#FEF2F2] text-[#9CA3AF] hover:text-[#DC2626] cursor-pointer"><Trash2 className="w-4 h-4" /></button>}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-1">
+                      {isOwner && <button onClick={() => { setShowChangePassword(u); setNewPassword(""); setPwdError(""); }} className="p-1.5 rounded-md hover:bg-[#FFFBEB] text-[#9CA3AF] hover:text-[#D97706] cursor-pointer" title="Ubah Password"><KeyRound className="w-4 h-4" /></button>}
+                      {u.role !== "owner" && <button onClick={() => handleDelete(u)} className="p-1.5 rounded-md hover:bg-[#FEF2F2] text-[#9CA3AF] hover:text-[#DC2626] cursor-pointer"><Trash2 className="w-4 h-4" /></button>}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -138,6 +183,7 @@ export default function UsersPage() {
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${roleColors[u.role] || roleColors.cashier}`}>{roleLabels[u.role] || u.role}</span>
                   <button onClick={() => handleToggleActive(u)} className="cursor-pointer"><Badge variant={u.is_active ? "success" : "default"}>{u.is_active ? "Aktif" : "Nonaktif"}</Badge></button>
+                  {isOwner && <button onClick={() => { setShowChangePassword(u); setNewPassword(""); setPwdError(""); }} className="p-1.5 rounded-md text-[#9CA3AF] hover:text-[#D97706] cursor-pointer"><KeyRound className="w-4 h-4" /></button>}
                   {u.role !== "owner" && <button onClick={() => handleDelete(u)} className="p-1.5 rounded-md text-[#9CA3AF] hover:text-[#DC2626] cursor-pointer"><Trash2 className="w-4 h-4" /></button>}
                 </div>
               </div>
@@ -145,6 +191,48 @@ export default function UsersPage() {
           ))}
         </div>
       </Card>
+
+      {/* Change Password Modal */}
+      {showChangePassword && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setShowChangePassword(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#D97706]/10 rounded-full flex items-center justify-center"><KeyRound className="w-5 h-5 text-[#D97706]" /></div>
+              <div>
+                <h3 className="text-base font-bold text-[#072C2C]">Ubah Password</h3>
+                <p className="text-xs text-[#072C2C]/50">{showChangePassword.name} · {showChangePassword.email}</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-[#072C2C]/70 mb-1.5">Password Baru</label>
+              <div className="relative">
+                <input
+                  type={showPwd ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleChangePassword()}
+                  placeholder="Min 6 karakter"
+                  className="w-full px-4 py-3 pr-11 border border-[#072C2C]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#FF5F03]/20 focus:border-[#FF5F03]"
+                  autoFocus
+                />
+                <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#072C2C]/30 hover:text-[#072C2C]/60 cursor-pointer">
+                  {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {pwdError && <p className="text-xs text-[#DC2626] mt-1.5 bg-[#FEF2F2] px-3 py-2 rounded-lg">{pwdError}</p>}
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button onClick={() => { setShowChangePassword(null); setNewPassword(""); setPwdError(""); }} className="flex-1 px-4 py-2.5 text-sm font-medium text-[#072C2C]/60 hover:text-[#072C2C] cursor-pointer">Batal</button>
+              <button onClick={handleChangePassword} disabled={pwdLoading || !newPassword} className="flex-1 px-4 py-2.5 bg-[#D97706] text-white font-bold text-sm rounded-xl disabled:opacity-50 cursor-pointer hover:bg-[#b45309]">
+                {pwdLoading ? "Menyimpan..." : "Ubah Password"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add User Modal */}
       {showAddModal && (

@@ -73,3 +73,20 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
   }
 }
+
+// PATCH: Update user password
+export async function PATCH(req: NextRequest) {
+  try {
+    const supabaseAdmin = getAdminClient();
+    const { id, password } = await req.json();
+    if (!id || !password) return NextResponse.json({ error: "ID dan password wajib" }, { status: 400 });
+    if (password.length < 6) return NextResponse.json({ error: "Password minimal 6 karakter" }, { status: 400 });
+
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(id, { password });
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+  }
+}
