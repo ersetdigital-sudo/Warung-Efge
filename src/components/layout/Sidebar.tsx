@@ -64,23 +64,25 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
     router.push("/login");
   };
 
-  // Filter menu items based on role
   const visibleMenuItems = menuItems.filter(item => {
     if (role === "cashier") {
       return ["/pos", "/products", "/transactions"].includes(item.href);
     }
-    return true; // owner & admin see everything
+    return true;
   });
 
   return (
     <>
-      {/* Mobile/tablet overlay */}
+      {/* Mobile overlay */}
       {isOpen && (
         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />
       )}
 
-      {/* Mobile bottom nav - 4 menu only */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#D9D6C8] flex items-center justify-around shadow-[0_-2px_10px_rgba(0,0,0,0.06)]" style={{ height: "72px", paddingBottom: "env(safe-area-inset-bottom, 0px)", paddingTop: "4px" }}>
+      {/* Mobile bottom nav */}
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#D9D6C8] flex items-center justify-around shadow-[0_-2px_10px_rgba(0,0,0,0.06)]"
+        style={{ height: "72px", paddingBottom: "env(safe-area-inset-bottom, 0px)", paddingTop: "4px" }}
+      >
         {[
           { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
           { href: "/pos", icon: ShoppingCart, label: "Kasir" },
@@ -92,7 +94,14 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
         }).map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
           return (
-            <Link key={item.href} href={item.href} className={cn("flex flex-col items-center justify-center gap-1 flex-1 py-2 min-h-[56px] rounded-lg transition-all active:scale-90 active:opacity-70", isActive ? "text-[#FF5F03]" : "text-[#9CA3AF]")}>
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 flex-1 py-2 min-h-[56px] rounded-lg transition-all active:scale-90 active:opacity-70",
+                isActive ? "text-[#FF5F03]" : "text-[#9CA3AF]"
+              )}
+            >
               <item.icon className="w-6 h-6" strokeWidth={isActive ? 2.2 : 1.7} />
               <span className={cn("text-[11px]", isActive ? "font-bold" : "font-medium")}>{item.label}</span>
             </Link>
@@ -104,51 +113,93 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
       <aside
         className={cn(
           "fixed top-0 left-0 z-50 h-full bg-[#072C2C] flex-col transition-all duration-[220ms] ease-in-out lg:static lg:z-auto",
-          collapsed ? "w-[68px]" : "w-64",
+          collapsed ? "w-[56px]" : "w-56",
           "hidden md:flex",
-          // Mobile slide-in
           isOpen && "!flex !fixed !z-50"
         )}
       >
-        {/* Brand */}
-        <div className={cn("flex items-center h-16 border-b border-white/10 transition-all duration-[220ms]", collapsed ? "justify-center px-2" : "px-4 gap-3")}>
-          <Link href="/dashboard" className={cn("flex items-center", collapsed ? "" : "gap-3")}>
-            <div className="w-9 h-9 bg-[#FF5F03] rounded-lg flex items-center justify-center flex-shrink-0">
-              <Store className="w-5 h-5 text-white" />
-            </div>
-            {!collapsed && (
-              <div className="overflow-hidden">
-                <h1 className="text-base font-bold text-white leading-tight font-[Oswald] whitespace-nowrap">WARUNG EFGE</h1>
-                <p className="text-[10px] text-white/50 leading-none whitespace-nowrap">POS & Inventory</p>
-              </div>
-            )}
-          </Link>
+        {/* Brand + collapse toggle */}
+        <div className={cn(
+          "flex items-center h-14 border-b border-white/10 transition-all duration-[220ms] flex-shrink-0",
+          collapsed ? "justify-center px-1.5" : "px-3 gap-2"
+        )}>
           {!collapsed && (
-            <button onClick={onClose} className="lg:hidden ml-auto p-1 rounded-md hover:bg-white/10 cursor-pointer">
-              <X className="w-5 h-5 text-white/70" />
+            <Link href="/dashboard" className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="w-7 h-7 bg-[#FF5F03] rounded-md flex items-center justify-center flex-shrink-0">
+                <Store className="w-4 h-4 text-white" />
+              </div>
+              <div className="overflow-hidden">
+                <h1 className="text-sm font-bold text-white leading-tight font-[Oswald] whitespace-nowrap">WARUNG EFGE</h1>
+                <p className="text-[9px] text-white/40 leading-none whitespace-nowrap">POS & Inventory</p>
+              </div>
+            </Link>
+          )}
+
+          {collapsed && (
+            <Link href="/dashboard">
+              <div className="w-7 h-7 bg-[#FF5F03] rounded-md flex items-center justify-center">
+                <Store className="w-4 h-4 text-white" />
+              </div>
+            </Link>
+          )}
+
+          {/* Collapse toggle — icon only, always visible on desktop */}
+          <button
+            onClick={onToggleCollapse}
+            className={cn(
+              "hidden lg:flex items-center justify-center rounded-md text-white/50 hover:bg-white/10 hover:text-white transition-all cursor-pointer flex-shrink-0",
+              collapsed ? "w-7 h-7 mt-0" : "w-6 h-6"
+            )}
+            title={collapsed ? "Buka sidebar" : "Tutup sidebar"}
+          >
+            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+
+          {/* Mobile close button */}
+          {!collapsed && (
+            <button onClick={onClose} className="lg:hidden flex-shrink-0 p-1 rounded-md hover:bg-white/10 cursor-pointer">
+              <X className="w-4 h-4 text-white/60" />
             </button>
           )}
         </div>
 
-        {/* Nav items */}
-        <nav className={cn("flex-1 overflow-hidden transition-all duration-[220ms]", collapsed ? "px-2 py-1.5" : "px-2.5 py-1.5")}>
+        {/* Nav items — compact */}
+        <nav className={cn(
+          "flex-1 overflow-y-auto overflow-x-hidden transition-all duration-[220ms]",
+          collapsed ? "px-1.5 py-1" : "px-2 py-1"
+        )}>
           {visibleMenuItems.map((item) => {
             const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
             return (
-              <div key={item.href} className="relative" onMouseEnter={() => collapsed && setHoveredItem(item.href)} onMouseLeave={() => setHoveredItem(null)}>
+              <div
+                key={item.href}
+                className="relative"
+                onMouseEnter={() => collapsed && setHoveredItem(item.href)}
+                onMouseLeave={() => setHoveredItem(null)}
+              >
                 <Link
                   href={item.href}
                   onClick={onClose}
                   className={cn(
-                    "flex items-center rounded-lg font-medium transition-all duration-200 mb-0.5",
-                    collapsed ? "justify-center px-2 py-2 text-sm" : "gap-3 px-3 py-2.5 text-sm",
+                    "flex items-center rounded-md font-medium transition-all duration-150 mb-[2px]",
+                    collapsed
+                      ? "justify-center px-1.5 py-2"
+                      : "gap-2.5 px-2.5 py-2 text-sm",
                     isActive
-                      ? "bg-[#FF5F03] text-white shadow-lg shadow-[#FF5F03]/20"
-                      : "text-white/70 hover:bg-white/10 hover:text-white"
+                      ? "bg-[#FF5F03] text-white shadow-md shadow-[#FF5F03]/20"
+                      : "text-white/65 hover:bg-white/10 hover:text-white"
                   )}
                 >
-                  <item.icon className={cn("flex-shrink-0", collapsed ? "w-[18px] h-[18px]" : "w-5 h-5", isActive ? "text-white" : "text-white/50")} />
-                  {!collapsed && <span className="whitespace-nowrap overflow-hidden">{item.label}</span>}
+                  <item.icon
+                    className={cn(
+                      "flex-shrink-0",
+                      collapsed ? "w-[17px] h-[17px]" : "w-[15px] h-[15px]",
+                      isActive ? "text-white" : "text-white/50"
+                    )}
+                  />
+                  {!collapsed && (
+                    <span className="whitespace-nowrap overflow-hidden text-[13px]">{item.label}</span>
+                  )}
                 </Link>
                 <NavTooltip label={item.label} show={collapsed && hoveredItem === item.href} />
               </div>
@@ -156,27 +207,20 @@ export default function Sidebar({ isOpen, onClose, collapsed, onToggleCollapse }
           })}
         </nav>
 
-        {/* Logout + Toggle */}
-        <div className={cn("border-t border-white/10 transition-all duration-[220ms]", collapsed ? "p-2 space-y-0.5" : "px-2.5 py-2 space-y-0.5")}>
+        {/* Logout only at bottom */}
+        <div className={cn(
+          "border-t border-white/10 transition-all duration-[220ms]",
+          collapsed ? "p-1.5" : "px-2 py-1.5"
+        )}>
           <button
             onClick={handleLogout}
             className={cn(
-              "flex items-center rounded-lg text-white/60 hover:bg-[#DC2626]/20 hover:text-[#fca5a5] transition-all duration-200 cursor-pointer w-full",
-              collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2.5"
+              "flex items-center rounded-md text-white/50 hover:bg-[#DC2626]/20 hover:text-[#fca5a5] transition-all duration-200 cursor-pointer w-full",
+              collapsed ? "justify-center px-1.5 py-2" : "gap-2.5 px-2.5 py-2"
             )}
           >
-            <LogOut className={collapsed ? "w-[18px] h-[18px]" : "w-5 h-5"} />
-            {!collapsed && <span className="text-sm font-medium whitespace-nowrap">Keluar</span>}
-          </button>
-          <button
-            onClick={onToggleCollapse}
-            className={cn(
-              "flex items-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white transition-all duration-200 cursor-pointer w-full",
-              collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2.5"
-            )}
-          >
-            {collapsed ? <ChevronRight className="w-[18px] h-[18px]" /> : <ChevronLeft className="w-5 h-5" />}
-            {!collapsed && <span className="text-sm font-medium whitespace-nowrap">Tutup Sidebar</span>}
+            <LogOut className={collapsed ? "w-[17px] h-[17px]" : "w-[15px] h-[15px]"} />
+            {!collapsed && <span className="text-[13px] font-medium whitespace-nowrap">Keluar</span>}
           </button>
         </div>
       </aside>
