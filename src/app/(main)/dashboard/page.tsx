@@ -489,6 +489,122 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ═══ Widget Produk Mendekati Kadaluarsa ═══ */}
+      {(() => {
+        const now = Date.now();
+        const expiringProducts = products
+          .filter((p: any) => p.expiry_date)
+          .map((p: any) => {
+            const daysLeft = Math.ceil((new Date(p.expiry_date).getTime() - now) / 86400000);
+            const stock = p.stock ?? 0;
+            const costPrice = p.cost_price ?? 0;
+            const potentialLoss = stock * costPrice;
+            const status = daysLeft <= 0 ? "expired" : daysLeft < 7 ? "kritis" : daysLeft < 30 ? "waspada" : "perhatian";
+            return { ...p, daysLeft, potentialLoss, status };
+          })
+          .filter((p: any) => p.daysLeft <= 60)
+          .sort((a: any, b: any) => a.daysLeft - b.daysLeft);
+
+        if (expiringProducts.length === 0) return null;
+
+        const totalLoss = expiringProducts.reduce((s: number, p: any) => s + p.potentialLoss, 0);
+        const kritisCount = expiringProducts.filter((p: any) => p.status === "kritis" || p.status === "expired").length;
+
+        const statusConfig: Record<string, { label: string; bg: string; text: string; dot: string }> = {
+          expired: { label: "Expired", bg: "bg-[#DC2626]/10", text: "text-[#DC2626]", dot: "bg-[#DC2626]" },
+          kritis: { label: "Kritis", bg: "bg-[#DC2626]/10", text: "text-[#DC2626]", dot: "bg-[#DC2626]" },
+          waspada: { label: "Waspada", bg: "bg-[#F97316]/10", text: "text-[#F97316]", dot: "bg-[#F97316]" },
+          perhatian: { label: "Perhatian", bg: "bg-[#EAB308]/10", text: "text-[#EAB308]", dot: "bg-[#EAB308]" },
+        };
+
+        return (
+          <div className="bg-white border border-[#D9D6C8] rounded-md overflow-hidden">
+            {/* Header */}
+            <div className="px-3.5 py-3 border-b border-[#D9D6C8] bg-gradient-to-r from-[#FEF2F2] to-white">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-[#DC2626] flex items-center justify-center flex-shrink-0">
+                    <AlertTriangle className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-[Oswald] text-[12px] font-semibold text-[#072C2C] uppercase tracking-wider">Produk Mendekati Kadaluarsa</p>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      <span className="text-[10px] text-[#9CA3AF]"><strong className="text-[#072C2C]">{expiringProducts.length}</strong> produk berisiko</span>
+                      {kritisCount > 0 && <span className="text-[10px] text-[#DC2626] font-bold">🔴 {kritisCount} kritis</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="text-[9px] text-[#9CA3AF] uppercase tracking-wider">Potensi Kerugian</p>
+                  <p className="text-sm font-black text-[#DC2626] font-mono">{formatCurrency(totalLoss)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Items */}
+            <div className="divide-y divide-[#F0EEE8]">
+              {expiringProducts.slice(0, 5).map((p: any) => {
+                const cfg = statusConfig[p.status];
+                const progressPct = Math.max(0, Math.min(100, ((60 - p.daysLeft) / 60) * 100));
+                return (
+                  <div key={p.id} className={`px-3.5 py-3 hover:bg-[#FAFAF8] transition-colors ${p.status === "kritis" || p.status === "expired" ? "bg-[#FEF2F2]/30" : ""}`}>
+                    <div className="flex items-start gap-3">
+                      {/* Status indicator */}
+                      <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${cfg.dot}`} />
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-[12px] font-semibold text-[#072C2C] truncate">{p.name}</p>
+                            <p className="text-[10px] text-[#9CA3AF] mt-0.5">{p.category || "—"} · Stok: <strong className="text-[#072C2C]">{p.stock} {p.unit}</strong></p>
+                          </div>
+                          <span className={`flex-shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.text}`}>
+                            {cfg.label}
+                          </span>
+                        </div>
+                        {/* Info row */}
+                        <div className="flex items-center gap-4 mt-1.5">
+                          <div className="text-[10px]">
+                            <span className="text-[#9CA3AF]">Exp: </span>
+                            <span className="text-[#072C2C] font-medium">{new Date(p.expiry_date).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                          </div>
+                          <div className="text-[10px]">
+                            <span className="text-[#9CA3AF]">Sisa: </span>
+                            <span className={`font-bold ${p.daysLeft <= 0 ? "text-[#DC2626]" : p.daysLeft < 7 ? "text-[#DC2626]" : "text-[#F97316]"}`}>
+                              {p.daysLeft <= 0 ? "EXPIRED" : `${p.daysLeft} hari`}
+                            </span>
+                          </div>
+                          <div className="text-[10px]">
+                            <span className="text-[#9CA3AF]">Kerugian: </span>
+                            <span className="font-bold text-[#DC2626] font-mono">{formatCurrency(p.potentialLoss)}</span>
+                          </div>
+                        </div>
+                        {/* Progress bar */}
+                        <div className="mt-2 h-[3px] bg-[#F0EEE8] rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${p.status === "kritis" || p.status === "expired" ? "bg-[#DC2626]" : p.status === "waspada" ? "bg-[#F97316]" : "bg-[#EAB308]"}`}
+                            style={{ width: `${progressPct}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Footer */}
+            {expiringProducts.length > 5 && (
+              <div className="px-3.5 py-2.5 border-t border-[#D9D6C8] bg-[#FAFAF8] text-center">
+                <a href="/reports" className="text-[10px] font-semibold text-[#FF5F03] hover:underline cursor-pointer">
+                  Lihat semua {expiringProducts.length} produk →
+                </a>
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
