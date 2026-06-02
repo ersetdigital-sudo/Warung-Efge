@@ -38,13 +38,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setRole(data.role);
       setUserName(data.name);
     } else if (email) {
-      // User exists in Auth but not in users table — auto-insert as owner (first user) or cashier
-      const { count } = await supabase.from("users").select("*", { count: "exact", head: true });
-      const defaultRole = (count === 0) ? "owner" : "cashier";
-      const defaultName = email.split("@")[0];
-      await supabase.from("users").insert({ id: userId, name: defaultName, email, role: defaultRole, is_active: true });
-      setRole(defaultRole);
-      setUserName(defaultName);
+      // User exists in Auth but not in users table — block login, sign out
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+      setRole(null);
+      setUserName(null);
     }
   };
 
