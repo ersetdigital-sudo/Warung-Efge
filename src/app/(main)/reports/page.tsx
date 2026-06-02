@@ -404,16 +404,34 @@ export default function ReportsPage() {
                 <tbody>
                   {filteredTransactions.length === 0 && <tr><td colSpan={6} className="text-center py-8 text-[#9CA3AF]">Belum ada data</td></tr>}
                   {filteredTransactions.slice(0, 12).map((t, i) => {
-                    const pmLabel = t.payment_method === "cash" ? "Tunai" : t.payment_method === "qris" ? "QRIS" : t.payment_method === "transfer" ? "Transfer" : "EDC";
-                    const pmColor = t.payment_method === "cash" ? "success" : t.payment_method === "qris" ? "info" : "warning";
+                    const pm = t.payment_method || "cash";
+                    const pmConfig: Record<string, { label: string; bg: string; text: string; icon: string }> = {
+                      cash: { label: "Tunai", bg: "bg-green-50", text: "text-green-700", icon: "M12 2a10 10 0 100 20 10 10 0 000-20zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z" },
+                      qris: { label: "QRIS", bg: "bg-blue-50", text: "text-blue-700", icon: "M3 3h7v7H3V3zm11 0h7v7h-7V3zM3 14h7v7H3v-7zm14 3h3v3h-3v-3zm-3-3h3v3h-3v-3zm3 0h3v3h-3v-3z" },
+                      transfer: { label: "Transfer", bg: "bg-purple-50", text: "text-purple-700", icon: "M3 10h18M3 6h18M3 14h18M3 18h18" },
+                      edc: { label: "EDC", bg: "bg-amber-50", text: "text-amber-700", icon: "M2 5a2 2 0 012-2h16a2 2 0 012 2v14a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm4 4h12m-12 4h8" },
+                    };
+                    const cfg = pmConfig[pm] || pmConfig.cash;
                     return (
                       <tr key={t.id} className="border-b border-[#D9D6C8] hover:bg-[#FAFAF8]">
                         <td className="px-3 py-2 font-mono text-[#9CA3AF] text-[10px]">{t.transaction_number}</td>
-                        <td className="px-3 py-2"><div className="flex items-center gap-2"><div className="w-6 h-6 bg-[#FF5F03] rounded-full flex items-center justify-center text-white text-[8px] font-bold">{(t.cashier || "?")[0]}</div><span className="text-[11px]">{t.cashier || "–"}</span></div></td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 bg-gradient-to-br from-[#FF5F03] to-[#e05500] rounded-full flex items-center justify-center text-white text-[9px] font-bold shadow-sm">
+                              {(t.cashier || "?").slice(0, 2).toUpperCase()}
+                            </div>
+                            <span className="text-[11px] font-medium text-[#072C2C]">{t.cashier || "–"}</span>
+                          </div>
+                        </td>
                         <td className="px-3 py-2 text-[11px] text-[#4B5563]">{t.created_at ? `${formatDate(t.created_at)} ${new Date(t.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}` : "–"}</td>
-                        <td className="px-3 py-2"><Badge variant={pmColor}>{pmLabel}</Badge></td>
-                        <td className="px-3 py-2 text-right font-mono font-bold">{formatCurrency(t.total)}</td>
-                        <td className="px-3 py-2"><Badge variant="success">Selesai</Badge></td>
+                        <td className="px-3 py-2">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${cfg.bg} ${cfg.text}`}>
+                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={cfg.icon} /></svg>
+                            {cfg.label}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono font-bold text-[#072C2C]">{formatCurrency(t.total)}</td>
+                        <td className="px-3 py-2"><span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-green-50 text-green-600"><svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>Selesai</span></td>
                       </tr>
                     );
                   })}
