@@ -76,10 +76,11 @@ export async function getDebtPayments(customerId?: string) {
 // ============ TRANSACTIONS ============
 export async function addTransaction(trx: Record<string, unknown>, items: Record<string, unknown>[]) {
   const { data, error } = await supabase.from("transactions").insert(trx).select().single();
-  if (error) { console.error("addTransaction error:", error); return null; }
+  if (error) { console.error("addTransaction error:", error.message, error.details, error.hint, "Data:", JSON.stringify(trx)); return null; }
   if (data && items.length > 0) {
     const itemsWithTrxId = items.map(i => ({ ...i, transaction_id: data.id }));
-    await supabase.from("transaction_items").insert(itemsWithTrxId);
+    const { error: itemsError } = await supabase.from("transaction_items").insert(itemsWithTrxId);
+    if (itemsError) console.error("addTransaction items error:", itemsError.message, itemsError.details);
   }
   return data;
 }
