@@ -86,10 +86,34 @@ export function generateReceiptPDF(data: ReceiptData, action: "download" | "open
 </body>
 </html>`;
 
-  // Open in new tab/window
+  // Try opening new window first, fallback to iframe approach for mobile
   const newWindow = window.open("", "_blank");
   if (newWindow) {
     newWindow.document.write(html);
     newWindow.document.close();
+  } else {
+    // Fallback: create fullscreen iframe overlay (pop-up blocked)
+    const overlay = document.createElement("div");
+    overlay.id = "receipt-overlay";
+    overlay.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.8);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:16px;overflow-y:auto;";
+    
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "width:100%;max-width:320px;height:auto;min-height:500px;border:none;border-radius:12px;background:white;flex-shrink:0;";
+    iframe.srcdoc = html;
+    
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "✕ Tutup";
+    closeBtn.style.cssText = "margin-top:12px;padding:10px 24px;background:#FF5F03;color:white;border:none;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;";
+    closeBtn.onclick = () => document.body.removeChild(overlay);
+    
+    const printBtn = document.createElement("button");
+    printBtn.textContent = "🖨️ Cetak";
+    printBtn.style.cssText = "margin-top:8px;padding:10px 24px;background:#072C2C;color:white;border:none;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;";
+    printBtn.onclick = () => { iframe.contentWindow?.print(); };
+    
+    overlay.appendChild(iframe);
+    overlay.appendChild(printBtn);
+    overlay.appendChild(closeBtn);
+    document.body.appendChild(overlay);
   }
 }
