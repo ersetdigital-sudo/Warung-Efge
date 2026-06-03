@@ -235,7 +235,8 @@ export default function POSPage() {
   const getCartCountForProduct = (productId: string) => cart.filter(i => i.productId === productId).reduce((sum, i) => sum + i.quantity, 0);
 
   const handlePayment = async () => {
-    const trxData = { transaction_number: trxId, subtotal, discount: calculatedDiscount, total, payment_method: paymentMethod, amount_paid: Number(amountPaid) || 0, change_amount: change > 0 ? change : 0, is_debt: paymentMethod === "bon", cashier: userName || "Kasir", customer_name: paymentMethod === "bon" ? bonCustomerName : null };
+    const trxData: Record<string, unknown> = { transaction_number: trxId, subtotal, discount: calculatedDiscount, total, payment_method: paymentMethod, amount_paid: Number(amountPaid) || 0, change_amount: change > 0 ? change : 0, is_debt: paymentMethod === "bon", cashier: userName || "Kasir" };
+    if (paymentMethod === "bon" && bonCustomerName) trxData.customer_name = bonCustomerName;
     const items = cart.map(item => ({ product_id: item.productId, product_name: item.name, quantity: item.quantity, unit: item.unit, price: item.price, subtotal: item.subtotal }));
     await addTransaction(trxData, items);
 
