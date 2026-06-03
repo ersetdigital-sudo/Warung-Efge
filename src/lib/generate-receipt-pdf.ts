@@ -12,7 +12,7 @@ export interface ReceiptData {
   change: number;
 }
 
-const fmtRp = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
+const fmtRp = (n: number) => `Rp ${(n || 0).toLocaleString("id-ID")}`;
 
 export function generateReceiptPDF(data: ReceiptData, action: "download" | "open" = "download") {
   const items = data.items.map(item => `

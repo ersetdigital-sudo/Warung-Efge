@@ -266,6 +266,9 @@ export default function POSPage() {
       items: cart.map(item => ({ name: item.name, quantity: item.quantity, unit: item.unit, price: item.price, subtotal: item.subtotal })),
       subtotal, discount: calculatedDiscount, total,
       method: paymentMethod === "cash" ? "Tunai" : paymentMethod === "transfer" ? "Transfer" : paymentMethod === "edc" ? "EDC" : paymentMethod === "bon" ? "Bon/Hutang" : "QRIS",
+      paid: Number(amountPaid) || 0,
+      change: change > 0 ? change : 0,
+      trxId,
     });
     setShowReceipt(true); setShowCart(false);
   };
@@ -285,17 +288,17 @@ export default function POSPage() {
         paid: Number(amountPaid) || 0, change: change > 0 ? change : 0, trxId,
       };
       generateReceiptPDF({
-        storeName: storeSettings.store_name || "WARUNG EFGE",
+        storeName: storeSettings.store_name || storeSettings.store_name || "WARUNG EFGE",
         cashier: userName || "Kasir",
         trxId: data.trxId || trxId,
         date: dateStr,
-        items: data.items,
-        subtotal: data.subtotal,
-        discount: data.discount,
-        total: data.total,
-        method: data.method,
-        paid: data.paid,
-        change: data.change,
+        items: data.items || [],
+        subtotal: data.subtotal || 0,
+        discount: data.discount || 0,
+        total: data.total || 0,
+        method: data.method || "Tunai",
+        paid: data.paid || 0,
+        change: data.change || 0,
       }, action);
       setShowReceipt(false);
       setLastReceiptData(null);
