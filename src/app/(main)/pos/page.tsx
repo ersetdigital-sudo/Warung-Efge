@@ -352,15 +352,15 @@ export default function POSPage() {
           </div>
           {/* Categories - sticky */}
           <div className="flex-shrink-0 px-3 lg:px-4 pb-2">
-            <div className="flex gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-              <button onClick={() => setSelectedCategory("")} className={`flex-shrink-0 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap cursor-pointer ${!selectedCategory ? "bg-[#072C2C] text-white" : "bg-white text-[#072C2C]/70 border border-[#072C2C]/10"}`}>Semua</button>
-              {categories.map((cat) => <button key={cat.id} onClick={() => setSelectedCategory(cat.name)} className={`flex-shrink-0 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap cursor-pointer ${selectedCategory === cat.name ? "bg-[#072C2C] text-white" : "bg-white text-[#072C2C]/70 border border-[#072C2C]/10"}`}>{cat.name}</button>)}
+            <div className="flex flex-wrap gap-1.5 max-h-[72px] overflow-y-auto lg:max-h-none" style={{ scrollbarWidth: "thin" }}>
+              <button onClick={() => setSelectedCategory("")} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap cursor-pointer transition-all ${!selectedCategory ? "bg-[#072C2C] text-white shadow-sm" : "bg-white text-[#072C2C]/70 border border-[#072C2C]/10 hover:border-[#072C2C]/30"}`}>📋 Semua</button>
+              {categories.map((cat) => <button key={cat.id} onClick={() => setSelectedCategory(cat.name)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap cursor-pointer transition-all ${selectedCategory === cat.name ? "bg-[#072C2C] text-white shadow-sm" : "bg-white text-[#072C2C]/70 border border-[#072C2C]/10 hover:border-[#072C2C]/30"}`}>{getEmoji(cat.name)} {cat.name}</button>)}
             </div>
           </div>
 
           {/* Product Grid - scrolls independently */}
           <div className="flex-1 overflow-y-auto px-3 lg:px-4 pb-24 lg:pb-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-3">
               {filteredProducts.map((product) => {
                 const cartCount = getCartCountForProduct(product.id);
                 const units = getProductUnits(product);
