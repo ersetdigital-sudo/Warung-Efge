@@ -3,8 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Search, Plus, Minus, Trash2, ShoppingCart, CreditCard, QrCode, Banknote, ScanBarcode, AlertTriangle, RotateCcw, X, Check, Smartphone } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import { categories } from "@/data/mock-data";
-import { getProductsWithUnits, addTransaction, addStockMovement, getStoreSettings } from "@/lib/db";
+import { getProductsWithUnits, addTransaction, addStockMovement, getStoreSettings, getCategories } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { generateReceiptPDF } from "@/lib/generate-receipt-pdf";
@@ -55,6 +54,7 @@ export default function POSPage() {
   const [trxId, setTrxId] = useState(() => `TRX-${String(Math.floor(Math.random() * 9000) + 1000)}`);
   const receiptRef = useRef<HTMLDivElement>(null);
   const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [successToast, setSuccessToast] = useState("");
   const [stockError, setStockError] = useState("");
   const [todayTrxCount, setTodayTrxCount] = useState(0);
@@ -64,6 +64,7 @@ export default function POSPage() {
     const load = () => { getProductsWithUnits().then(setProducts); };
     load();
     getStoreSettings().then(setStoreSettings);
+    getCategories().then(setCategories);
     // Load customers for bon payment
     supabase.from("customers").select("id, name, debt").order("name").then(({ data }) => setCustomers(data || []));
     window.addEventListener("focus", load);
