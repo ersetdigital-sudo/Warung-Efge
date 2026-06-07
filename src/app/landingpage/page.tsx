@@ -83,7 +83,7 @@ export default function LandingPage() {
             <div className="w-8 h-8 bg-[#FF5F03] rounded-lg flex items-center justify-center">
               <Store className="w-4 h-4 text-white" />
             </div>
-            <span className="font-[Oswald] text-white font-bold text-lg tracking-wide">WARUNG EFGE</span>
+            <span className="font-[Oswald] text-white font-bold text-lg tracking-wide">NEXO POS</span>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -108,18 +108,18 @@ export default function LandingPage() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full mb-6">
             <Zap className="w-3.5 h-3.5 text-[#FF5F03]" />
-            <span className="text-xs text-white/70 font-medium">Sistem POS Modern untuk Warung & Toko Kelontong</span>
+            <span className="text-xs text-white/70 font-medium">Sistem POS & Inventory Modern untuk UMKM Indonesia</span>
           </div>
 
           <h1 className="font-[Oswald] text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight tracking-tight mb-5">
-            Kelola Warung Jadi{" "}
+            Kelola Bisnis Jadi{" "}
             <span className="text-[#FF5F03]">Lebih Mudah</span>
             <br className="hidden sm:block" /> & Profesional
           </h1>
 
           <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto mb-8 leading-relaxed">
             Dari kasir, stok barang, sampai laporan keuangan — semua dalam satu aplikasi. 
-            Dibangun khusus untuk warung dan toko kelontong Indonesia.
+            Solusi POS lengkap untuk UMKM & toko retail Indonesia.
           </p>
 
           {/* CTA Buttons */}
@@ -151,7 +151,7 @@ export default function LandingPage() {
                 <div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
                 <div className="flex-1 mx-8">
                   <div className="h-4 bg-white/10 rounded-md max-w-xs mx-auto flex items-center justify-center">
-                    <span className="text-[9px] text-white/40 font-mono">warung-efge.vercel.app/dashboard</span>
+                    <span className="text-[9px] text-white/40 font-mono">nexopos.app/dashboard</span>
                   </div>
                 </div>
               </div>
@@ -201,7 +201,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10 sm:mb-14">
             <h2 className="font-[Oswald] text-2xl sm:text-3xl font-bold text-white mb-3">Fitur Lengkap, Mudah Dipakai</h2>
-            <p className="text-white/40 max-w-lg mx-auto">Semua yang dibutuhkan untuk mengelola warung modern — dalam satu platform.</p>
+            <p className="text-white/40 max-w-lg mx-auto">Semua yang dibutuhkan untuk mengelola bisnis retail modern — dalam satu platform.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -256,9 +256,9 @@ export default function LandingPage() {
             <div className="w-6 h-6 bg-[#FF5F03] rounded-md flex items-center justify-center">
               <Store className="w-3 h-3 text-white" />
             </div>
-            <span className="font-[Oswald] text-white/60 font-medium text-sm">WARUNG EFGE</span>
+            <span className="font-[Oswald] text-white/60 font-medium text-sm">NEXO POS</span>
           </div>
-          <p className="text-xs text-white/30">&copy; 2024 Warung Efge. Built with Next.js & Supabase.</p>
+          <p className="text-xs text-white/30">&copy; 2024 Nexo POS. Built with Next.js & Supabase.</p>
         </div>
       </footer>
     </div>

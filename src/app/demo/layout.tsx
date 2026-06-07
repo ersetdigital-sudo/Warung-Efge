@@ -87,7 +87,7 @@ function DemoSidebar({ isOpen, onClose, collapsed, onToggleCollapse }: { isOpen:
                 <Store className="w-4 h-4 text-white" />
               </div>
               <div className="overflow-hidden">
-                <h1 className="text-sm font-bold text-white leading-tight font-[Oswald] whitespace-nowrap">WARUNG EFGE</h1>
+                <h1 className="text-sm font-bold text-white leading-tight font-[Oswald] whitespace-nowrap">NEXO POS</h1>
                 <p className="text-[9px] text-[#FF5F03]/80 leading-none whitespace-nowrap font-medium">MODE DEMO</p>
               </div>
             </Link>
