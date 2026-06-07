@@ -14,48 +14,74 @@ import {
   Shield,
   Zap,
   ChevronRight,
+  Clock,
+  AlertTriangle,
+  Bell,
+  CheckCircle,
+  Layers,
+  Wifi,
 } from "lucide-react";
 
 const features = [
   {
     icon: ShoppingCart,
-    title: "Kasir (POS)",
-    desc: "Proses transaksi cepat dengan barcode scanner, multi-unit, dan berbagai metode pembayaran.",
+    title: "Kasir Digital Instan",
+    desc: "Scan barcode, pilih produk, langsung bayar. Support tunai, QRIS, transfer, EDC, dan sistem bon/hutang.",
+  },
+  {
+    icon: Layers,
+    title: "Multi-Satuan Otomatis",
+    desc: "Jual per Slop, Bungkus, atau Batang — stok & harga terkonversi otomatis antar satuan.",
   },
   {
     icon: Package,
-    title: "Manajemen Stok",
-    desc: "Pantau stok real-time, alert stok menipis, dan pencatatan stock opname otomatis.",
+    title: "Stok Real-Time",
+    desc: "Pantau stok semua produk. Dapat peringatan otomatis saat barang menipis atau hampir habis.",
   },
   {
-    icon: BarChart3,
-    title: "Dashboard & Laporan",
-    desc: "Grafik pendapatan, produk terlaris, metode bayar populer — semua dalam satu tampilan.",
+    icon: Bell,
+    title: "Pengingat Kadaluarsa",
+    desc: "Notifikasi WhatsApp otomatis sebelum produk expired. Hindari kerugian dari barang terbuang.",
   },
   {
     icon: Users,
-    title: "Pelanggan & Hutang",
-    desc: "Kelola data pelanggan, sistem bon/hutang, dan pembayaran cicilan dengan mudah.",
+    title: "Hutang & Cicilan",
+    desc: "Catat bon pelanggan & hutang supplier. Tracking pembayaran cicilan dengan riwayat lengkap.",
+  },
+  {
+    icon: BarChart3,
+    title: "Laporan Otomatis",
+    desc: "Dashboard penjualan harian, mingguan, bulanan. Tahu produk terlaris & metode bayar favorit.",
   },
   {
     icon: Receipt,
-    title: "Cetak Struk PDF",
-    desc: "Generate struk penjualan otomatis dalam format PDF, siap print thermal.",
+    title: "Cetak Struk Otomatis",
+    desc: "Generate struk PDF siap print. Compatible dengan printer thermal 58mm standar warung.",
   },
   {
     icon: Shield,
     title: "Multi-User & Role",
-    desc: "Sistem login aman dengan role Owner, Admin, dan Kasir — akses sesuai kebutuhan.",
+    desc: "Pisahkan akses Owner, Admin, dan Kasir. Setiap user hanya bisa akses fitur sesuai rolenya.",
+  },
+  {
+    icon: Wifi,
+    title: "Akses dari Mana Saja",
+    desc: "Berbasis web — buka dari HP, tablet, atau laptop. Tidak perlu install aplikasi apapun.",
   },
 ];
 
-const techStack = [
-  { name: "Next.js 15", color: "#000" },
-  { name: "React 19", color: "#61DAFB" },
-  { name: "TypeScript", color: "#3178C6" },
-  { name: "Tailwind CSS", color: "#06B6D4" },
-  { name: "Supabase", color: "#3ECF8E" },
-  { name: "Recharts", color: "#FF7300" },
+const problems = [
+  { emoji: "📝", text: "Masih catat penjualan di buku tulis?" },
+  { emoji: "😰", text: "Stok sering selisih atau tiba-tiba habis?" },
+  { emoji: "💸", text: "Produk expired tanpa disadari?" },
+  { emoji: "🤷", text: "Bingung untung atau rugi tiap bulan?" },
+  { emoji: "📋", text: "Hutang pelanggan sering lupa dicatat?" },
+];
+
+const testimonials = [
+  { name: "Bu Siti", role: "Pemilik Toko Kelontong", text: "Sekarang ngga perlu pusing itung stok manual. Semua otomatis, tinggal lihat di HP." },
+  { name: "Pak Ahmad", role: "Minimarket", text: "Fitur bon pelanggan sangat membantu. Dulu sering lupa siapa yang hutang berapa." },
+  { name: "Deni", role: "Toko Sembako", text: "Yang paling berguna itu pengingat expired. Sudah berkali-kali selamat dari rugi." },
 ];
 
 export default function LandingPage() {
@@ -90,7 +116,7 @@ export default function LandingPage() {
               onClick={() => router.push("/demo/dashboard")}
               className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 text-sm text-white/70 hover:text-white font-medium transition-colors cursor-pointer"
             >
-              Coba Demo
+              Coba Gratis
             </button>
             <button
               onClick={() => router.push("/login")}
@@ -106,45 +132,64 @@ export default function LandingPage() {
       <section className="pt-28 pb-16 sm:pt-36 sm:pb-24 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#FF5F03]/10 border border-[#FF5F03]/20 rounded-full mb-6">
             <Zap className="w-3.5 h-3.5 text-[#FF5F03]" />
-            <span className="text-xs text-white/70 font-medium">Sistem POS & Inventory Modern untuk UMKM Indonesia</span>
+            <span className="text-xs text-[#FF5F03] font-bold">Aplikasi Kasir #1 untuk Warung & Toko Kelontong</span>
           </div>
 
           <h1 className="font-[Oswald] text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight tracking-tight mb-5">
-            Kelola Bisnis Jadi{" "}
-            <span className="text-[#FF5F03]">Lebih Mudah</span>
-            <br className="hidden sm:block" /> & Profesional
+            Warung Naik Kelas,{" "}
+            <br className="hidden sm:block" />
+            Omzet Naik{" "}
+            <span className="text-[#FF5F03]">Berkali Lipat</span>
           </h1>
 
-          <p className="text-base sm:text-lg text-white/50 max-w-2xl mx-auto mb-8 leading-relaxed">
-            Dari kasir, stok barang, sampai laporan keuangan — semua dalam satu aplikasi. 
-            Solusi POS lengkap untuk UMKM & toko retail Indonesia.
+          <p className="text-base sm:text-lg text-white/60 max-w-2xl mx-auto mb-8 leading-relaxed">
+            Sistem kasir lengkap yang bikin toko lo lebih rapi, stok terkontrol, dan keuangan jelas. 
+            Tinggal pakai — <strong className="text-white/80">tanpa ribet setting</strong>.
           </p>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <button
               onClick={() => router.push("/demo/dashboard")}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 bg-[#FF5F03] text-white font-bold rounded-xl hover:bg-[#e55503] hover:scale-[1.02] transition-all shadow-lg shadow-[#FF5F03]/20 cursor-pointer"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-4 bg-[#FF5F03] text-white font-bold text-base rounded-xl hover:bg-[#e55503] hover:scale-[1.02] transition-all shadow-lg shadow-[#FF5F03]/25 cursor-pointer"
             >
-              <Smartphone className="w-4 h-4" />
-              Coba Demo Langsung
-              <ArrowRight className="w-4 h-4" />
+              <Smartphone className="w-5 h-5" />
+              Coba Gratis Sekarang
+              <ArrowRight className="w-5 h-5" />
             </button>
             <button
-              onClick={() => router.push("/login")}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 bg-white/5 border border-white/15 text-white font-medium rounded-xl hover:bg-white/10 transition-all cursor-pointer"
+              onClick={() => {
+                const el = document.getElementById("fitur");
+                el?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-7 py-4 bg-white/5 border border-white/15 text-white font-medium rounded-xl hover:bg-white/10 transition-all cursor-pointer"
             >
-              Login Admin
+              Lihat Fitur Lengkap
               <ChevronRight className="w-4 h-4 text-white/50" />
             </button>
+          </div>
+
+          {/* Social proof */}
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 text-sm text-white/40">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle className="w-4 h-4 text-[#16A34A]" />
+              <span>Tanpa install aplikasi</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle className="w-4 h-4 text-[#16A34A]" />
+              <span>Langsung pakai dari HP</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle className="w-4 h-4 text-[#16A34A]" />
+              <span>Support printer thermal</span>
+            </div>
           </div>
 
           {/* Preview mockup */}
           <div className="mt-12 sm:mt-16 relative">
             <div className="relative mx-auto max-w-4xl rounded-xl overflow-hidden border border-white/10 shadow-2xl shadow-black/30 bg-[#EDEADE]">
-              {/* Fake browser bar */}
               <div className="h-8 bg-[#1a1a1a] flex items-center px-3 gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
                 <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
@@ -155,7 +200,6 @@ export default function LandingPage() {
                   </div>
                 </div>
               </div>
-              {/* Fake dashboard content */}
               <div className="p-4 sm:p-6">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4">
                   {[
@@ -172,7 +216,6 @@ export default function LandingPage() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-[2fr_1fr] gap-3">
                   <div className="bg-white rounded-lg p-3 border border-[#D9D6C8] h-24 sm:h-32 flex items-end">
-                    {/* Fake chart bars */}
                     <div className="flex items-end gap-1.5 w-full h-full pt-4">
                       {[40, 65, 45, 80, 55, 90, 70].map((h, i) => (
                         <div key={i} className="flex-1 flex flex-col justify-end h-full">
@@ -184,24 +227,43 @@ export default function LandingPage() {
                     </div>
                   </div>
                   <div className="bg-white rounded-lg p-3 border border-[#D9D6C8] hidden sm:flex items-center justify-center">
-                    {/* Fake donut */}
                     <div className="w-20 h-20 rounded-full border-[8px] border-[#FF5F03] border-t-[#072C2C] border-r-[#D97706]" />
                   </div>
                 </div>
               </div>
             </div>
-            {/* Glow effect */}
             <div className="absolute -inset-4 bg-[#FF5F03]/5 rounded-3xl blur-3xl -z-10" />
           </div>
         </div>
       </section>
 
+      {/* Problem Section */}
+      <section className="py-16 sm:py-20 px-4 sm:px-6 bg-[#051f1f]">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="font-[Oswald] text-2xl sm:text-3xl font-bold text-white mb-3">Masih Ngalamin Ini?</h2>
+            <p className="text-white/40">Kalau salah satu aja iya, berarti toko lo butuh upgrade.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {problems.map((p, i) => (
+              <div key={i} className="flex items-center gap-3 p-4 bg-white/[0.03] border border-white/[0.08] rounded-xl">
+                <span className="text-2xl">{p.emoji}</span>
+                <span className="text-sm text-white/70 font-medium">{p.text}</span>
+              </div>
+            ))}
+          </div>
+          <div className="text-center mt-8">
+            <p className="text-white/50 text-sm">Semua masalah di atas <strong className="text-[#FF5F03] font-bold">bisa diselesaikan</strong> dengan satu aplikasi 👇</p>
+          </div>
+        </div>
+      </section>
+
       {/* Features */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6 bg-[#051f1f]">
+      <section id="fitur" className="py-16 sm:py-24 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10 sm:mb-14">
-            <h2 className="font-[Oswald] text-2xl sm:text-3xl font-bold text-white mb-3">Fitur Lengkap, Mudah Dipakai</h2>
-            <p className="text-white/40 max-w-lg mx-auto">Semua yang dibutuhkan untuk mengelola bisnis retail modern — dalam satu platform.</p>
+            <h2 className="font-[Oswald] text-2xl sm:text-3xl font-bold text-white mb-3">Semua yang Toko Lo Butuhkan</h2>
+            <p className="text-white/40 max-w-lg mx-auto">Fitur lengkap, tapi tetap gampang dipake. Ngga perlu jago IT.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -218,15 +280,25 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Tech Stack */}
-      <section className="py-12 sm:py-16 px-4 sm:px-6 border-t border-white/5">
-        <div className="max-w-6xl mx-auto text-center">
-          <p className="text-xs text-white/30 uppercase tracking-widest font-medium mb-5">Dibangun dengan</p>
-          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-            {techStack.map((tech) => (
-              <div key={tech.name} className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg">
-                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: tech.color }} />
-                <span className="text-xs text-white/60 font-medium">{tech.name}</span>
+      {/* Testimonials */}
+      <section className="py-16 sm:py-20 px-4 sm:px-6 bg-[#051f1f]">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="font-[Oswald] text-2xl sm:text-3xl font-bold text-white mb-3">Kata Mereka yang Sudah Pakai</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {testimonials.map((t) => (
+              <div key={t.name} className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-5">
+                <p className="text-sm text-white/60 leading-relaxed mb-4 italic">&ldquo;{t.text}&rdquo;</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-[#FF5F03]/20 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-bold text-[#FF5F03]">{t.name[0]}</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white">{t.name}</p>
+                    <p className="text-xs text-white/40">{t.role}</p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -236,16 +308,17 @@ export default function LandingPage() {
       {/* CTA Bottom */}
       <section className="py-16 sm:py-20 px-4 sm:px-6">
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="font-[Oswald] text-2xl sm:text-3xl font-bold text-white mb-4">Lihat Langsung Cara Kerjanya</h2>
-          <p className="text-white/40 mb-8">Coba mode demo — tanpa perlu akun, tanpa perlu setup apa-apa. Langsung explore semua fitur.</p>
+          <h2 className="font-[Oswald] text-2xl sm:text-3xl font-bold text-white mb-4">Siap Upgrade Toko Lo?</h2>
+          <p className="text-white/50 mb-8">Coba dulu gratis — tanpa kartu kredit, tanpa ribet. Langsung rasain bedanya.</p>
           <button
             onClick={() => router.push("/demo/dashboard")}
             className="inline-flex items-center gap-2 px-8 py-4 bg-[#FF5F03] text-white font-bold text-base rounded-xl hover:bg-[#e55503] hover:scale-[1.02] transition-all shadow-lg shadow-[#FF5F03]/25 cursor-pointer"
           >
             <Smartphone className="w-5 h-5" />
-            Masuk Mode Demo
+            Coba Gratis Sekarang
             <ArrowRight className="w-5 h-5" />
           </button>
+          <p className="text-xs text-white/30 mt-4">Langsung bisa dipakai dalam 5 menit. Serius.</p>
         </div>
       </section>
 
@@ -258,7 +331,7 @@ export default function LandingPage() {
             </div>
             <span className="font-[Oswald] text-white/60 font-medium text-sm">NEXO POS</span>
           </div>
-          <p className="text-xs text-white/30">&copy; 2024 Nexo POS. Built with Next.js & Supabase.</p>
+          <p className="text-xs text-white/30">&copy; 2024 Nexo POS. Aplikasi Kasir untuk UMKM Indonesia.</p>
         </div>
       </footer>
     </div>
