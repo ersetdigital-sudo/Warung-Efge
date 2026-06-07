@@ -21,6 +21,9 @@ import {
   LogOut,
   Menu,
   Info,
+  UserCircle,
+  Settings,
+  BookOpen,
 } from "lucide-react";
 
 const SIDEBAR_KEY = "warung-efge-demo-sidebar-collapsed";
@@ -35,6 +38,9 @@ const menuItems = [
   { href: "/demo/suppliers", icon: Truck, label: "Supplier" },
   { href: "/demo/customers", icon: Users, label: "Pelanggan" },
   { href: "/demo/reports", icon: BarChart3, label: "Laporan" },
+  { href: "/demo/users", icon: UserCircle, label: "Pengguna" },
+  { href: "/demo/settings", icon: Settings, label: "Pengaturan" },
+  { href: "/demo/tutorial", icon: BookOpen, label: "Tutorial" },
 ];
 
 function NavTooltip({ label, show }: { label: string; show: boolean }) {
